@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トト相撲 ONLINE — 大相撲予想ゲーム</title>
+<style>
+:root {
+  --maroon: #5c1a1a; --maroon-d: #421111; --gold: #c9a227; --gold-l: #e8d48b;
+  --washi: #f7f2e4; --washi-d: #ece3cc; --ink: #2b2320; --red: #b3261e;
+  --green: #2e7d32; --east: #8c3030; --west: #2f4a6e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  background: var(--washi); color: var(--ink);
+  background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.012) 0 2px, transparent 2px 6px);
+  min-height: 100vh;
+}
+#app { max-width: 520px; margin: 0 auto; padding-bottom: 90px; }
+button { font-family: inherit; cursor: pointer; }
+input, select { font-family: inherit; font-size: 15px; }
+
+/* ---------- ヘッダー ---------- */
+header {
+  background: linear-gradient(180deg, var(--maroon), var(--maroon-d));
+  color: var(--washi); padding: 12px 14px 10px; position: sticky; top: 0; z-index: 50;
+  border-bottom: 3px solid var(--gold); box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+.hdr-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.hdr-name { font-weight: bold; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-name .title-part { color: var(--gold-l); font-size: 13px; }
+.hdr-basho { font-size: 12px; color: var(--gold-l); white-space: nowrap; }
+.hdr-mid { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.hdr-points { font-size: 22px; font-weight: bold; color: var(--gold-l); letter-spacing: 1px; }
+.hdr-points small { font-size: 12px; color: var(--washi); }
+.hdr-rank { font-size: 12px; text-align: right; }
+.progress-wrap { background: rgba(0,0,0,.4); border-radius: 6px; height: 8px; margin-top: 6px; overflow: hidden; }
+.progress-bar { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-l)); border-radius: 6px; transition: width .5s; }
+.progress-label { font-size: 10px; color: var(--gold-l); margin-top: 2px; text-align: right; }
+
+/* ---------- タブ ---------- */
+nav { display: flex; background: var(--maroon-d); position: sticky; top: 86px; z-index: 49; border-bottom: 2px solid var(--gold); }
+nav button {
+  flex: 1; padding: 11px 4px; background: none; border: none; color: #cdb9a5;
+  font-size: 14px; font-weight: bold; border-bottom: 3px solid transparent;
+}
+nav button.active { color: var(--gold-l); border-bottom-color: var(--gold); background: rgba(255,255,255,.05); }
+
+main { padding: 12px; }
+.section-title { font-size: 15px; font-weight: bold; border-left: 4px solid var(--maroon); padding-left: 8px; margin: 14px 0 8px; }
+
+/* ---------- 取組カード ---------- */
+.day-banner {
+  background: var(--maroon); color: var(--gold-l); text-align: center; padding: 8px;
+  border-radius: 8px; font-weight: bold; font-size: 15px; margin-bottom: 10px;
+  border: 1px solid var(--gold);
+}
+.bout-card {
+  background: #fff; border: 1px solid #d8cdb4; border-radius: 10px; margin-bottom: 10px;
+  overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.bout-card.kensho { border: 2px solid var(--red); }
+.kensho-banner { background: var(--red); color: #fff; font-size: 11px; text-align: center; padding: 3px; font-weight: bold; }
+.bout-main { display: flex; align-items: stretch; }
+.fighter { flex: 1; padding: 10px 6px; text-align: center; border: none; background: none; position: relative; }
+.fighter:active { background: var(--washi-d); }
+.fighter.picked-east { background: linear-gradient(180deg, #fdf0f0, #f6dada); box-shadow: inset 0 0 0 2px var(--east); border-radius: 8px; }
+.fighter.picked-west { background: linear-gradient(180deg, #eef3fa, #dce6f3); box-shadow: inset 0 0 0 2px var(--west); border-radius: 8px; }
+.f-side { font-size: 10px; color: #fff; padding: 1px 8px; border-radius: 3px; display: inline-block; }
+.f-side.east { background: var(--east); } .f-side.west { background: var(--west); }
+.f-name { font-size: 17px; font-weight: bold; margin: 3px 0 1px; }
+.f-rank { font-size: 11px; color: #7a6a55; }
+.f-odds { font-size: 14px; font-weight: bold; color: var(--maroon); margin-top: 3px; }
+.f-record { font-size: 10px; color: #998; }
+.f-tag { font-size: 10px; border-radius: 3px; padding: 0 4px; display: inline-block; margin-top: 2px; }
+.tag-injured { background: #fff0e0; color: #b35900; border: 1px solid #e0b080; }
+.tag-ichimon { background: #ece4f5; color: #5b3a8c; border: 1px solid #b9a3d9; }
+.tag-oshi { background: #ffe9f0; color: #c2185b; border: 1px solid #f0a0bd; }
+.vs { display: flex; align-items: center; font-size: 12px; color: #aa9; padding: 0 2px; }
+.bet-panel { background: var(--washi-d); padding: 10px; border-top: 1px dashed #c5b890; }
+.bet-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.bet-row label { font-size: 12px; }
+.bet-row input[type=number] { width: 100px; padding: 6px; border: 1px solid #bbb; border-radius: 6px; }
+.bet-row select { padding: 6px; border: 1px solid #bbb; border-radius: 6px; }
+.bet-status { font-size: 12px; padding: 6px 10px; background: #f3ecd8; border-top: 1px solid #e0d6ba; display: flex; justify-content: space-between; align-items: center; }
+.bet-status b { color: var(--maroon); }
+
+.btn { border: none; border-radius: 8px; padding: 9px 16px; font-weight: bold; font-size: 14px; }
+.btn-primary { background: var(--maroon); color: var(--gold-l); }
+.btn-primary:disabled { background: #b5a99a; color: #eee; }
+.btn-gold { background: linear-gradient(180deg, var(--gold-l), var(--gold)); color: var(--maroon-d); border: 1px solid #a8861a; }
+.btn-ghost { background: none; border: 1px solid #b5a587; color: #6b5d49; }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-wide { width: 100%; padding: 13px; font-size: 16px; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+.bonus-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.bonus-btn {
+  flex: 1; background: #fff; border: 1.5px solid var(--gold); border-radius: 10px; padding: 10px 6px;
+  text-align: center; font-size: 13px; font-weight: bold; color: var(--maroon);
+}
+.bonus-btn:disabled { opacity: .45; border-color: #ccc; color: #999; }
+.bonus-btn .big { font-size: 18px; display: block; }
+
+/* ---------- 場所予想 ---------- */
+.card { background: #fff; border: 1px solid #d8cdb4; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+.card h3 { font-size: 15px; color: var(--maroon); margin-bottom: 8px; }
+.card .note { font-size: 12px; color: #8a7a60; margin-bottom: 8px; line-height: 1.6; }
+.form-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.form-row label { font-size: 13px; min-width: 58px; font-weight: bold; }
+.form-row select, .form-row input { flex: 1; padding: 8px; border: 1px solid #bbb; border-radius: 6px; min-width: 120px; }
+.locked-box { background: var(--washi-d); border-radius: 8px; padding: 10px; font-size: 14px; line-height: 1.8; }
+.locked-box .seal { color: var(--red); font-weight: bold; border: 2px solid var(--red); border-radius: 4px; padding: 0 6px; font-size: 11px; }
+
+/* ---------- 米取表 ---------- */
+canvas#chart { width: 100%; background: #fff; border: 1px solid #d8cdb4; border-radius: 10px; }
+table.banzuke { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d8cdb4; font-size: 12px; }
+table.banzuke th { background: var(--maroon); color: var(--gold-l); padding: 6px 4px; font-size: 12px; }
+table.banzuke td { padding: 5px 6px; border-bottom: 1px solid #eee5d0; text-align: center; }
+table.banzuke tr.me td { background: #fdf3d8; font-weight: bold; }
+.rank-chip { display: inline-block; border-radius: 3px; padding: 0 5px; font-size: 11px; color: #fff; background: #8a7a60; }
+.rank-chip.l9 { background: var(--red); } .rank-chip.l8 { background: #c2185b; }
+.rank-chip.l7 { background: #6a1b9a; } .rank-chip.l6 { background: #283593; }
+.rank-chip.l5 { background: #2e7d32; } .rank-chip.l4 { background: #8a7a60; } .rank-chip.l3 { background: #aaa; }
+
+.title-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.title-chip {
+  border: 1px solid var(--gold); border-radius: 14px; padding: 4px 10px; font-size: 12px;
+  background: #fffbe8; color: var(--maroon); font-weight: bold;
+}
+.title-chip.locked { border-color: #ccc; background: #f2f0ea; color: #b5ada0; font-weight: normal; }
+.title-chip.selected { background: var(--maroon); color: var(--gold-l); }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; }
+.stats-grid div { background: #fff; border: 1px solid #e3dac0; border-radius: 8px; padding: 8px; }
+.stats-grid b { color: var(--maroon); }
+
+/* ---------- 親方 ---------- */
+#oyakata { position: fixed; right: 10px; bottom: 12px; z-index: 60; display: flex; flex-direction: column; align-items: flex-end; max-width: 78%; }
+#oyakata-bubble {
+  background: #fff; border: 2px solid var(--maroon); border-radius: 12px; padding: 9px 12px;
+  font-size: 13px; line-height: 1.6; margin-bottom: 6px; box-shadow: 0 3px 10px rgba(0,0,0,.2);
+  display: none; position: relative;
+}
+#oyakata-bubble:after {
+  content: ""; position: absolute; bottom: -9px; right: 22px;
+  border: 6px solid transparent; border-top-color: var(--maroon);
+}
+#oyakata-face {
+  width: 54px; height: 54px; border-radius: 50%; background: var(--maroon);
+  border: 2.5px solid var(--gold); display: flex; align-items: center; justify-content: center;
+  font-size: 28px; box-shadow: 0 3px 10px rgba(0,0,0,.3); cursor: pointer; user-select: none;
+}
+
+/* ---------- モーダル ---------- */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(20,10,5,.65); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.modal {
+  background: var(--washi); border-radius: 14px; border: 2px solid var(--gold);
+  max-width: 480px; width: 100%; max-height: 86vh; overflow-y: auto; padding: 18px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.5);
+}
+.modal h2 { color: var(--maroon); font-size: 18px; text-align: center; margin-bottom: 12px; }
+.modal h2.banner { background: var(--maroon); color: var(--gold-l); padding: 8px; border-radius: 8px; }
+.result-line { display: flex; justify-content: space-between; align-items: center; padding: 7px 4px; border-bottom: 1px dashed #d8cdb4; font-size: 13.5px; }
+.result-line .km { color: #8a7a60; font-size: 11px; }
+.hit { color: var(--green); font-weight: bold; }
+.miss { color: var(--red); font-weight: bold; }
+.day-summary { background: #fff; border: 1.5px solid var(--gold); border-radius: 10px; padding: 12px; margin-top: 12px; text-align: center; font-size: 15px; }
+.day-summary .net-plus { color: var(--green); font-size: 22px; font-weight: bold; }
+.day-summary .net-minus { color: var(--red); font-size: 22px; font-weight: bold; }
+
+/* ---------- オンボーディング ---------- */
+.onb-logo { text-align: center; font-size: 34px; font-weight: bold; color: var(--maroon); letter-spacing: 6px; margin: 6px 0 2px; }
+.onb-sub { text-align: center; font-size: 12px; color: #8a7a60; margin-bottom: 16px; }
+.ichimon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ichimon-card {
+  border: 1.5px solid #c5b890; border-radius: 10px; padding: 12px 8px; background: #fff;
+  text-align: center; font-weight: bold; font-size: 15px;
+}
+.ichimon-card.sel { border-color: var(--maroon); background: var(--maroon); color: var(--gold-l); }
+
+/* ---------- トースト ---------- */
+#toast-area { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 420px; }
+.toast {
+  background: linear-gradient(180deg, #3a2c10, #241a08); color: var(--gold-l); border: 1.5px solid var(--gold);
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; font-size: 14px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.4); animation: pop .3s ease;
+}
+.toast small { color: #cbb; display: block; font-size: 11px; }
+@keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.quiz-choice { display: block; width: 100%; text-align: left; background: #fff; border: 1.5px solid #c5b890; border-radius: 8px; padding: 11px; margin-bottom: 7px; font-size: 14px; }
+.quiz-choice.correct { border-color: var(--green); background: #e8f5e9; font-weight: bold; }
+.quiz-choice.wrong { border-color: var(--red); background: #fdecea; }
+.offseason-note { background: #fff; border: 2px dashed var(--gold); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 14px; line-height: 1.9; }
+.muted { color: #8a7a60; font-size: 12px; }
+.center { text-align: center; }
+hr.wave { border: none; border-top: 2px dashed #d8cdb4; margin: 14px 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="header"></header>
+  <nav id="nav">
+    <button data-tab="torikumi" class="active">取組予想</button>
+    <button data-tab="basho">場所予想</button>
+    <button data-tab="kometori">米取表</button>
+  </nav>
+  <main>
+    <div id="tab-torikumi"></div>
+    <div id="tab-basho" style="display:none"></div>
+    <div id="tab-kometori" style="display:none"></div>
+  </main>
+</div>
+
+<div id="oyakata">
+  <div id="oyakata-bubble"></div>
+  <div id="oyakata-face" onclick="oyakataSay('greet')">👹</div>
+</div>
+
+<div id="toast-area"></div>
+<div id="modal-area"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============================================================
+// トト相撲 v2.0 — ゲームデータ
+// ============================================================
+"use strict";
+
+const ICHIMON = ["出羽海", "二所ノ関", "時津風", "伊勢ヶ濱", "高砂"];
+
+// 仮想番付（令和8年・シミュレーション用 幕内42名）
+// rank: Y=横綱 O=大関 S=関脇 K=小結 M1..M17=前頭
+const RIKISHI = [
+  { id: 1,  name: "豊昇龍",   rank: "Y",   side: "東", ichimon: "時津風" },
+  { id: 2,  name: "大の里",   rank: "Y",   side: "西", ichimon: "二所ノ関" },
+  { id: 3,  name: "琴櫻",     rank: "O",   side: "東", ichimon: "二所ノ関" },
+  { id: 4,  name: "霧島",     rank: "O",   side: "西", ichimon: "時津風" },
+  { id: 5,  name: "大栄翔",   rank: "S",   side: "東", ichimon: "出羽海" },
+  { id: 6,  name: "若元春",   rank: "S",   side: "西", ichimon: "時津風" },
+  { id: 7,  name: "阿炎",     rank: "K",   side: "東", ichimon: "出羽海" },
+  { id: 8,  name: "尊富士",   rank: "K",   side: "西", ichimon: "伊勢ヶ濱" },
+  { id: 9,  name: "宇良",     rank: "M1",  side: "東", ichimon: "出羽海" },
+  { id: 10, name: "高安",     rank: "M1",  side: "西", ichimon: "二所ノ関" },
+  { id: 11, name: "伯桜鵬",   rank: "M2",  side: "東", ichimon: "伊勢ヶ濱" },
+  { id: 12, name: "翔猿",     rank: "M2",  side: "西", ichimon: "出羽海" },
+  { id: 13, name: "御嶽海",   rank: "M3",  side: "東", ichimon: "出羽海" },
+  { id: 14, name: "王鵬",     rank: "M3",  side: "西", ichimon: "二所ノ関" },
+  { id: 15, name: "熱海富士", rank: "M4",  side: "東", ichimon: "伊勢ヶ濱" },
+  { id: 16, name: "豪ノ山",   rank: "M4",  side: "西", ichimon: "二所ノ関" },
+  { id: 17, name: "平戸海",   rank: "M5",  side: "東", ichimon: "二所ノ関" },
+  { id: 18, name: "明生",     rank: "M5",  side: "西", ichimon: "時津風" },
+  { id: 19, name: "正代",     rank: "M6",  side: "東", ichimon: "時津風" },
+  { id: 20, name: "玉鷲",     rank: "M6",  side: "西", ichimon: "二所ノ関" },
+  { id: 21, name: "隆の勝",   rank: "M7",  side: "東", ichimon: "二所ノ関" },
+  { id: 22, name: "遠藤",     rank: "M7",  side: "西", ichimon: "出羽海" },
+  { id: 23, name: "金峰山",   rank: "M8",  side: "東", ichimon: "二所ノ関" },
+  { id: 24, name: "湘南乃海", rank: "M8",  side: "西", ichimon: "高砂" },
+  { id: 25, name: "北勝富士", rank: "M9",  side: "東", ichimon: "出羽海" },
+  { id: 26, name: "翠富士",   rank: "M9",  side: "西", ichimon: "伊勢ヶ濱" },
+  { id: 27, name: "琴勝峰",   rank: "M10", side: "東", ichimon: "二所ノ関" },
+  { id: 28, name: "一山本",   rank: "M10", side: "西", ichimon: "二所ノ関" },
+  { id: 29, name: "錦木",     rank: "M11", side: "東", ichimon: "伊勢ヶ濱" },
+  { id: 30, name: "妙義龍",   rank: "M11", side: "西", ichimon: "時津風" },
+  { id: 31, name: "佐田の海", rank: "M12", side: "東", ichimon: "出羽海" },
+  { id: 32, name: "千代翔馬", rank: "M12", side: "西", ichimon: "高砂" },
+  { id: 33, name: "朝乃山",   rank: "M13", side: "東", ichimon: "高砂" },
+  { id: 34, name: "錦富士",   rank: "M13", side: "西", ichimon: "伊勢ヶ濱" },
+  { id: 35, name: "狼雅",     rank: "M14", side: "東", ichimon: "二所ノ関" },
+  { id: 36, name: "欧勝馬",   rank: "M14", side: "西", ichimon: "出羽海" },
+  { id: 37, name: "美ノ海",   rank: "M15", side: "東", ichimon: "出羽海" },
+  { id: 38, name: "竜電",     rank: "M15", side: "西", ichimon: "高砂" },
+  { id: 39, name: "時疾風",   rank: "M16", side: "東", ichimon: "時津風" },
+  { id: 40, name: "友風",     rank: "M16", side: "西", ichimon: "二所ノ関" },
+  { id: 41, name: "白熊",     rank: "M17", side: "東", ichimon: "二所ノ関" },
+  { id: 42, name: "獅司",     rank: "M17", side: "西", ichimon: "時津風" }
+];
+
+// 番付ポイント表（仕様 4.2）
+function rankPoint(rank) {
+  if (rank === "Y") return 16;
+  if (rank === "O") return 14;
+  if (rank === "S") return 12;
+  if (rank === "K") return 11;
+  const m = parseInt(rank.slice(1), 10); // M1=10 … M10=1, M11以下=0
+  return Math.max(0, 11 - m);
+}
+function rankLabel(rank) {
+  const map = { Y: "横綱", O: "大関", S: "関脇", K: "小結" };
+  return map[rank] || ("前頭" + rank.slice(1) + "枚目");
+}
+
+// 決まり手（予想対象 4.5 + 演出用）
+const KIMARITE_BET = [
+  { key: "押し出し", odds: 2.5 },
+  { key: "寄り切り", odds: 2.8 },
+  { key: "はたき込み", odds: 3.5 },
+  { key: "それ以外", odds: 4.0 }
+];
+const KIMARITE_POOL = [
+  "押し出し", "押し出し", "押し出し", "寄り切り", "寄り切り", "寄り切り", "寄り切り",
+  "はたき込み", "はたき込み", "突き落とし", "上手投げ", "下手投げ", "突き出し",
+  "引き落とし", "送り出し", "肩透かし", "小手投げ", "掬い投げ", "うっちゃり", "とったり"
+];
+
+// NPCプレイヤー（番付計算・ランキング用）
+const NPC_NAMES = [
+  "雷電丸", "猫又山", "電光石火", "豆力士", "山嵐", "桜吹雪", "鉄砲玉", "曙光",
+  "泥鰌掬", "風林火山", "大盤振舞", "札束山", "倹約家", "千秋楽好", "初日太郎",
+  "中日花子", "懸賞旗丸", "ちゃんこ命", "塩撒之介", "仕切直", "物言山", "行司泣",
+  "升席太郎", "砂被里", "向正面", "土俵際", "徳俵", "蛇の目"
+];
+
+// 三賞名
+const SANSHO = ["殊勲賞", "敢闘賞", "技能賞"];
+// 三賞オッズ（投票した時点の「終了済み日数」→倍率）仕様 5.2
+const SANSHO_ODDS = { 8: 2.5, 9: 2.3, 10: 2.1, 11: 1.9, 12: 1.7, 13: 1.5, 14: 1.2 };
+
+// ============================================================
+// 親方コメント集（仕様 10）
+// ============================================================
+const OYAKATA = {
+  greet: [
+    "おう、来たか。今日も気合い入れて予想せい！",
+    "土俵の上にゃ銭が埋まっとる。掘り起こすのはお前さんの眼力よ。",
+    "稽古は嘘をつかん。予想もまた然り、よく見て張れ。",
+    "今日の取組はどれも見ものだぞ。腰を据えてかかれ。"
+  ],
+  win: [
+    "見事な眼力だ！その調子で行け！",
+    "ようやった！わしの目に狂いはなかったわい。",
+    "大したもんだ。だが慢心は禁物だぞ。",
+    "白星おめでとうさん。米蔵が潤うのう。"
+  ],
+  lose: [
+    "なに、負けは稽古の肥やしよ。次があるわい。",
+    "土俵に泣いて土俵に笑う。下を向くな。",
+    "今日の黒星は明日の白星。切り替えていけ。",
+    "勝負は水物。わしも現役時代はよう転がされたもんだ。"
+  ],
+  ichimon: [
+    "おっ、うちの一門に張るか。義理堅いのう、色を付けといたぞ！",
+    "一門の力士を推すとは見上げた心意気だ。オッズに祝儀を乗せといた。"
+  ],
+  bankrupt: [
+    "馬鹿モン！！米蔵を空にする奴があるか！！破門にするぞ！！",
+    "なんという体たらくだ！！それでもうちの弟子か！！"
+  ],
+  okami: [
+    "（おかみさん）…まあまあ、うちの人ったら言い過ぎよ。ほら、これ内緒のお米。次は堅実にね。"
+  ],
+  kensho: [
+    "今日の懸賞一番はこの取組だ！旗の数だけ夢があるのう。"
+  ],
+  oshi: [
+    "推し力士の取組だぞ！贔屓の引き倒しにならんようにな。"
+  ],
+  yusho: [
+    "優勝予想か。場所を見通す大局観、見せてもらおうか。"
+  ],
+  quiz: [
+    "どれ、相撲の知恵比べといこうか。",
+    "知識も稽古のうち。さあ答えてみい。"
+  ],
+  senshuraku: [
+    "いよいよ千秋楽。泣いても笑ってもこれで打ち止めだ！"
+  ]
+};
+
+// ============================================================
+// 称号一覧（全95種・9カテゴリ）仕様 7
+// cond は stats / gameState を受け取って真偽を返す
+// ============================================================
+const TITLES = [
+  // --- 1. 初心者・入門編 (10) ---
+  { id: "t1_01", cat: 1, name: "新弟子の",       desc: "入門の儀を済ませる", cond: s => true },
+  { id: "t1_02", cat: 1, name: "初土俵の",       desc: "初めてベットする", cond: s => s.totalBets >= 1 },
+  { id: "t1_03", cat: 1, name: "初白星の",       desc: "初めて予想を的中させる", cond: s => s.totalHits >= 1 },
+  { id: "t1_04", cat: 1, name: "初黒星の",       desc: "初めて予想を外す", cond: s => s.totalMisses >= 1 },
+  { id: "t1_05", cat: 1, name: "序ノ口の",       desc: "通算10回ベットする", cond: s => s.totalBets >= 10 },
+  { id: "t1_06", cat: 1, name: "序二段の",       desc: "通算30回ベットする", cond: s => s.totalBets >= 30 },
+  { id: "t1_07", cat: 1, name: "三段目の",       desc: "通算100回ベットする", cond: s => s.totalBets >= 100 },
+  { id: "t1_08", cat: 1, name: "幕下の",         desc: "通算300回ベットする", cond: s => s.totalBets >= 300 },
+  { id: "t1_09", cat: 1, name: "ちゃんこ番の",   desc: "ちゃんこボーナスを初めて受け取る", cond: s => s.chankoCount >= 1 },
+  { id: "t1_10", cat: 1, name: "土俵入りの",     desc: "1日分の取組結果を最後まで見届ける", cond: s => s.daysPlayed >= 1 },
+
+  // --- 2. 連勝・的中率編 (12) ---
+  { id: "t2_01", cat: 2, name: "三連星の",       desc: "ベット3連続的中", cond: s => s.bestStreak >= 3 },
+  { id: "t2_02", cat: 2, name: "波に乗る",       desc: "ベット5連続的中", cond: s => s.bestStreak >= 5 },
+  { id: "t2_03", cat: 2, name: "無敗の",         desc: "ベット7連続的中", cond: s => s.bestStreak >= 7 },
+  { id: "t2_04", cat: 2, name: "鬼神の",         desc: "ベット10連続的中", cond: s => s.bestStreak >= 10 },
+  { id: "t2_05", cat: 2, name: "常勝の",         desc: "ベット15連続的中", cond: s => s.bestStreak >= 15 },
+  { id: "t2_06", cat: 2, name: "不滅の",         desc: "ベット20連続的中", cond: s => s.bestStreak >= 20 },
+  { id: "t2_07", cat: 2, name: "眼力の",         desc: "通算50ベット以上で的中率60%超", cond: s => s.totalBets >= 50 && s.totalHits / s.totalBets > 0.6 },
+  { id: "t2_08", cat: 2, name: "千里眼の",       desc: "通算50ベット以上で的中率70%超", cond: s => s.totalBets >= 50 && s.totalHits / s.totalBets > 0.7 },
+  { id: "t2_09", cat: 2, name: "神の眼の",       desc: "通算50ベット以上で的中率80%超", cond: s => s.totalBets >= 50 && s.totalHits / s.totalBets > 0.8 },
+  { id: "t2_10", cat: 2, name: "番狂わせの",     desc: "オッズ3倍以上を初めて的中", cond: s => s.upsetHits >= 1 },
+  { id: "t2_11", cat: 2, name: "金星集めの",     desc: "オッズ3倍以上を10回的中", cond: s => s.upsetHits >= 10 },
+  { id: "t2_12", cat: 2, name: "大金星の",       desc: "オッズ5倍以上を的中", cond: s => s.giantKillHits >= 1 },
+
+  // --- 3. 特定場面編 (11) ---
+  { id: "t3_01", cat: 3, name: "初日全勝の",     desc: "初日に5ベット以上して全的中", cond: s => s.day1Perfect >= 1 },
+  { id: "t3_02", cat: 3, name: "中日の覇者",     desc: "中日(8日目)に5ベット以上して全的中", cond: s => s.day8Perfect >= 1 },
+  { id: "t3_03", cat: 3, name: "千秋楽を制す",   desc: "千秋楽に5ベット以上して全的中", cond: s => s.day15Perfect >= 1 },
+  { id: "t3_04", cat: 3, name: "完全勝利の",     desc: "いずれかの日に10ベット以上して全的中", cond: s => s.bigPerfectDays >= 1 },
+  { id: "t3_05", cat: 3, name: "懸賞稼ぎの",     desc: "懸賞一番の取組を10回的中", cond: s => s.kenshoHits >= 10 },
+  { id: "t3_06", cat: 3, name: "推し愛の",       desc: "推し力士へのベットを10回的中", cond: s => s.oshiHits >= 10 },
+  { id: "t3_07", cat: 3, name: "一門の星",       desc: "一門力士へのベットを20回的中", cond: s => s.ichimonHits >= 20 },
+  { id: "t3_08", cat: 3, name: "判官贔屓の",     desc: "怪我明け力士へのベットを5回的中", cond: s => s.injuredHits >= 5 },
+  { id: "t3_09", cat: 3, name: "決まり手読みの", desc: "決まり手予想を10回的中", cond: s => s.kimariteHits >= 10 },
+  { id: "t3_10", cat: 3, name: "二刀流の",       desc: "同じ取組で勝敗と決まり手を両方的中", cond: s => s.doubleHits >= 1 },
+  { id: "t3_11", cat: 3, name: "横綱殺しの",     desc: "横綱戦で格下力士への賭けを5回的中", cond: s => s.yokozunaKills >= 5 },
+
+  // --- 4. 継続・参加編 (10) ---
+  { id: "t4_01", cat: 4, name: "三日土俵の",     desc: "3日分の取組に参加する", cond: s => s.daysPlayed >= 3 },
+  { id: "t4_02", cat: 4, name: "一週間皆勤の",   desc: "7日分の取組に参加する", cond: s => s.daysPlayed >= 7 },
+  { id: "t4_03", cat: 4, name: "皆勤賞の",       desc: "一場所15日間すべてベットする", cond: s => s.fullBasho >= 1 },
+  { id: "t4_04", cat: 4, name: "二場所目の",     desc: "2場所目に参加する", cond: s => s.bashoPlayed >= 2 },
+  { id: "t4_05", cat: 4, name: "三場所目の",     desc: "3場所目に参加する", cond: s => s.bashoPlayed >= 3 },
+  { id: "t4_06", cat: 4, name: "常連の",         desc: "5場所参加する", cond: s => s.bashoPlayed >= 5 },
+  { id: "t4_07", cat: 4, name: "古株の",         desc: "10場所参加する", cond: s => s.bashoPlayed >= 10 },
+  { id: "t4_08", cat: 4, name: "ちゃんこ大好き", desc: "ちゃんこボーナスを通算10回受け取る", cond: s => s.chankoCount >= 10 },
+  { id: "t4_09", cat: 4, name: "ちゃんこ長",     desc: "ちゃんこボーナスを通算30回受け取る", cond: s => s.chankoCount >= 30 },
+  { id: "t4_10", cat: 4, name: "夜稽古の",       desc: "深夜(0時〜5時)にベットする", cond: s => s.nightOwl >= 1 },
+
+  // --- 5. 場所成績編 (10) ---
+  { id: "t5_01", cat: 5, name: "勝ち越しの",     desc: "一場所の的中率50%超(20ベット以上)", cond: s => s.kachikoshiBasho >= 1 },
+  { id: "t5_02", cat: 5, name: "二桁白星の",     desc: "一場所で10勝以上的中", cond: s => s.tenWinBasho >= 1 },
+  { id: "t5_03", cat: 5, name: "三十白星の",     desc: "一場所で30勝以上的中", cond: s => s.thirtyWinBasho >= 1 },
+  { id: "t5_04", cat: 5, name: "優勝予想士の",   desc: "優勝予想を的中させる", cond: s => s.yushoHits >= 1 },
+  { id: "t5_05", cat: 5, name: "連続優勝予想の", desc: "優勝予想を通算3回的中", cond: s => s.yushoHits >= 3 },
+  { id: "t5_06", cat: 5, name: "殊勲眼の",       desc: "殊勲賞予想を的中させる", cond: s => s.shukunHits >= 1 },
+  { id: "t5_07", cat: 5, name: "敢闘眼の",       desc: "敢闘賞予想を的中させる", cond: s => s.kantoHits >= 1 },
+  { id: "t5_08", cat: 5, name: "技能眼の",       desc: "技能賞予想を的中させる", cond: s => s.ginoHits >= 1 },
+  { id: "t5_09", cat: 5, name: "三賞総取りの",   desc: "同一場所で三賞すべて的中", cond: s => s.sanshoSweeps >= 1 },
+  { id: "t5_10", cat: 5, name: "場所納めの",     desc: "千秋楽まで場所を完走する", cond: s => s.bashoFinished >= 1 },
+
+  // --- 6. ポイント・経済編 (12) ---
+  { id: "t6_01", cat: 6, name: "万両の",         desc: "20,000合に到達", cond: s => s.maxPoints >= 20000 },
+  { id: "t6_02", cat: 6, name: "分限者の",       desc: "33,000合に到達", cond: s => s.maxPoints >= 33000 },
+  { id: "t6_03", cat: 6, name: "大尽の",         desc: "50,000合に到達", cond: s => s.maxPoints >= 50000 },
+  { id: "t6_04", cat: 6, name: "米長者の",       desc: "100,000合に到達", cond: s => s.maxPoints >= 100000 },
+  { id: "t6_05", cat: 6, name: "米蔵の",         desc: "累計獲得50,000合", cond: s => s.totalEarned >= 50000 },
+  { id: "t6_06", cat: 6, name: "米問屋の",       desc: "累計獲得150,000合", cond: s => s.totalEarned >= 150000 },
+  { id: "t6_07", cat: 6, name: "大勝負の",       desc: "一点に5,000合以上賭ける", cond: s => s.maxBet >= 5000 },
+  { id: "t6_08", cat: 6, name: "一攫千金の",     desc: "1回のベットで10,000合以上獲得", cond: s => s.maxSingleWin >= 10000 },
+  { id: "t6_09", cat: 6, name: "倹約家の",       desc: "最低額(100合)ベットを50回行う", cond: s => s.minBets >= 50 },
+  { id: "t6_10", cat: 6, name: "綱渡りの",       desc: "残高500合以下から10,000合まで復活", cond: s => s.comebacks >= 1 },
+  { id: "t6_11", cat: 6, name: "素寒貧の",       desc: "破産する(不名誉)", cond: s => s.bankruptcies >= 1 },
+  { id: "t6_12", cat: 6, name: "穀潰し",         desc: "3回破産する(不名誉)", cond: s => s.bankruptcies >= 3 },
+
+  // --- 7. ユニーク・挑戦編 (10) ---
+  { id: "t7_01", cat: 7, name: "おかみさん公認の", desc: "おかみさんの救済を受ける", cond: s => s.bankruptcies >= 1 },
+  { id: "t7_02", cat: 7, name: "愛弟子",         desc: "救済後にその場所で勝ち越す", cond: s => s.redemptions >= 1 },
+  { id: "t7_03", cat: 7, name: "七転八起の",     desc: "7連敗の後に的中させる", cond: s => s.phoenixHits >= 1 },
+  { id: "t7_04", cat: 7, name: "全敗の",         desc: "5ベット以上した日に全部外す(不名誉)", cond: s => s.zeroDays >= 1 },
+  { id: "t7_05", cat: 7, name: "天邪鬼の",       desc: "1日のベットすべてをオッズ高い側に張る(5ベット以上)", cond: s => s.contrarianDays >= 1 },
+  { id: "t7_06", cat: 7, name: "本命党の",       desc: "1日のベットすべてをオッズ低い側に張る(5ベット以上)", cond: s => s.favoriteDays >= 1 },
+  { id: "t7_07", cat: 7, name: "全張りの",       desc: "全取組(その日の全21番)にベットする", cond: s => s.allInDays >= 1 },
+  { id: "t7_08", cat: 7, name: "背水の陣の",     desc: "全所持ポイントを1取組に賭ける", cond: s => s.allPointsBets >= 1 },
+  { id: "t7_09", cat: 7, name: "夢追い人の",     desc: "決まり手「それ以外」(4.0倍)を的中", cond: s => s.rareKimariteHits >= 1 },
+  { id: "t7_10", cat: 7, name: "百発百中の",     desc: "決まり手予想を3連続的中", cond: s => s.kimariteStreakBest >= 3 },
+
+  // --- 8. 最高位・伝説編 (10) ---
+  { id: "t8_01", cat: 8, name: "関取の",         desc: "番付「関取」に到達", cond: s => s.bestBanzuke >= 5 },
+  { id: "t8_02", cat: 8, name: "ト結の",         desc: "番付「ト結」に到達", cond: s => s.bestBanzuke >= 6 },
+  { id: "t8_03", cat: 8, name: "関トトの",       desc: "番付「関トト」に到達", cond: s => s.bestBanzuke >= 7 },
+  { id: "t8_04", cat: 8, name: "トー関の",       desc: "番付「トー関」に到達", cond: s => s.bestBanzuke >= 8 },
+  { id: "t8_05", cat: 8, name: "トト綱の",       desc: "番付「トト綱」に到達", cond: s => s.bestBanzuke >= 9 },
+  { id: "t8_06", cat: 8, name: "連覇の",         desc: "トト綱に2回到達", cond: s => s.totoTsunaCount >= 2 },
+  { id: "t8_07", cat: 8, name: "伝説の",         desc: "トト綱に3回到達", cond: s => s.totoTsunaCount >= 3 },
+  { id: "t8_08", cat: 8, name: "殿堂入りの",     desc: "称号を50種獲得", cond: (s, g) => g.achievements.length >= 50 },
+  { id: "t8_09", cat: 8, name: "生き字引の",     desc: "称号を80種獲得", cond: (s, g) => g.achievements.length >= 80 },
+  { id: "t8_10", cat: 8, name: "全知全能の",     desc: "称号を94種獲得", cond: (s, g) => g.achievements.length >= 94 },
+
+  // --- 9. 相撲クイズ編 (10) ---
+  { id: "t9_01", cat: 9, name: "物知りの",       desc: "クイズに初正解", cond: s => s.quizCorrect >= 1 },
+  { id: "t9_02", cat: 9, name: "博識の",         desc: "クイズ10問正解", cond: s => s.quizCorrect >= 10 },
+  { id: "t9_03", cat: 9, name: "大学者の",       desc: "クイズ25問正解", cond: s => s.quizCorrect >= 25 },
+  { id: "t9_04", cat: 9, name: "相撲博士の",     desc: "全45問に正解", cond: s => s.quizUniqueCorrect >= 45 },
+  { id: "t9_05", cat: 9, name: "即答の",         desc: "クイズ5連続正解", cond: s => s.quizStreakBest >= 5 },
+  { id: "t9_06", cat: 9, name: "歴史通の",       desc: "「歴史」カテゴリ全問正解", cond: s => (s.quizCatDone || []).includes("歴史") },
+  { id: "t9_07", cat: 9, name: "技の引き出し",   desc: "「決まり手」カテゴリ全問正解", cond: s => (s.quizCatDone || []).includes("決まり手") },
+  { id: "t9_08", cat: 9, name: "番付通の",       desc: "「番付・制度」カテゴリ全問正解", cond: s => (s.quizCatDone || []).includes("番付・制度") },
+  { id: "t9_09", cat: 9, name: "作法指南の",     desc: "「ルール・作法」カテゴリ全問正解", cond: s => (s.quizCatDone || []).includes("ルール・作法") },
+  { id: "t9_10", cat: 9, name: "森羅万象の",     desc: "9カテゴリすべてで全問正解", cond: s => (s.quizCatDone || []).length >= 9 }
+];
+
+const TITLE_CATS = ["", "初心者・入門編", "連勝・的中率編", "特定場面編", "継続・参加編", "場所成績編", "ポイント・経済編", "ユニーク・挑戦編", "最高位・伝説編", "相撲クイズ編"];
+
+// ============================================================
+// 相撲クイズ（全45問・9カテゴリ×5問）仕様 8.2
+// a = 正解のindex
+// ============================================================
+const QUIZ = [
+  // 歴史
+  { cat: "歴史", q: "日本書紀に記される伝説上の最初の相撲対戦は野見宿禰と誰?", c: ["當麻蹶速", "建御雷神", "雷電為右衛門", "谷風梶之助"], a: 0 },
+  { cat: "歴史", q: "昭和の大横綱・大鵬の幕内優勝回数は?", c: ["28回", "32回", "24回", "45回"], a: 1 },
+  { cat: "歴史", q: "双葉山が打ち立てた連勝記録は?", c: ["63連勝", "69連勝", "53連勝", "70連勝"], a: 1 },
+  { cat: "歴史", q: "史上最多の幕内優勝45回を誇る力士は?", c: ["白鵬", "千代の富士", "朝青龍", "北の湖"], a: 0 },
+  { cat: "歴史", q: "「江戸時代最強」と称され勝率9割6分を残した力士は?", c: ["雷電為右衛門", "谷風梶之助", "小野川喜三郎", "阿武松緑之助"], a: 0 },
+  // 決まり手
+  { cat: "決まり手", q: "現在、日本相撲協会が定める決まり手は何手?", c: ["70手", "82手", "48手", "100手"], a: 1 },
+  { cat: "決まり手", q: "相手の差し手を抱え込み、ひねり倒す決まり手は?", c: ["とったり", "上手出し投げ", "肩透かし", "巻き落とし"], a: 0 },
+  { cat: "決まり手", q: "土俵際で体を反らせ、相手を逆転で土俵外へ投げ出す決まり手は?", c: ["うっちゃり", "はたき込み", "引き落とし", "送り出し"], a: 0 },
+  { cat: "決まり手", q: "「猫だまし」とは何をする戦法?", c: ["相手の目の前で手を叩く", "立合いで横に跳ぶ", "まわしを叩く", "塩を多く撒く"], a: 0 },
+  { cat: "決まり手", q: "決まり手にならない「勝負結果」はどれ?", c: ["勇み足", "寄り切り", "押し出し", "突き落とし"], a: 0 },
+  // 番付・制度
+  { cat: "番付・制度", q: "幕内の番付で関脇の次に高い地位は?", c: ["小結", "大関", "前頭筆頭", "十両"], a: 1 },
+  { cat: "番付・制度", q: "大関昇進の目安とされる三役での合計勝星は?", c: ["33勝", "30勝", "36勝", "40勝"], a: 0 },
+  { cat: "番付・制度", q: "横綱に「降格」はある?", c: ["ない(引退のみ)", "大関に降格する", "2場所負け越しで降格", "理事会の決議で降格"], a: 0 },
+  { cat: "番付・制度", q: "本場所は年に何回開催される?", c: ["6回", "4回", "5回", "12回"], a: 0 },
+  { cat: "番付・制度", q: "「金星」とは何を指す?", c: ["平幕力士が横綱に勝つこと", "全勝優勝", "初日に勝つこと", "懸賞金の別名"], a: 0 },
+  // ルール・作法
+  { cat: "ルール・作法", q: "土俵の直径は?", c: ["4.55m", "5.45m", "3.95m", "6.00m"], a: 0 },
+  { cat: "ルール・作法", q: "力士が塩を撒く本来の意味は?", c: ["土俵を清める", "滑り止め", "観客サービス", "相手への威嚇"], a: 0 },
+  { cat: "ルール・作法", q: "仕切り制限時間、幕内は何分?", c: ["4分", "3分", "5分", "2分"], a: 0 },
+  { cat: "ルール・作法", q: "取組中にまげを掴むとどうなる?", c: ["反則負け", "注意のみ", "取り直し", "問題ない"], a: 0 },
+  { cat: "ルール・作法", q: "勝ち力士が懸賞金を受け取る際にする作法は?", c: ["手刀を切る", "二礼二拍手", "蹲踞して一礼", "塩を撒く"], a: 0 },
+  // 記録
+  { cat: "記録", q: "通算勝星の歴代1位記録(1187勝)を持つのは?", c: ["白鵬", "魁皇", "千代の富士", "大鵬"], a: 0 },
+  { cat: "記録", q: "史上最年少で横綱に昇進したのは?", c: ["北の湖", "大鵬", "貴乃花", "朝青龍"], a: 0 },
+  { cat: "記録", q: "新入幕からの最速優勝(初土俵から所要場所数)で話題になった2024年の力士は?", c: ["尊富士", "大の里", "伯桜鵬", "熱海富士"], a: 0 },
+  { cat: "記録", q: "幕内連続出場記録などで知られる「鉄人」と呼ばれた力士は?", c: ["高見山", "寺尾", "魁皇", "安芸乃島"], a: 0 },
+  { cat: "記録", q: "千代の富士の連勝記録は?", c: ["53連勝", "63連勝", "45連勝", "69連勝"], a: 0 },
+  // 行司・呼出
+  { cat: "行司・呼出", q: "行司の最高位の名跡は?", c: ["木村庄之助", "式守伊之助", "木村玉之助", "式守錦太夫"], a: 0 },
+  { cat: "行司・呼出", q: "行司が持つ軍配の判定で、物言いがついた際に協議するのは?", c: ["勝負審判", "呼出", "親方会", "理事長"], a: 0 },
+  { cat: "行司・呼出", q: "立行司が腰に差しているものは?", c: ["短刀", "扇子", "軍配の予備", "塩袋"], a: 0 },
+  { cat: "行司・呼出", q: "取組前に力士の四股名を呼び上げるのは?", c: ["呼出", "行司", "床山", "世話人"], a: 0 },
+  { cat: "行司・呼出", q: "力士のまげを結う職業は?", c: ["床山", "呼出", "行司", "若者頭"], a: 0 },
+  // 部屋・一門
+  { cat: "部屋・一門", q: "相撲部屋の一門は現在いくつ?", c: ["5つ", "3つ", "7つ", "10こ"], a: 0 },
+  { cat: "部屋・一門", q: "次のうち実在する一門は?", c: ["出羽海一門", "両国一門", "国技館一門", "土俵一門"], a: 0 },
+  { cat: "部屋・一門", q: "力士の食事として有名な鍋料理は?", c: ["ちゃんこ鍋", "もつ鍋", "きりたんぽ鍋", "石狩鍋"], a: 0 },
+  { cat: "部屋・一門", q: "部屋を持つ親方の妻の通称は?", c: ["おかみさん", "女将頭", "部屋母", "御内儀"], a: 0 },
+  { cat: "部屋・一門", q: "同じ部屋の力士同士は本場所で対戦する?", c: ["原則対戦しない", "必ず対戦する", "千秋楽のみ対戦", "横綱同士のみ対戦"], a: 0 },
+  // 儀式・文化
+  { cat: "儀式・文化", q: "横綱土俵入りの型は雲龍型と何型?", c: ["不知火型", "白鵬型", "稲妻型", "千代型"], a: 0 },
+  { cat: "儀式・文化", q: "千秋楽の最後の三番に勝った力士に与えられるのは?", c: ["それぞれ矢・弦・米", "賞金のみ", "懸賞旗", "化粧まわし"], a: 0 },
+  { cat: "儀式・文化", q: "弓取式で力士が落とした弓を拾うときの作法は?", c: ["足で拾い上げる", "行司が拾う", "そのまま続ける", "手で拾う"], a: 0 },
+  { cat: "儀式・文化", q: "優勝力士が飲む祝杯の大盃の容量はおよそ?", c: ["4.5リットル", "1リットル", "10リットル", "500ml"], a: 0 },
+  { cat: "儀式・文化", q: "本場所の土俵に埋められている縁起物は?", c: ["勝栗や昆布など", "金貨", "力士の毛髪", "五円玉"], a: 0 },
+  // 雑学
+  { cat: "雑学", q: "力士の正装で、十両以上が締められるのは?", c: ["博多帯と羽織袴", "浴衣のみ", "スーツ", "デニム"], a: 0 },
+  { cat: "雑学", q: "「どすこい」は本来何の言葉?", c: ["相撲甚句の囃子言葉", "立合いの掛け声", "行司の判定", "観客の野次"], a: 0 },
+  { cat: "雑学", q: "国技館がある東京の地名は?", c: ["両国", "浅草", "上野", "日本橋"], a: 0 },
+  { cat: "雑学", q: "力士が土俵で四股を踏む意味は?", c: ["邪気を踏み鎮める", "準備運動のみ", "観客への挨拶", "時間稼ぎ"], a: 0 },
+  { cat: "雑学", q: "大相撲の懸賞旗1本の懸賞金は(2026年現在)?", c: ["7万円", "1万円", "30万円", "100万円"], a: 0 }
+];
+
+const QUIZ_CATS = ["歴史", "決まり手", "番付・制度", "ルール・作法", "記録", "行司・呼出", "部屋・一門", "儀式・文化", "雑学"];
+
+// 番付システム（仕様 6）レベル: 9=トト綱 8=トー関 7=関トト 6=ト結 5=関取 4=若い衆 3=新弟子
+const BANZUKE_NAMES = { 9: "トト綱", 8: "トー関", 7: "関トト", 6: "ト結", 5: "関取", 4: "若い衆", 3: "新弟子" };
+// ============================================================
+// トト相撲 ONLINE — コアロジック
+// 全プレイヤー共通の取組・結果（シード乱数）+ Supabase共有ランキング
+// ============================================================
+
+// ★★★ ここにSupabaseの設定を貼り付ける（セットアップ手順.md 参照）★★★
+const CONFIG = {
+  url: "https://ukfeaqlmtxzrtlznjtxz.supabase.co",      // 例: "https://abcdefgh.supabase.co"
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrZmVhcWxtdHh6cnRsem5qdHh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NTUxMTIsImV4cCI6MjA5OTQzMTExMn0.f3TTMgt6bUf6NefErlrGLOUvblLEDhmWQyvYAGYjMiI"   // 例: "eyJhbGciOiJIUzI1NiIs..."
+};
+// ★★★ 未設定でもローカル1人プレイとして動作します ★★★
+
+const START_POINTS = 15000;
+const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
+
+const DEFAULT_STATS = () => ({
+  totalBets: 0, totalHits: 0, totalMisses: 0,
+  currentStreak: 0, bestStreak: 0, currentMissStreak: 0,
+  upsetHits: 0, giantKillHits: 0,
+  day1Perfect: 0, day8Perfect: 0, day15Perfect: 0, bigPerfectDays: 0,
+  kenshoHits: 0, oshiHits: 0, ichimonHits: 0, injuredHits: 0,
+  kimariteHits: 0, kimariteStreak: 0, kimariteStreakBest: 0,
+  doubleHits: 0, yokozunaKills: 0,
+  daysPlayed: 0, fullBasho: 0, bashoPlayed: 1, bashoFinished: 0,
+  chankoCount: 0, nightOwl: 0,
+  kachikoshiBasho: 0, tenWinBasho: 0, thirtyWinBasho: 0,
+  yushoHits: 0, shukunHits: 0, kantoHits: 0, ginoHits: 0, sanshoSweeps: 0,
+  maxPoints: START_POINTS, totalEarned: 0, totalLost: 0,
+  maxBet: 0, maxSingleWin: 0, minBets: 0,
+  comebacks: 0, lowWaterMark: false,
+  bankruptcies: 0, redemptions: 0, rescuedThisBasho: false,
+  phoenixHits: 0, zeroDays: 0, contrarianDays: 0, favoriteDays: 0, allInDays: 0,
+  allPointsBets: 0, rareKimariteHits: 0,
+  bestBanzuke: 0, totoTsunaCount: 0,
+  quizCorrect: 0, quizTotal: 0, quizUniqueCorrect: 0,
+  quizStreak: 0, quizStreakBest: 0, quizCatDone: []
+});
+
+let G = null;        // 永続ゲーム状態
+let SIM = null;      // 今場所の共通シミュレーション（毎回再構築・非保存）
+let SB = null;       // Supabaseクライアント
+let MYID = null;     // 匿名ユーザーID
+let LEADER = null;   // ランキングキャッシュ
+let toastQueue = [];
+let pendingModals = []; // 起動時に順番に見せる演出 {type, data}
+
+// ============================================================
+// シード乱数（全クライアントで同一結果を得るため）
+// ============================================================
+function hashStr(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return (h ^= h >>> 16) >>> 0;
+}
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rngOf = key => mulberry32(hashStr(SIM_SALT + "::" + key));
+
+// ============================================================
+// 場所カレンダー（本場所=奇数月・第2日曜初日・15日間）JST基準
+// ============================================================
+const JST_OFF = 9 * 3600e3;
+function jstNow() {
+  const d = new Date(Date.now() + JST_OFF);
+  return {
+    y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(),
+    hour: d.getUTCHours(), min: d.getUTCMinutes(), dow: d.getUTCDay(),
+    dateMs: Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+    hm: d.getUTCHours() * 60 + d.getUTCMinutes()
+  };
+}
+function secondSunday(y, m) {
+  const wd = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  return 1 + ((7 - wd) % 7) + 7;
+}
+function bashoKeyOf(y, m) { return y + "-" + String(m).padStart(2, "0"); }
+function bashoNameOf(y, m) { return "令和" + (y - 2018) + "年" + m + "月場所"; }
+
+// 現在の場所と次の場所を返す
+function bashoInfo() {
+  const t = jstNow();
+  const cands = [];
+  [t.y - 1, t.y, t.y + 1].forEach(y => [1, 3, 5, 7, 9, 11].forEach(m => {
+    const startMs = Date.UTC(y, m - 1, secondSunday(y, m));
+    cands.push({ y, m, startMs, key: bashoKeyOf(y, m), name: bashoNameOf(y, m) });
+  }));
+  cands.sort((a, b) => a.startMs - b.startMs);
+  let current = null;
+  for (const c of cands) {
+    const day = Math.floor((t.dateMs - c.startMs) / 86400e3) + 1;
+    if (day >= 1 && day <= 15) { current = Object.assign({ day }, c); break; }
+  }
+  const next = cands.find(c => c.startMs > t.dateMs);
+  return { current, next, now: t };
+}
+
+// 締切・発表時刻（仕様: 懸賞確定15:30 / 結果反映16:00〜）
+const DEADLINE_HM = 15 * 60 + 30, RESULT_HM = 16 * 60;
+function resultsReady(day) {
+  const info = bashoInfo();
+  if (!info.current) return true; // 場所外=過去場所は全日確定
+  return day < info.current.day || (day === info.current.day && info.now.hm >= RESULT_HM);
+}
+// 今ベットできる日（null=受付なし）
+function bettableDay() {
+  const info = bashoInfo();
+  if (!info.current) return null;
+  const { day } = info.current, hm = info.now.hm;
+  if (hm < DEADLINE_HM) return day;
+  if (hm >= RESULT_HM && day < 15) return day + 1;
+  return null; // 15:30〜16:00 or 千秋楽の夜
+}
+
+// ============================================================
+// 共通シミュレーション（決定論的・全員同一）
+// ============================================================
+// buildSim(key, uptoDay): 1..uptoDay の取組を構築、resultsReady(d)の日は結果も確定
+function buildSim(key, uptoDay) {
+  const rngB = rngOf(key + "::basho");
+  const rikishi = {};
+  RIKISHI.forEach(r => {
+    rikishi[r.id] = { wins: 0, losses: 0, form: rngB() * 4 - 2, injured: false, kinboshi: 0, opponents: [] };
+  });
+  // 怪我明け2〜3名（横綱以外）
+  const cand = RIKISHI.filter(r => r.rank !== "Y").map(r => r.id);
+  const nInj = 2 + Math.floor(rngB() * 2);
+  for (let i = 0; i < nInj; i++) {
+    const id = cand.splice(Math.floor(rngB() * cand.length), 1)[0];
+    rikishi[id].injured = true;
+    rikishi[id].form -= 1.5;
+  }
+
+  const days = [null]; // days[1..15]
+  for (let d = 1; d <= Math.min(uptoDay, 15); d++) {
+    const rngD = rngOf(key + "::day" + d);
+    const bouts = makeTorikumiDet(rikishi, rngD);
+    days[d] = { day: d, torikumi: bouts };
+    if (resultsReady(d) || !isCurrentBasho(key)) {
+      bouts.forEach(bt => simulateBoutDet(bt, rikishi, rngD));
+    }
+  }
+  return { key, rikishi, days };
+}
+function isCurrentBasho(key) {
+  const info = bashoInfo();
+  return info.current && info.current.key === key;
+}
+
+function makeTorikumiDet(rikishi, rngD) {
+  const standings = RIKISHI.slice().sort((x, y) => {
+    const rx = rikishi[x.id], ry = rikishi[y.id];
+    if (ry.wins !== rx.wins) return ry.wins - rx.wins;
+    const pd = rankPoint(y.rank) - rankPoint(x.rank);
+    if (pd) return pd;
+    return x.id - y.id;
+  });
+  const used = new Set(), bouts = [];
+  for (const r of standings) {
+    if (used.has(r.id)) continue;
+    let opp = standings.find(o => o.id !== r.id && !used.has(o.id) && !rikishi[r.id].opponents.includes(o.id));
+    if (!opp) opp = standings.find(o => o.id !== r.id && !used.has(o.id));
+    if (!opp) break;
+    used.add(r.id); used.add(opp.id);
+    const [east, west] = rankPoint(r.rank) >= rankPoint(opp.rank) ? [r, opp] : [opp, r];
+    bouts.push(makeBoutDet(east, west, rikishi));
+  }
+  bouts.sort((a, b) => (rankPoint(rk(a.east).rank) + rankPoint(rk(a.west).rank)) - (rankPoint(rk(b.east).rank) + rankPoint(rk(b.west).rank)));
+  // 懸賞一番（決定論的）
+  let best = -1, bi = 0;
+  bouts.forEach((bt, i) => {
+    const sc = rankPoint(rk(bt.east).rank) + rankPoint(rk(bt.west).rank) + rngD() * 6;
+    if (sc > best) { best = sc; bi = i; }
+  });
+  bouts[bi].kensho = true;
+  return bouts;
+}
+function rk(id) { return RIKISHI.find(r => r.id === id); }
+
+function makeBoutDet(east, west, rikishi) {
+  const pe = rankPoint(east.rank), pw = rankPoint(west.rank);
+  const diff = Math.abs(pe - pw);
+  let oddsE, oddsW;
+  if (pe >= pw) { oddsE = 1.2 + diff * 0.05; oddsW = 1.2 + diff * 0.15; }
+  else { oddsE = 1.2 + diff * 0.15; oddsW = 1.2 + diff * 0.05; }
+  if (rikishi[east.id].injured) oddsE *= 2;
+  if (rikishi[west.id].injured) oddsW *= 2;
+  return { east: east.id, west: west.id, oddsE: round2(oddsE), oddsW: round2(oddsW), kensho: false, result: null };
+}
+
+function strengthDet(id, rikishi) {
+  const r = rk(id), st = rikishi[id];
+  return rankPoint(r.rank) + st.form + (st.injured ? -2 : 0);
+}
+function simulateBoutDet(bout, rikishi, rngD) {
+  const se = strengthDet(bout.east, rikishi), sw = strengthDet(bout.west, rikishi);
+  const pEast = 1 / (1 + Math.exp(-(se - sw) / 4.5));
+  const eastWins = rngD() < pEast;
+  const winner = eastWins ? bout.east : bout.west;
+  const loser = eastWins ? bout.west : bout.east;
+  bout.result = { winner, kimarite: KIMARITE_POOL[Math.floor(rngD() * KIMARITE_POOL.length)] };
+  rikishi[winner].wins++; rikishi[loser].losses++;
+  rikishi[bout.east].opponents.push(bout.west);
+  rikishi[bout.west].opponents.push(bout.east);
+  const lr = rk(loser), wr = rk(winner);
+  if ((lr.rank === "Y" || lr.rank === "O") && rankPoint(wr.rank) <= 10) rikishi[winner].kinboshi++;
+}
+
+// プレイヤー個別最終オッズ（一門+0.2 → 懸賞×1.2）
+function finalOdds(bout, side) {
+  let o = side === "east" ? bout.oddsE : bout.oddsW;
+  const r = rk(side === "east" ? bout.east : bout.west);
+  if (r.ichimon === G.profile.ichimon) o += 0.2;
+  if (bout.kensho) o *= 1.2;
+  return round2(o);
+}
+function round2(x) { return Math.round(x * 100) / 100; }
+
+// ============================================================
+// 保存・読込・新規
+// ============================================================
+function save() {
+  localStorage.setItem("gameState", JSON.stringify(G));
+  localStorage.setItem("bets", JSON.stringify(G.bets));
+  localStorage.setItem("achievements", JSON.stringify(G.achievements));
+  syncCloud();
+}
+function load() {
+  const raw = localStorage.getItem("gameState");
+  if (!raw) return false;
+  try {
+    G = JSON.parse(raw);
+    G.stats = Object.assign(DEFAULT_STATS(), G.stats || {});
+    G.bets = G.bets || [];
+    return true;
+  } catch (e) { return false; }
+}
+function newGame(shikona, ichimon, oshiId) {
+  G = {
+    profile: { shikona, ichimon, oshiId, title: "t1_01" },
+    points: START_POINTS,
+    achievements: ["t1_01"],
+    stats: DEFAULT_STATS(),
+    bashoCount: 1,
+    banzukeLevel: 3,
+    bashoKey: null,
+    bets: [],
+    yushoBet: null, sanshoBet: null,
+    pointsHistory: [], dayLog: [], betDays: [],
+    hitsThisBasho: 0, betsThisBasho: 0,
+    finishedProcessed: false,
+    lastResult: null,
+    quizToday: { date: "", count: 0 },
+    answeredQuiz: [], quizCatCorrect: {}
+  };
+  unlockTitle("t1_01");
+  save();
+}
+
+// ============================================================
+// 場所状態の同期（起動時・タブ復帰時に呼ぶ）
+// ============================================================
+async function ensureBashoState() {
+  const info = bashoInfo();
+  // 前の場所が終わっていたら締める
+  if (G.bashoKey && (!info.current || info.current.key !== G.bashoKey) && !G.finishedProcessed) {
+    SIM = buildSim(G.bashoKey, 15);
+    await processFinish();
+  }
+  if (G.bashoKey && info.current && info.current.key === G.bashoKey && resultsReady(15) && !G.finishedProcessed) {
+    SIM = buildSim(G.bashoKey, 15);
+    settlePending();
+    await processFinish();
+  }
+  // 新しい場所が始まっていたら参加
+  if (info.current && G.bashoKey !== info.current.key) {
+    if (G.bashoKey) { G.bashoCount++; G.stats.bashoPlayed = G.bashoCount; }
+    G.bashoKey = info.current.key;
+    G.bets = []; G.yushoBet = null; G.sanshoBet = null;
+    G.pointsHistory = [{ day: 0, points: G.points }];
+    G.dayLog = []; G.betDays = [];
+    G.hitsThisBasho = 0; G.betsThisBasho = 0;
+    G.finishedProcessed = false;
+    G.stats.rescuedThisBasho = false;
+  }
+  // 今場所のシミュレーション構築 + 未精算ベットの精算
+  if (info.current && G.bashoKey === info.current.key && !G.finishedProcessed) {
+    const upto = Math.min(15, info.current.day + (info.now.hm >= RESULT_HM ? 1 : 0));
+    SIM = buildSim(G.bashoKey, upto);
+    settlePending();
+    if (resultsReady(15) && !G.finishedProcessed) await processFinish();
+  }
+  checkAchievements();
+  save();
+}
+
+// ============================================================
+// ベット
+// ============================================================
+function placeBet(day, boutIdx, side, amount, kimarite, kAmount) {
+  if (day !== bettableDay()) return { ok: false, msg: "受付時間外です（締切15:30）" };
+  const bout = SIM.days[day] && SIM.days[day].torikumi[boutIdx];
+  if (!bout || bout.result) return { ok: false, msg: "この取組は締め切られました" };
+  amount = Math.floor(amount / 100) * 100;
+  if (amount < 100) return { ok: false, msg: "100合以上を100合単位で入力してください" };
+  kAmount = kimarite ? Math.max(0, Math.floor((kAmount || 0) / 100) * 100) : 0;
+  const total = amount + kAmount;
+  if (total > G.points) return { ok: false, msg: "持ち米が足りません" };
+  const old = G.bets.findIndex(x => x.day === day && x.bout === boutIdx && !x.settled);
+  if (old >= 0) {
+    G.points += G.bets[old].amount + (G.bets[old].kAmount || 0);
+    G.bets.splice(old, 1);
+    G.stats.totalBets = Math.max(0, G.stats.totalBets - 1);
+    G.betsThisBasho = Math.max(0, G.betsThisBasho - 1);
+  }
+  const odds = finalOdds(bout, side);
+  const allPoints = total === G.points;
+  G.points -= total;
+  G.bets.push({ day, bout: boutIdx, side, amount, odds, kimarite: kimarite || null, kAmount, settled: false });
+  const s = G.stats;
+  s.totalBets++;
+  s.maxBet = Math.max(s.maxBet, amount);
+  if (amount === 100) s.minBets++;
+  if (allPoints) s.allPointsBets++;
+  const h = jstNow().hour;
+  if (h >= 0 && h < 5) s.nightOwl = 1;
+  if (!G.betDays.includes(day)) G.betDays.push(day);
+  G.betsThisBasho++;
+  checkAchievements();
+  save();
+  return { ok: true };
+}
+function cancelBet(day, boutIdx) {
+  const i = G.bets.findIndex(x => x.day === day && x.bout === boutIdx && !x.settled);
+  if (i < 0 || day !== bettableDay()) return;
+  G.points += G.bets[i].amount + (G.bets[i].kAmount || 0);
+  G.stats.totalBets = Math.max(0, G.stats.totalBets - 1);
+  G.betsThisBasho = Math.max(0, G.betsThisBasho - 1);
+  G.bets.splice(i, 1);
+  save();
+}
+
+// ============================================================
+// 精算（結果が確定した日の未精算ベットを処理）
+// ============================================================
+function settlePending() {
+  const s = G.stats;
+  const daysToSettle = [...new Set(G.bets.filter(x => !x.settled && SIM.days[x.day] && SIM.days[x.day].torikumi[0].result).map(x => x.day))].sort((a, b) => a - b);
+  const summaries = [];
+  daysToSettle.forEach(day => {
+    const dayBets = G.bets.filter(x => x.day === day && !x.settled);
+    const torikumi = SIM.days[day].torikumi;
+    let dayHits = 0, dayMiss = 0, net = 0;
+    const details = [];
+    let allFav = dayBets.length >= 5, allDog = dayBets.length >= 5;
+    dayBets.forEach(bet => {
+      const bout = torikumi[bet.bout];
+      const pick = bet.side === "east" ? bout.east : bout.west;
+      const other = bet.side === "east" ? bout.west : bout.east;
+      const pickOdds = bet.side === "east" ? bout.oddsE : bout.oddsW;
+      const otherOdds = bet.side === "east" ? bout.oddsW : bout.oddsE;
+      if (pickOdds <= otherOdds) allDog = false; else allFav = false;
+      const hit = bout.result.winner === pick;
+      let gain = 0, oshiBonus = 0;
+      bet.settled = true; bet.hit = hit;
+      if (hit) {
+        gain = Math.round(bet.amount * bet.odds);
+        if (pick === G.profile.oshiId) { oshiBonus = Math.round(gain * 0.1); s.oshiHits++; }
+        dayHits++; s.totalHits++; s.currentStreak++;
+        if (s.currentMissStreak >= 7) s.phoenixHits++;
+        s.currentMissStreak = 0;
+        s.bestStreak = Math.max(s.bestStreak, s.currentStreak);
+        if (bet.odds >= 3) s.upsetHits++;
+        if (bet.odds >= 5) s.giantKillHits++;
+        if (bout.kensho) s.kenshoHits++;
+        if (rk(pick).ichimon === G.profile.ichimon) s.ichimonHits++;
+        if (SIM.rikishi[pick].injured) s.injuredHits++;
+        if (rk(other).rank === "Y" && rankPoint(rk(pick).rank) <= 11) s.yokozunaKills++;
+        G.hitsThisBasho++;
+      } else {
+        dayMiss++; s.totalMisses++; s.currentMissStreak++; s.currentStreak = 0;
+        s.totalLost += bet.amount;
+      }
+      let kGain = 0, kHit = false;
+      if (bet.kimarite && bet.kAmount > 0) {
+        const actual = bout.result.kimarite;
+        const isOther = !["押し出し", "寄り切り", "はたき込み"].includes(actual);
+        kHit = (bet.kimarite === actual) || (bet.kimarite === "それ以外" && isOther);
+        if (kHit) {
+          kGain = Math.round(bet.kAmount * KIMARITE_BET.find(k => k.key === bet.kimarite).odds);
+          s.kimariteHits++; s.kimariteStreak++;
+          s.kimariteStreakBest = Math.max(s.kimariteStreakBest, s.kimariteStreak);
+          if (bet.kimarite === "それ以外") s.rareKimariteHits++;
+          if (hit) s.doubleHits++;
+        } else s.kimariteStreak = 0;
+      }
+      const totalGain = gain + oshiBonus + kGain;
+      if (totalGain > 0) { G.points += totalGain; s.totalEarned += totalGain; }
+      s.maxSingleWin = Math.max(s.maxSingleWin, gain + oshiBonus);
+      net += totalGain - (hit ? 0 : bet.amount) - (kHit ? 0 : (bet.kAmount || 0));
+      details.push({ bet, bout, hit, gain, oshiBonus, kGain, kHit });
+    });
+    if (dayBets.length > 0) {
+      s.daysPlayed++;
+      if (dayMiss === 0 && dayBets.length >= 5) {
+        if (day === 1) s.day1Perfect++;
+        if (day === 8) s.day8Perfect++;
+        if (day === 15) s.day15Perfect++;
+        if (dayBets.length >= 10) s.bigPerfectDays++;
+      }
+      if (dayHits === 0 && dayBets.length >= 5) s.zeroDays++;
+      if (allFav) s.favoriteDays++;
+      if (allDog) s.contrarianDays++;
+      if (dayBets.length >= torikumi.length) s.allInDays++;
+    }
+    s.maxPoints = Math.max(s.maxPoints, G.points);
+    if (G.points <= 500 && G.points > 0) s.lowWaterMark = true;
+    if (s.lowWaterMark && G.points >= 10000) { s.comebacks++; s.lowWaterMark = false; }
+    G.dayLog.push({ day, bets: dayBets.length, hits: dayHits, net });
+    if (!G.pointsHistory.some(h => h.day === day)) G.pointsHistory.push({ day, points: G.points });
+    // 破産チェック（仕様9: 即時救済 → 演出は起動時に表示）
+    if (G.points <= 0) {
+      s.bankruptcies++;
+      G.points += 5000;
+      s.rescuedThisBasho = true;
+      pendingModals.push({ type: "rescue" });
+    }
+    if (dayBets.length) summaries.push({ day, details, dayHits, dayMiss, net, betCount: dayBets.length });
+  });
+  if (summaries.length) pendingModals.unshift({ type: "settle", data: summaries });
+  G.bets = G.bets.filter(x => !x.settled);
+  checkAchievements();
+  save();
+  return summaries;
+}
+
+// ============================================================
+// 場所締め（優勝・三賞・番付・換算）
+// ============================================================
+async function processFinish() {
+  if (G.finishedProcessed) return;
+  const s = G.stats;
+  const rikishi = SIM.rikishi;
+  const rngF = rngOf(G.bashoKey + "::final");
+  const [y, m] = G.bashoKey.split("-").map(Number);
+
+  let maxW = -1;
+  RIKISHI.forEach(r => { maxW = Math.max(maxW, rikishi[r.id].wins); });
+  const contenders = RIKISHI.filter(r => rikishi[r.id].wins === maxW);
+  const champion = contenders[Math.floor(rngF() * contenders.length)];
+  const playoff = contenders.length > 1;
+
+  const isM = r => r.rank.startsWith("M");
+  const nonSanyaku = RIKISHI.filter(r => !["Y", "O"].includes(r.rank));
+  const shukunCand = nonSanyaku.filter(r => rikishi[r.id].kinboshi >= 1 && rikishi[r.id].wins >= 8);
+  const shukun = shukunCand.length ? shukunCand.sort((a, c) => rikishi[c.id].kinboshi - rikishi[a.id].kinboshi || a.id - c.id)[0].name : "該当者なし";
+  const kantoCand = RIKISHI.filter(r => isM(r) && rikishi[r.id].wins >= 10);
+  const kanto = kantoCand.length ? kantoCand.sort((a, c) => rikishi[c.id].wins - rikishi[a.id].wins || a.id - c.id)[0].name : "該当者なし";
+  const ginoCand = nonSanyaku.filter(r => rikishi[r.id].wins >= 10 && r.name !== kanto);
+  const gino = (ginoCand.length && rngF() > 0.3) ? ginoCand[Math.floor(rngF() * ginoCand.length)].name : "該当者なし";
+
+  let yushoResult = null;
+  if (G.yushoBet) {
+    const hit = G.yushoBet.rikishiId === champion.id;
+    let bonus = 0;
+    if (hit) {
+      const last = G.dayLog.find(d => d.day === 15);
+      bonus = last ? Math.max(0, last.net) : 0;
+      G.points += bonus; s.totalEarned += bonus; s.yushoHits++;
+    }
+    yushoResult = { hit, pick: rk(G.yushoBet.rikishiId).name, bonus };
+  }
+  let sanshoResult = null;
+  if (G.sanshoBet) {
+    const sb = G.sanshoBet;
+    const mult = SANSHO_ODDS[sb.day] || 1.2;
+    const r1 = sb.shukun === shukun, r2 = sb.kanto === kanto, r3 = sb.gino === gino;
+    let gain = 0;
+    [r1, r2, r3].forEach(hit => { if (hit) gain += Math.round(sb.amount * mult); });
+    if (r1) s.shukunHits++;
+    if (r2) s.kantoHits++;
+    if (r3) s.ginoHits++;
+    if (r1 && r2 && r3) s.sanshoSweeps++;
+    if (gain > 0) { G.points += gain; s.totalEarned += gain; }
+    sanshoResult = { r1, r2, r3, gain, mult };
+  }
+
+  if (G.betsThisBasho >= 20 && G.hitsThisBasho / G.betsThisBasho > 0.5) {
+    s.kachikoshiBasho++;
+    if (s.rescuedThisBasho) s.redemptions++;
+  }
+  if (G.hitsThisBasho >= 10) s.tenWinBasho++;
+  if (G.hitsThisBasho >= 30) s.thirtyWinBasho++;
+  if (G.betDays.length >= 15) s.fullBasho++;
+  s.bashoFinished++;
+  s.maxPoints = Math.max(s.maxPoints, G.points);
+
+  // 番付（オンライン: 全プレイヤーで算定）
+  const leaders = await fetchLeaderboard(G.bashoKey);
+  const banzuke = computeBanzuke(leaders);
+  s.bestBanzuke = Math.max(s.bestBanzuke, banzuke.level);
+  if (banzuke.level === 9) s.totoTsunaCount++;
+  G.banzukeLevel = banzuke.level;
+
+  // 価値換算 + 一門祝勝会（一門平均的中率1位で×1.1）
+  const kg = round2(G.points * 0.15);
+  const tawara = round2(kg / 60);
+  const yen = Math.round(kg * 600);
+  let topIchimon = null, ichimonWin = false;
+  if (leaders && leaders.length) {
+    const agg = {};
+    leaders.forEach(p => {
+      if (!p.ichimon || !p.bets) return;
+      (agg[p.ichimon] = agg[p.ichimon] || []).push(p.hits / p.bets);
+    });
+    const ranked = Object.entries(agg).map(([im, arr]) => [im, arr.reduce((a, b2) => a + b2, 0) / arr.length]).sort((a, b2) => b2[1] - a[1]);
+    if (ranked.length) { topIchimon = ranked[0][0]; ichimonWin = topIchimon === G.profile.ichimon; }
+  }
+  if (!topIchimon) { topIchimon = ICHIMON[Math.floor(rngF() * 5)]; ichimonWin = topIchimon === G.profile.ichimon; }
+
+  G.lastResult = {
+    bashoName: bashoNameOf(y, m),
+    champion: champion.name, playoff, championWins: maxW,
+    shukun, kanto, gino, yushoResult, sanshoResult,
+    finalPoints: G.points, hits: G.hitsThisBasho, bets: G.betsThisBasho,
+    banzuke: { level: banzuke.level, levelName: banzuke.levelName, pos: banzuke.pos, total: banzuke.total },
+    kg, tawara, yen, ichimonWin, topIchimon
+  };
+  G.finishedProcessed = true;
+  pendingModals.push({ type: "bashoResult" });
+  checkAchievements();
+  save();
+}
+
+// ============================================================
+// 場所予想
+// ============================================================
+function placeYushoBet(rikishiId) {
+  const info = bashoInfo();
+  if (!info.current || G.finishedProcessed) return { ok: false, msg: "受付期間外です" };
+  if (info.current.day === 15 && info.now.hm >= DEADLINE_HM) return { ok: false, msg: "千秋楽の取組が始まりました（受付終了）" };
+  if (G.yushoBet) return { ok: false, msg: "確定済みです" };
+  G.yushoBet = { rikishiId };
+  save();
+  return { ok: true };
+}
+function doneDaysNow() {
+  const info = bashoInfo();
+  if (!info.current) return 15;
+  return info.current.day - (info.now.hm >= RESULT_HM ? 0 : 1);
+}
+function placeSanshoBet(shukun, kanto, gino, amount) {
+  const dd = doneDaysNow();
+  if (dd < 8) return { ok: false, msg: "三賞予想は8日目終了後(16時以降)に解放されます" };
+  if (dd > 14) return { ok: false, msg: "受付は14日目終了までです" };
+  if (G.sanshoBet) return { ok: false, msg: "確定済みです（変更不可）" };
+  amount = Math.floor(amount / 100) * 100;
+  if (amount < 100 || amount * 3 > G.points) return { ok: false, msg: "予想料が不足しています（1賞につき同額）" };
+  G.points -= amount * 3;
+  G.sanshoBet = { shukun, kanto, gino, amount, day: dd };
+  save();
+  return { ok: true };
+}
+
+// ============================================================
+// Supabase 連携
+// ============================================================
+function sbConfigured() { return !!(CONFIG.url && CONFIG.anonKey && typeof window !== "undefined" && window.supabase); }
+async function sbInit() {
+  if (!sbConfigured()) return false;
+  try {
+    SB = window.supabase.createClient(CONFIG.url, CONFIG.anonKey);
+    let { data: { session } } = await SB.auth.getSession();
+    if (!session) {
+      const { data, error } = await SB.auth.signInAnonymously();
+      if (error) { console.warn("匿名ログイン失敗:", error.message); SB = null; return false; }
+      session = data.session;
+    }
+    MYID = session.user.id;
+    await pushProfile();
+    return true;
+  } catch (e) { console.warn("Supabase接続失敗:", e); SB = null; return false; }
+}
+async function pushProfile() {
+  if (!SB || !MYID || !G) return;
+  const { error } = await SB.from("players").upsert({
+    id: MYID,
+    shikona: G.profile.shikona,
+    ichimon: G.profile.ichimon,
+    title: currentTitleName(),
+    basho_key: G.bashoKey,
+    points: G.points,
+    hits: G.hitsThisBasho,
+    bets: G.betsThisBasho,
+    banzuke_level: G.banzukeLevel,
+    basho_count: G.bashoCount,
+    updated_at: new Date().toISOString()
+  });
+  if (error) console.warn("同期失敗:", error.message);
+}
+let pushTimer = null;
+function syncCloud() {
+  if (!SB) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushProfile, 1500);
+}
+async function fetchLeaderboard(bashoKey) {
+  if (!SB) return null;
+  const { data, error } = await SB.from("players")
+    .select("id, shikona, ichimon, title, points, hits, bets, basho_count")
+    .eq("basho_key", bashoKey)
+    .order("points", { ascending: false })
+    .limit(200);
+  if (error) { console.warn("ランキング取得失敗:", error.message); return null; }
+  LEADER = data;
+  return data;
+}
+
+// 番付算定（仕様6）: list=players行 or null（ローカルのみ）
+function computeBanzuke(list) {
+  const rows = [];
+  if (list && list.length) {
+    list.forEach(p => rows.push({
+      id: p.id, name: p.shikona, title: p.title, ichimon: p.ichimon,
+      points: p.points, rate: p.bets ? p.hits / p.bets : 0,
+      isNew: (p.basho_count || 1) === 1, me: p.id === MYID
+    }));
+    if (MYID && !rows.some(r => r.me) && G.betsThisBasho > 0) {
+      rows.push({ id: MYID, name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: G.points, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, isNew: G.bashoCount === 1, me: true });
+    }
+  } else {
+    rows.push({ id: "me", name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: G.points, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, isNew: G.bashoCount === 1, me: true });
+  }
+  rows.sort((x, y2) => y2.points - x.points || y2.rate - x.rate);
+  const N = rows.length;
+  rows.forEach((u, i) => {
+    u.pos = i + 1;
+    if (u.points < 33000) u.level = u.isNew ? 3 : 4;
+    else if (i < 4) u.level = 9;
+    else if (u.pos <= Math.ceil(N * 0.05)) u.level = 8;
+    else if (u.pos <= Math.ceil(N * 0.10)) u.level = 7;
+    else if (u.pos <= Math.ceil(N * 0.20)) u.level = 6;
+    else u.level = 5;
+    u.levelName = BANZUKE_NAMES[u.level];
+  });
+  const me = rows.find(u => u.me);
+  return { level: me ? me.level : (G.bashoCount === 1 ? 3 : 4), levelName: me ? me.levelName : BANZUKE_NAMES[G.bashoCount === 1 ? 3 : 4], pos: me ? me.pos : null, total: N, table: rows };
+}
+
+// ============================================================
+// ちゃんこ・クイズ・称号（v1と同一）
+// ============================================================
+function todayStr() { const t = jstNow(); return t.y + "-" + String(t.m).padStart(2, "0") + "-" + String(t.d).padStart(2, "0"); }
+function canChanko() { return localStorage.getItem("dailyBonus") !== todayStr(); }
+function takeChanko() {
+  if (!canChanko()) return false;
+  localStorage.setItem("dailyBonus", todayStr());
+  G.points += 1000;
+  G.stats.chankoCount++;
+  G.stats.totalEarned += 1000;
+  G.stats.maxPoints = Math.max(G.stats.maxPoints, G.points);
+  checkAchievements();
+  save();
+  return true;
+}
+function getQuiz() {
+  if (G.quizToday.date !== todayStr()) G.quizToday = { date: todayStr(), count: 0 };
+  if (G.quizToday.count >= 3) return null;
+  const unanswered = QUIZ.map((q, i) => i).filter(i => !G.answeredQuiz.includes(i));
+  const pool = unanswered.length ? unanswered : QUIZ.map((q, i) => i);
+  const idx = pool[Math.floor(Math.random() * pool.length)];
+  return { idx, quiz: QUIZ[idx] };
+}
+function answerQuiz(idx, choice) {
+  const q = QUIZ[idx];
+  const correct = choice === q.a;
+  const s = G.stats;
+  s.quizTotal++;
+  G.quizToday.count++;
+  let reward = 0;
+  if (correct) {
+    reward = 500 + Math.floor(Math.random() * 6) * 100;
+    G.points += reward;
+    s.totalEarned += reward;
+    s.quizCorrect++; s.quizStreak++;
+    s.quizStreakBest = Math.max(s.quizStreakBest, s.quizStreak);
+    if (!G.answeredQuiz.includes(idx)) {
+      G.answeredQuiz.push(idx);
+      s.quizUniqueCorrect = G.answeredQuiz.length;
+      G.quizCatCorrect[q.cat] = (G.quizCatCorrect[q.cat] || 0) + 1;
+      if (G.quizCatCorrect[q.cat] >= 5 && !s.quizCatDone.includes(q.cat)) s.quizCatDone.push(q.cat);
+    }
+    s.maxPoints = Math.max(s.maxPoints, G.points);
+  } else s.quizStreak = 0;
+  localStorage.setItem("quizHistory", JSON.stringify(G.answeredQuiz));
+  checkAchievements();
+  save();
+  return { correct, reward, answer: q.c[q.a] };
+}
+function unlockTitle(id) {
+  if (!G.achievements.includes(id)) {
+    G.achievements.push(id);
+    const t = TITLES.find(x => x.id === id);
+    if (t) toastQueue.push({ type: "title", name: t.name, desc: t.desc });
+  }
+}
+function checkAchievements() {
+  TITLES.forEach(t => {
+    if (G.achievements.includes(t.id)) return;
+    try { if (t.cond(G.stats, G)) unlockTitle(t.id); } catch (e) { }
+  });
+}
+function currentTitleName() {
+  const t = TITLES.find(x => x.id === G.profile.title);
+  return t ? t.name : "";
+}
+function fmt(n) { return n.toLocaleString("ja-JP"); }
+function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+// ============================================================
+// トト相撲 ONLINE — UI
+// ============================================================
+
+const $ = sel => document.querySelector(sel);
+const UI = { tab: "torikumi", openBet: null, onb: { ichimon: null } };
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// ---------------- 起動 ----------------
+async function init() {
+  if (!load()) { renderOnboarding(); return; }
+  await sbInit();
+  await ensureBashoState();
+  renderAll();
+  playPendingModals();
+  setTimeout(() => oyakataSay("greet"), 800);
+  setInterval(() => { renderHeader(); if (UI.tab === "torikumi" && !UI.openBet) renderTorikumi(); }, 60000);
+}
+
+function renderAll() {
+  renderHeader();
+  renderTab();
+  drainToasts();
+}
+
+// 起動時演出の順次再生（精算→救済→場所結果）
+function playPendingModals() {
+  if (!pendingModals.length) { drainToasts(); return; }
+  const ev = pendingModals.shift();
+  if (ev.type === "settle") showSettleModal(ev.data);
+  else if (ev.type === "rescue") showRescue();
+  else if (ev.type === "bashoResult") showBashoResult();
+  else playPendingModals();
+}
+
+// ---------------- ヘッダー ----------------
+function renderHeader() {
+  const info = bashoInfo();
+  const pct = Math.min(100, Math.round(G.points / 33000 * 100));
+  let dayLabel;
+  if (!info.current) dayLabel = "オフシーズン";
+  else if (G.finishedProcessed) dayLabel = "千秋楽 打ち止め";
+  else dayLabel = `${info.current.day}日目`;
+  const bashoName = info.current ? info.current.name : (info.next ? info.next.name + "待ち" : "");
+  const online = SB ? "🟢" : "⚪";
+  $("#header").innerHTML = `
+    <div class="hdr-top">
+      <div class="hdr-name"><span class="title-part">${esc(currentTitleName())}</span> ${esc(G.profile.shikona)}</div>
+      <div class="hdr-basho">${online} ${esc(bashoName)}・${dayLabel}</div>
+    </div>
+    <div class="hdr-mid">
+      <div class="hdr-points">${fmt(G.points)} <small>合</small></div>
+      <div class="hdr-rank">番付：<b>${BANZUKE_NAMES[G.banzukeLevel]}</b><br><span style="font-size:10px;color:#cdb9a5">${G.bashoCount}場所目</span></div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+    <div class="progress-label">関取ライン 33,000合まで ${G.points >= 33000 ? "到達！" : fmt(33000 - G.points) + "合"}</div>`;
+}
+
+// ---------------- タブ ----------------
+document.addEventListener("click", e => {
+  const t = e.target.closest("nav button");
+  if (!t) return;
+  UI.tab = t.dataset.tab;
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("active", x === t));
+  renderTab();
+});
+function renderTab() {
+  ["torikumi", "basho", "kometori"].forEach(t => { $("#tab-" + t).style.display = t === UI.tab ? "" : "none"; });
+  if (UI.tab === "torikumi") renderTorikumi();
+  if (UI.tab === "basho") renderBashoTab();
+  if (UI.tab === "kometori") renderKometori();
+}
+
+function configWarning() {
+  if (sbConfigured()) return "";
+  return `<div class="card" style="border-color:var(--red)"><b style="color:var(--red)">⚠ オンライン未設定</b><div class="note">Supabaseの設定が未入力のためローカル1人プレイで動作中。「セットアップ手順.md」に従って CONFIG に URL と anon key を設定すると共有ランキングが有効になります。</div></div>`;
+}
+
+// ---------------- 取組予想タブ ----------------
+function renderTorikumi() {
+  const info = bashoInfo();
+  const el = $("#tab-torikumi");
+
+  if (!info.current) { el.innerHTML = configWarning() + offseasonHTML(info); return; }
+  if (G.finishedProcessed) { el.innerHTML = configWarning() + offseasonHTML(info); return; }
+
+  const day = info.current.day, hm = info.now.hm;
+  const betDay = bettableDay();
+  let html = configWarning() + `
+    <div class="bonus-row">
+      <button class="bonus-btn" onclick="onChanko()" ${canChanko() ? "" : "disabled"}><span class="big">🍲</span>ちゃんこ${canChanko() ? "<br>+1,000合" : "<br>本日済み"}</button>
+      <button class="bonus-btn" onclick="openQuiz()"><span class="big">📖</span>相撲クイズ<br>500〜1,000合</button>
+    </div>`;
+
+  // 本日の結果（16時以降）
+  if (hm >= RESULT_HM && SIM.days[day] && SIM.days[day].torikumi[0].result) {
+    html += `<div class="day-banner">🥁 ${day}日目 ${day === 8 ? "中日" : day === 15 ? "千秋楽" : ""} の結果</div>`;
+    html += resultListHTML(SIM.days[day].torikumi);
+  }
+
+  // 予想受付
+  if (betDay && SIM.days[betDay]) {
+    const remain = DEADLINE_HM - hm;
+    const deadline = betDay === day
+      ? `本日15:30締切（あと${Math.floor(remain / 60)}時間${remain % 60}分）`
+      : `明日の取組・15:30締切`;
+    html += `<div class="day-banner">⚔ ${betDay}日目 ${betDay === 8 ? "中日" : betDay === 15 ? "千秋楽" : ""} 予想受付中<br><span style="font-size:11px">${deadline}</span></div>`;
+    SIM.days[betDay].torikumi.forEach((bout, i) => { html += boutCardHTML(bout, i, betDay); });
+    const n = G.bets.filter(x => x.day === betDay && !x.settled).length;
+    html += `<p class="muted center">${n}件ベット中 — 結果は当日16:00に自動確定・精算されます</p>`;
+  } else if (hm >= DEADLINE_HM && hm < RESULT_HM) {
+    const kb = SIM.days[day] && SIM.days[day].torikumi.find(b => b.kensho);
+    html += `<div class="offseason-note">🔒 ${day}日目の投票は締め切りました<br>結果発表は <b>16:00</b> です<br>${kb ? `🚩 本日の懸賞一番：<b>${esc(rk(kb.east).name)} × ${esc(rk(kb.west).name)}</b>` : ""}</div>`;
+  } else if (day === 15 && hm >= RESULT_HM) {
+    html += `<div class="offseason-note">千秋楽の結果が出揃いました。場所締めの処理をお待ちください。</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function resultListHTML(torikumi) {
+  let html = `<div class="card" style="padding:8px 12px">`;
+  torikumi.forEach((bt, i) => {
+    const w = rk(bt.result.winner);
+    const l = rk(bt.result.winner === bt.east ? bt.west : bt.east);
+    const myBet = G.bets.find(x => x.settled && x.bout === i) || null;
+    html += `<div class="result-line"><span><b>${esc(w.name)}</b> <span class="km">（${esc(bt.result.kimarite)}）</span> ${esc(l.name)}</span>${bt.kensho ? "<span>🚩</span>" : ""}</div>`;
+  });
+  return html + `</div>`;
+}
+
+function fighterHTML(bout, i, side, day) {
+  const id = side === "east" ? bout.east : bout.west;
+  const r = rk(id);
+  const st = SIM.rikishi[id];
+  const odds = finalOdds(bout, side);
+  const bet = G.bets.find(x => x.day === day && x.bout === i && !x.settled);
+  const picked = bet && bet.side === side;
+  let tags = "";
+  if (st.injured) tags += `<span class="f-tag tag-injured">🩹怪我明け×2</span> `;
+  if (r.ichimon === G.profile.ichimon) tags += `<span class="f-tag tag-ichimon">一門+0.2</span> `;
+  if (id === G.profile.oshiId) tags += `<span class="f-tag tag-oshi">⭐推し</span>`;
+  return `
+    <button class="fighter ${picked ? "picked-" + side : ""}" onclick="openBetPanel(${i},'${side}',${day})">
+      <span class="f-side ${side}">${side === "east" ? "東" : "西"}</span>
+      <div class="f-name">${esc(r.name)}</div>
+      <div class="f-rank">${rankLabel(r.rank)}</div>
+      <div class="f-record">${st.wins}勝${st.losses}敗</div>
+      <div class="f-odds">${odds.toFixed(2)}倍</div>
+      <div>${tags}</div>
+    </button>`;
+}
+
+function boutCardHTML(bout, i, day) {
+  const bet = G.bets.find(x => x.day === day && x.bout === i && !x.settled);
+  const open = UI.openBet && UI.openBet.bout === i && UI.openBet.day === day;
+  let html = `<div class="bout-card ${bout.kensho ? "kensho" : ""}">`;
+  if (bout.kensho) html += `<div class="kensho-banner">🚩 懸賞一番 — オッズ×1.2</div>`;
+  html += `<div class="bout-main">${fighterHTML(bout, i, "east", day)}<div class="vs">対</div>${fighterHTML(bout, i, "west", day)}</div>`;
+  if (bet) {
+    const r = rk(bet.side === "east" ? bout.east : bout.west);
+    html += `<div class="bet-status"><span><b>${esc(r.name)}</b> に ${fmt(bet.amount)}合（${bet.odds.toFixed(2)}倍）${bet.kimarite ? `／決まり手「${bet.kimarite}」${fmt(bet.kAmount)}合` : ""}</span>
+      <button class="btn btn-ghost btn-sm" onclick="onCancelBet(${day},${i})">取消</button></div>`;
+  }
+  if (open) {
+    const side = UI.openBet.side;
+    const r = rk(side === "east" ? bout.east : bout.west);
+    const odds = finalOdds(bout, side);
+    html += `
+    <div class="bet-panel">
+      <div class="bet-row"><b>${esc(r.name)}</b>（${odds.toFixed(2)}倍）に賭ける</div>
+      <div class="bet-row"><label>賭け米</label><input type="number" id="bet-amount" value="500" step="100" min="100" max="${G.points}"> 合</div>
+      <div class="bet-row"><label>決まり手</label>
+        <select id="bet-kimarite"><option value="">予想しない</option>
+          ${KIMARITE_BET.map(k => `<option value="${k.key}">${k.key}（${k.odds}倍）</option>`).join("")}
+        </select>
+        <input type="number" id="bet-kamount" value="0" step="100" min="0" placeholder="決まり手賭け米"> 合
+      </div>
+      <div class="bet-row">
+        <button class="btn btn-primary" onclick="onConfirmBet(${day},${i},'${side}')">この予想で確定</button>
+        <button class="btn btn-ghost" onclick="UI.openBet=null;renderTorikumi()">やめる</button>
+      </div>
+    </div>`;
+  }
+  return html + `</div>`;
+}
+
+function openBetPanel(i, side, day) {
+  if (day !== bettableDay()) { showToast("🔒 締切", "この取組の受付は終了しています"); return; }
+  UI.openBet = { bout: i, side, day };
+  renderTorikumi();
+  const r = rk(side === "east" ? SIM.days[day].torikumi[i].east : SIM.days[day].torikumi[i].west);
+  if (r.ichimon === G.profile.ichimon) oyakataSay("ichimon");
+  else if (r.id === G.profile.oshiId) oyakataSay("oshi");
+}
+function onConfirmBet(day, i, side) {
+  const amount = parseInt($("#bet-amount").value || "0", 10);
+  const kimarite = $("#bet-kimarite").value || null;
+  const kAmount = parseInt($("#bet-kamount").value || "0", 10);
+  const res = placeBet(day, i, side, amount, kimarite, kimarite ? kAmount : 0);
+  if (!res.ok) { alert(res.msg); return; }
+  UI.openBet = null;
+  renderHeader(); renderTorikumi(); drainToasts();
+}
+function onCancelBet(day, i) { cancelBet(day, i); renderHeader(); renderTorikumi(); }
+
+function onChanko() {
+  if (takeChanko()) {
+    showToast("🍲 ちゃんこボーナス", "+1,000合 ごっつぁんです！");
+    renderHeader(); renderTorikumi(); drainToasts();
+  }
+}
+
+// ---------------- 精算モーダル ----------------
+function showSettleModal(summaries) {
+  let html = `<h2 class="banner">🥁 結果精算</h2>`;
+  summaries.forEach(sm => {
+    html += `<p style="font-weight:bold;color:var(--maroon);margin-top:8px">${sm.day}日目（${sm.betCount}ベット ${sm.dayHits}的中）</p>`;
+    sm.details.forEach(d => {
+      const w = rk(d.bout.result.winner);
+      const pickName = rk(d.bet.side === "east" ? d.bout.east : d.bout.west).name;
+      html += `<div class="result-line">
+        <span>${d.hit ? "○" : "●"} <b>${esc(pickName)}</b> ${fmt(d.bet.amount)}合 <span class="km">→ ${esc(w.name)}（${esc(d.bout.result.kimarite)}）</span></span>
+        <span class="${d.hit ? "hit" : "miss"}">${d.hit ? "+" + fmt(d.gain + d.oshiBonus) : "-" + fmt(d.bet.amount)}</span></div>`;
+      if (d.bet.kimarite) html += `<div class="result-line"><span style="padding-left:18px" class="km">決まり手「${esc(d.bet.kimarite)}」</span><span class="${d.kHit ? "hit" : "miss"}">${d.kHit ? "+" + fmt(d.kGain) : "-" + fmt(d.bet.kAmount)}</span></div>`;
+      if (d.oshiBonus) html += `<div class="result-line"><span style="padding-left:18px" class="km">⭐推し力士ボーナス</span><span class="hit">+${fmt(d.oshiBonus)}</span></div>`;
+    });
+    html += `<div class="day-summary"><span class="${sm.net >= 0 ? "net-plus" : "net-minus"}">${sm.net >= 0 ? "+" : ""}${fmt(sm.net)} 合</span></div>`;
+  });
+  html += `<button class="btn btn-primary btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">閉じる</button>`;
+  openModal(html);
+  const totalNet = summaries.reduce((a, sm) => a + sm.net, 0);
+  oyakataSay(totalNet >= 0 ? "win" : "lose");
+}
+
+// ---------------- 破産・救済演出 ----------------
+function showRescue() {
+  openModal(`
+    <h2 style="color:var(--red)">💢 親方の叱咤激励</h2>
+    <div class="center" style="font-size:46px">👹</div>
+    <p class="center" style="font-size:15px;line-height:2;font-weight:bold">${esc(pickRand(OYAKATA.bankrupt))}</p>
+    <button class="btn btn-danger btn-wide" style="margin-top:14px" onclick="showOkami()">面目ない……</button>
+  `);
+}
+function showOkami() {
+  openModal(`
+    <h2 style="color:#c2185b">🌸 おかみさんの内緒米</h2>
+    <div class="center" style="font-size:46px">👘</div>
+    <p class="center" style="font-size:14px;line-height:2">${esc(OYAKATA.okami[0])}</p>
+    <div class="day-summary"><span class="net-plus">+5,000 合</span><br><span class="muted">（親方には内緒だぞ）</span></div>
+    <button class="btn btn-primary btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">ありがたや……</button>
+  `);
+  renderHeader();
+}
+
+// ---------------- 場所結果 ----------------
+function showBashoResult() {
+  const r = G.lastResult;
+  if (!r) { playPendingModals(); return; }
+  const yen = r.ichimonWin ? Math.round(r.yen * 1.1) : r.yen;
+  let special = "";
+  if (r.yushoResult) special += `<div class="result-line"><span>優勝予想：${esc(r.yushoResult.pick)}</span><span class="${r.yushoResult.hit ? "hit" : "miss"}">${r.yushoResult.hit ? "的中！千秋楽獲得2倍 +" + fmt(r.yushoResult.bonus) : "はずれ"}</span></div>`;
+  if (r.sanshoResult) {
+    const sr = r.sanshoResult;
+    special += `<div class="result-line"><span>三賞予想（×${sr.mult}）</span><span class="${sr.gain ? "hit" : "miss"}">${["殊勲", "敢闘", "技能"].filter((_, i) => [sr.r1, sr.r2, sr.r3][i]).join("・") || "全はずれ"} ${sr.gain ? "+" + fmt(sr.gain) : ""}</span></div>`;
+  }
+  openModal(`
+    <h2 class="banner">🏆 ${esc(r.bashoName)} 千秋楽</h2>
+    <div class="center" style="font-size:15px;line-height:2.1">
+      幕内最高優勝：<b style="font-size:19px">${esc(r.champion)}</b>（${r.championWins}勝）${r.playoff ? "<br><span class='muted'>優勝決定戦を制す！</span>" : ""}<br>
+      殊勲賞：${esc(r.shukun)}／敢闘賞：${esc(r.kanto)}／技能賞：${esc(r.gino)}
+    </div>
+    ${special}
+    <hr class="wave">
+    <div class="center" style="line-height:2">
+      あなたの成績：${r.bets}ベット ${r.hits}的中<br>
+      最終所持米：<b style="font-size:20px;color:var(--maroon)">${fmt(r.finalPoints)}合</b><br>
+      番付：<span class="rank-chip l${r.banzuke.level}" style="font-size:14px;padding:2px 10px">${r.banzuke.levelName}</span>
+      ${r.banzuke.pos ? `<span class="muted">（${r.banzuke.total}人中 ${r.banzuke.pos}位）</span>` : ""}
+    </div>
+    <div class="day-summary" style="font-size:13px;line-height:2">
+      📦 米俵換算リザルト<br>
+      重さ <b>${fmt(r.kg)}kg</b> ＝ 米俵 <b>${r.tawara}俵</b><br>
+      市場価値 <b>${fmt(yen)}円</b>（令和8年物価）<br>
+      ${r.ichimonWin ? `<span class="hit">🎉 ${esc(G.profile.ichimon)}一門 的中率1位！祝勝会ボーナス×1.1</span>` : `<span class="muted">一門的中率1位：${esc(r.topIchimon)}一門</span>`}
+    </div>
+    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">場所納め</button>
+  `);
+}
+
+function offseasonHTML(info) {
+  const r = G.lastResult;
+  let count = "";
+  if (info.next) {
+    const days = Math.ceil((info.next.startMs - jstNow().dateMs) / 86400e3);
+    count = `次の <b>${esc(info.next.name)}</b> 初日まで <b style="font-size:20px;color:var(--maroon)">あと${days}日</b><br><span class="muted">（初日 ${new Date(info.next.startMs).toISOString().slice(0, 10)}・毎日15:30締切/16:00結果発表）</span>`;
+  }
+  return `
+    <div class="offseason-note">
+      <b style="font-size:17px">🌙 ${G.finishedProcessed && info.current ? "千秋楽 打ち止め" : "オフシーズン"}</b><br>
+      ${r ? `${esc(r.bashoName)} 優勝：${esc(r.champion)}<br>あなたの番付：<b>${r.banzuke.levelName}</b><br>` : "初場所の初日をお待ちください。<br>"}
+      ${count}
+    </div>
+    <div class="bonus-row">
+      <button class="bonus-btn" onclick="onChanko()" ${canChanko() ? "" : "disabled"}><span class="big">🍲</span>ちゃんこ${canChanko() ? "<br>+1,000合" : "<br>本日済み"}</button>
+      <button class="bonus-btn" onclick="openQuiz()"><span class="big">📖</span>相撲クイズ<br>500〜1,000合</button>
+    </div>
+    <p class="muted center">オフシーズン中もちゃんことクイズで米を蓄えられます</p>`;
+}
+
+// ---------------- 場所予想タブ ----------------
+function renderBashoTab() {
+  const info = bashoInfo();
+  const el = $("#tab-basho");
+  if (!info.current || G.finishedProcessed) { el.innerHTML = offseasonHTML(info); return; }
+  const dd = doneDaysNow();
+
+  let yusho;
+  if (G.yushoBet) {
+    yusho = `<div class="locked-box"><span class="seal">確定</span> 優勝予想：<b>${esc(rk(G.yushoBet.rikishiId).name)}</b><br><span class="muted">的中すれば千秋楽の獲得ポイントが2倍！</span></div>`;
+  } else {
+    const standings = RIKISHI.slice().sort((x, y) => SIM.rikishi[y.id].wins - SIM.rikishi[x.id].wins);
+    yusho = `
+      <div class="note">受付：千秋楽の取組開始（15:30）前まで。的中すると<b>千秋楽に獲得した全ポイントが2倍</b>。確定後は変更不可。</div>
+      <div class="form-row"><label>力士</label>
+        <select id="yusho-pick">${standings.map(r2 => `<option value="${r2.id}">${esc(r2.name)}（${rankLabel(r2.rank)}・${SIM.rikishi[r2.id].wins}勝${SIM.rikishi[r2.id].losses}敗）</option>`).join("")}</select>
+      </div>
+      <button class="btn btn-primary" onclick="onYusho()">この力士で確定する</button>`;
+  }
+
+  let sansho;
+  if (G.sanshoBet) {
+    const sb = G.sanshoBet;
+    sansho = `<div class="locked-box"><span class="seal">確定</span> 三賞予想（${SANSHO_ODDS[sb.day]}倍・各${fmt(sb.amount)}合）<br>
+      殊勲賞：<b>${esc(sb.shukun)}</b>／敢闘賞：<b>${esc(sb.kanto)}</b>／技能賞：<b>${esc(sb.gino)}</b></div>`;
+  } else if (dd < 8) {
+    sansho = `<div class="note">🔒 三賞予想は <b>8日目終了後(16:00)</b> に解放されます（現在 ${dd}日目終了）。早いほど高倍率（8日目終了2.5倍→14日目終了1.2倍）。</div>`;
+  } else if (dd > 14) {
+    sansho = `<div class="note">受付は14日目終了までです。</div>`;
+  } else {
+    const mult = SANSHO_ODDS[dd];
+    const opts = ["該当者なし"].concat(RIKISHI.filter(r2 => !["Y", "O"].includes(r2.rank)).map(r2 => r2.name));
+    const sel = id => `<select id="${id}">${opts.map(n => `<option>${esc(n)}</option>`).join("")}</select>`;
+    sansho = `
+      <div class="note">現在 <b>${dd}日目終了時点 → ${mult}倍</b>。各賞に同額を賭け、的中した賞ごとに払い戻し。同じ力士を複数選択可。確定後は変更不可。</div>
+      <div class="form-row"><label>殊勲賞</label>${sel("sansho-shukun")}</div>
+      <div class="form-row"><label>敢闘賞</label>${sel("sansho-kanto")}</div>
+      <div class="form-row"><label>技能賞</label>${sel("sansho-gino")}</div>
+      <div class="form-row"><label>予想料</label><input type="number" id="sansho-amount" value="1000" step="100" min="100"> 合 ×3賞</div>
+      <button class="btn btn-primary" onclick="onSansho()">三賞予想を確定する</button>`;
+  }
+
+  const standings = RIKISHI.slice().sort((x, y) => SIM.rikishi[y.id].wins - SIM.rikishi[x.id].wins || rankPoint(y.rank) - rankPoint(x.rank));
+  const starRows = standings.slice(0, 10).map((r2, i) =>
+    `<tr><td>${i + 1}</td><td style="text-align:left"><b>${esc(r2.name)}</b> <span class="muted">${rankLabel(r2.rank)}</span></td><td>${SIM.rikishi[r2.id].wins}勝${SIM.rikishi[r2.id].losses}敗</td></tr>`).join("");
+
+  el.innerHTML = `
+    <div class="card"><h3>🏆 優勝予想</h3>${yusho}</div>
+    <div class="card"><h3>🎖 三賞予想（殊勲・敢闘・技能）</h3>${sansho}</div>
+    <div class="card"><h3>⭐ 優勝争い（上位10名・${dd}日目終了時点）</h3>
+      <table class="banzuke"><tr><th>順</th><th>力士</th><th>成績</th></tr>${starRows}</table>
+    </div>`;
+}
+function onYusho() {
+  const res = placeYushoBet(parseInt($("#yusho-pick").value, 10));
+  if (!res.ok) { alert(res.msg); return; }
+  oyakataSay("yusho");
+  renderBashoTab();
+}
+function onSansho() {
+  const res = placeSanshoBet($("#sansho-shukun").value, $("#sansho-kanto").value, $("#sansho-gino").value, parseInt($("#sansho-amount").value || "0", 10));
+  if (!res.ok) { alert(res.msg); return; }
+  renderHeader(); renderBashoTab();
+}
+
+// ---------------- 米取表タブ ----------------
+async function renderKometori() {
+  const s = G.stats;
+  const rate = s.totalBets ? Math.round(s.totalHits / s.totalBets * 100) : 0;
+  $("#tab-kometori").innerHTML = `
+    <div class="section-title">📈 収支グラフ（今場所）</div>
+    <canvas id="chart" width="640" height="300"></canvas>
+
+    <div class="section-title">🗒 トト番付ランキング
+      <button class="btn btn-ghost btn-sm" onclick="renderKometori()" style="float:right">↻ 更新</button>
+    </div>
+    <div id="ranking-area"><p class="muted center">読み込み中…</p></div>
+
+    <div class="section-title">📜 通算実績</div>
+    <div class="stats-grid">
+      <div>通算ベット <b>${fmt(s.totalBets)}</b>回</div><div>的中率 <b>${rate}%</b>（${fmt(s.totalHits)}勝）</div>
+      <div>最高連続的中 <b>${s.bestStreak}</b></div><div>最高所持米 <b>${fmt(s.maxPoints)}</b>合</div>
+      <div>参加場所数 <b>${G.bashoCount}</b></div><div>破産回数 <b>${s.bankruptcies}</b>回</div>
+      <div>優勝予想的中 <b>${s.yushoHits}</b>回</div><div>クイズ正解 <b>${s.quizCorrect}</b>問</div>
+    </div>
+
+    <div class="section-title">🏅 称号（${G.achievements.length} / ${TITLES.length}）</div>
+    <p class="muted">獲得した称号をタップすると四股名の前に表示されます。</p>
+    <div id="title-area">${titleGalleryHTML()}</div>
+
+    <div class="section-title">⚙ プロフィール（入門の儀の変更）</div>
+    <div class="card">
+      <div class="form-row"><label>四股名</label><input id="pf-name" maxlength="10" value="${esc(G.profile.shikona)}"></div>
+      <div class="form-row"><label>所属一門</label><select id="pf-ichimon">${ICHIMON.map(x => `<option ${x === G.profile.ichimon ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+      <div class="form-row"><label>推し力士</label><select id="pf-oshi">${RIKISHI.map(r2 => `<option value="${r2.id}" ${r2.id === G.profile.oshiId ? "selected" : ""}>${esc(r2.name)}（${rankLabel(r2.rank)}）</option>`).join("")}</select></div>
+      <button class="btn btn-primary" onclick="onSaveProfile()">変更を保存</button>
+    </div>
+    <button class="btn btn-ghost btn-wide" onclick="onReset()" style="margin-top:6px;color:var(--red);border-color:var(--red)">⚠ 全データをリセット（廃業）</button>`;
+  drawChart();
+  renderRanking();
+}
+
+async function renderRanking() {
+  const area = $("#ranking-area");
+  if (!area) return;
+  let list = null;
+  if (SB && G.bashoKey) list = await fetchLeaderboard(G.bashoKey);
+  const bz = computeBanzuke(list);
+  const half = Math.ceil(bz.table.length / 2);
+  const east = bz.table.slice(0, half), west = bz.table.slice(half);
+  const rows = [];
+  for (let i = 0; i < half; i++) {
+    const e = east[i], w = west[i];
+    const cell = u => u ? `<span class="rank-chip l${u.level}">${u.levelName}</span> ${esc(u.name)}${u.me ? " ★" : ""}` : "";
+    rows.push(`<tr class="${(e && e.me) || (w && w.me) ? "me" : ""}">
+      <td>${e ? e.pos : ""}</td><td style="text-align:left">${cell(e)}</td><td>${e ? fmt(e.points) : ""}</td>
+      <td>${w ? fmt(w.points) : ""}</td><td style="text-align:right">${cell(w)}</td><td>${w ? w.pos : ""}</td></tr>`);
+  }
+  const info = bashoInfo();
+  area.innerHTML = `
+    <table class="banzuke">
+      <tr><th>位</th><th>東</th><th>合</th><th>合</th><th>西</th><th>位</th></tr>
+      ${rows.join("")}
+    </table>
+    <p class="muted" style="margin-top:4px">
+      ${SB ? `🟢 オンライン：${bz.total}名参加${info.current && !G.finishedProcessed ? "（場所中は速報値・確定は千秋楽）" : "（確定番付）"}` : "⚪ オフライン：自分のみ表示"}
+      ${bz.pos ? `／あなた：${bz.pos}位` : ""}
+    </p>`;
+}
+
+function titleGalleryHTML() {
+  let html = "";
+  for (let c = 1; c <= 9; c++) {
+    const list = TITLES.filter(t => t.cat === c);
+    html += `<p style="font-size:12px;font-weight:bold;color:var(--maroon);margin:8px 0 4px">${TITLE_CATS[c]}（${list.filter(t => G.achievements.includes(t.id)).length}/${list.length}）</p><div class="title-grid">`;
+    list.forEach(t => {
+      const got = G.achievements.includes(t.id);
+      const sel = G.profile.title === t.id;
+      html += `<button class="title-chip ${got ? "" : "locked"} ${sel ? "selected" : ""}" title="${esc(t.desc)}"
+        onclick="${got ? `selectTitle('${t.id}')` : `alert('未獲得：${esc(t.desc)}')`}">${esc(t.name)}</button>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+function selectTitle(id) { G.profile.title = id; save(); renderHeader(); $("#title-area").innerHTML = titleGalleryHTML(); }
+
+function onSaveProfile() {
+  const name = $("#pf-name").value.trim().slice(0, 10);
+  if (!name) { alert("四股名を入力してください"); return; }
+  G.profile.shikona = name;
+  G.profile.ichimon = $("#pf-ichimon").value;
+  G.profile.oshiId = parseInt($("#pf-oshi").value, 10);
+  save(); renderHeader();
+  showToast("⚙ プロフィール", "変更を保存しました");
+}
+function onReset() {
+  if (!confirm("全データを消去して廃業します。本当によろしいですか？")) return;
+  if (!confirm("称号・実績もすべて失われます。最終確認です。")) return;
+  ["gameState", "bets", "achievements", "quizHistory", "dailyBonus"].forEach(k => localStorage.removeItem(k));
+  location.reload();
+}
+
+// ---------------- 収支グラフ ----------------
+function drawChart() {
+  const cv = $("#chart");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const W = cv.width, H = cv.height, P = 40;
+  ctx.clearRect(0, 0, W, H);
+  const hist = (G.pointsHistory && G.pointsHistory.length) ? G.pointsHistory : [{ day: 0, points: G.points }];
+  const xs = d => P + (W - P * 2) * (d / 15);
+  const vals = hist.map(h => h.points);
+  const maxV = Math.max(33000, ...vals) * 1.05, minV = 0;
+  const ys = v => H - P + (P * 2 - H) * ((v - minV) / (maxV - minV));
+  ctx.strokeStyle = "#ddd2b8"; ctx.fillStyle = "#8a7a60"; ctx.font = "11px serif"; ctx.lineWidth = 1;
+  for (let v = 0; v <= maxV; v += 10000) {
+    ctx.beginPath(); ctx.moveTo(P, ys(v)); ctx.lineTo(W - P, ys(v)); ctx.stroke();
+    ctx.fillText((v / 1000) + "k", 6, ys(v) + 4);
+  }
+  ctx.strokeStyle = "#c9a227"; ctx.setLineDash([5, 4]);
+  ctx.beginPath(); ctx.moveTo(P, ys(33000)); ctx.lineTo(W - P, ys(33000)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#a8861a"; ctx.fillText("関取 33,000", W - P - 70, ys(33000) - 5);
+  ctx.fillStyle = "#8a7a60";
+  for (let d = 0; d <= 15; d += 3) ctx.fillText(d === 0 ? "前" : d + "日", xs(d) - 8, H - P + 16);
+  ctx.strokeStyle = "#5c1a1a"; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  hist.forEach((h, i) => { const x = xs(h.day), y = ys(h.points); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+  ctx.stroke();
+  hist.forEach(h => {
+    ctx.fillStyle = "#c9a227";
+    ctx.beginPath(); ctx.arc(xs(h.day), ys(h.points), 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#5c1a1a"; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+}
+
+// ---------------- クイズ ----------------
+function openQuiz() {
+  const q = getQuiz();
+  if (!q) { showToast("📖 相撲クイズ", "本日の出題は終了（1日3問まで）。また明日！"); return; }
+  oyakataSay("quiz");
+  openModal(`
+    <h2>📖 相撲クイズ <span class="muted" style="font-size:11px">［${esc(q.quiz.cat)}］本日${G.quizToday.count + 1}/3問</span></h2>
+    <p style="font-size:15px;line-height:1.8;margin-bottom:12px">${esc(q.quiz.q)}</p>
+    ${q.quiz.c.map((c, i) => `<button class="quiz-choice" id="qc-${i}" onclick="onQuizAnswer(${q.idx},${i})">${"アイウエ"[i]}．${esc(c)}</button>`).join("")}
+    <button class="btn btn-ghost btn-wide" onclick="closeModal()">やめておく</button>
+  `);
+}
+function onQuizAnswer(idx, choice) {
+  const res = answerQuiz(idx, choice);
+  document.querySelectorAll(".quiz-choice").forEach((b, i) => {
+    b.disabled = true;
+    if (i === QUIZ[idx].a) b.classList.add("correct");
+    else if (i === choice) b.classList.add("wrong");
+  });
+  const div = document.createElement("div");
+  div.className = "day-summary";
+  div.innerHTML = res.correct
+    ? `<span class="net-plus">正解！ +${fmt(res.reward)}合</span>`
+    : `<span class="net-minus">残念！</span><br><span class="muted">正解：${esc(res.answer)}</span>`;
+  $(".modal").appendChild(div);
+  renderHeader(); drainToasts();
+}
+
+// ---------------- 親方・トースト・モーダル ----------------
+let oyakataTimer = null;
+function oyakataSay(type) {
+  const msg = pickRand(OYAKATA[type] || OYAKATA.greet);
+  const bub = $("#oyakata-bubble");
+  bub.textContent = msg;
+  bub.style.display = "block";
+  clearTimeout(oyakataTimer);
+  oyakataTimer = setTimeout(() => { bub.style.display = "none"; }, 5000);
+}
+function showToast(title, body) {
+  const area = $("#toast-area");
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.innerHTML = `<b>${title}</b><small>${body}</small>`;
+  area.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+function drainToasts() {
+  while (toastQueue.length) {
+    const t = toastQueue.shift();
+    showToast(`🏅 称号獲得「${esc(t.name)}」`, esc(t.desc));
+  }
+}
+function openModal(html) { $("#modal-area").innerHTML = `<div class="modal-bg"><div class="modal">${html}</div></div>`; }
+function closeModal() { $("#modal-area").innerHTML = ""; }
+
+// ---------------- オンボーディング（入門の儀） ----------------
+function renderOnboarding() {
+  const oshiOpts = RIKISHI.map(r => `<option value="${r.id}">${esc(r.name)}（${rankLabel(r.rank)}）</option>`).join("");
+  openModal(`
+    <div class="onb-logo">トト相撲</div>
+    <div class="onb-sub">— 大相撲 取組予想ゲーム ONLINE・入門の儀 —</div>
+    <div class="form-row"><label>四股名</label><input id="onb-name" maxlength="10" placeholder="例：朝青空"></div>
+    <p style="font-size:13px;font-weight:bold;margin:10px 0 6px">所属一門を選ぶ</p>
+    <div class="ichimon-grid" id="onb-ichimon">
+      ${ICHIMON.map(x => `<button class="ichimon-card" data-im="${x}" onclick="onbIchimon('${x}')">${x}一門</button>`).join("")}
+    </div>
+    <p style="font-size:13px;font-weight:bold;margin:10px 0 6px">推し力士を選ぶ</p>
+    <div class="form-row"><select id="onb-oshi">${oshiOpts}</select></div>
+    <p class="muted center" style="margin:8px 0">持ち米 15,000合 からのスタート！<br>全プレイヤー共通の取組で毎日15:30締切・16:00結果発表</p>
+    <button class="btn btn-gold btn-wide" onclick="onbStart()">🥁 入門する</button>
+  `);
+}
+function onbIchimon(x) {
+  UI.onb.ichimon = x;
+  document.querySelectorAll(".ichimon-card").forEach(b => b.classList.toggle("sel", b.dataset.im === x));
+}
+async function onbStart() {
+  const name = $("#onb-name").value.trim().slice(0, 10);
+  if (!name) { alert("四股名を入力してください"); return; }
+  if (!UI.onb.ichimon) { alert("所属一門を選んでください"); return; }
+  newGame(name, UI.onb.ichimon, parseInt($("#onb-oshi").value, 10));
+  closeModal();
+  await sbInit();
+  await ensureBashoState();
+  renderAll();
+  showToast("🥁 入門の儀 完了", `${UI.onb.ichimon}一門・${name} 関の誕生だ！`);
+  playPendingModals();
+  setTimeout(() => oyakataSay("greet"), 600);
+}
+
+init();
+</script>
+</body></html>
