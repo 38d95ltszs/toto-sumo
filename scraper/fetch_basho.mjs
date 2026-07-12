@@ -74,12 +74,21 @@ function parseDay(html) {
     const rankIdx = tokens.map((t, i) => RANK_RE.test(t) ? i : -1).filter(i => i >= 0);
     if (rankIdx.length < 2) continue;
     const recIdx = tokens.map((t, i) => REC_RE.test(t) ? i : -1).filter(i => i >= 0);
-    if (recIdx.length < 2) continue;
     const seg = (a, b) => tokens.slice(a + 1, b);
     const isMark = t => /^[○●□■]$/.test(t);
     const eRank = normRank(tokens[rankIdx[0]]);
     const wRank = normRank(tokens[rankIdx[rankIdx.length - 1]]);
     if (!eRank || !wRank) continue;
+
+    // ---- 星取なし行（未来日の取組前ページ）: [東番付, 東名, (決まり手/取組前)?, 西名, 西番付] ----
+    if (recIdx.length < 2) {
+      const mid = seg(rankIdx[0], rankIdx[rankIdx.length - 1]).filter(t => !isMark(t));
+      if (mid.length < 2) continue;
+      const eName = mid[0], wName = mid[mid.length - 1];
+      const k = mid.length >= 3 ? mid[1] : null;
+      bouts.push({ eRank, eName, eRec: "0勝0敗", eMark: null, k, wRank, wName, wRec: "0勝0敗", wMark: null });
+      continue;
+    }
     // 東側: 番付〜成績 の間で名前を拾う（マークが名前の前後に付く場合あり）
     const eSeg = seg(rankIdx[0], recIdx[0]);
     let eMark = eSeg.find(isMark) || null;
@@ -105,6 +114,23 @@ function parseDay(html) {
     bouts.push({ eRank, eName, eRec, eMark, k, wRank, wName, wRec, wMark });
   }
   return bouts;
+}
+
+// ---------- 休場力士欄のパース ----------
+function parseKyujo(html) {
+  const i = html.indexOf("休場力士");
+  if (i < 0) return [];
+  const t0 = html.indexOf("<table", i);
+  if (t0 < 0) return [];
+  const t1 = html.indexOf("</table>", t0);
+  const tokens = html.slice(t0, t1)
+    .replace(/<[^>]*>/g, "\n")
+    .split(/[\n、,・]/).map(s => s.trim()).filter(Boolean);
+  return tokens.filter(t =>
+    !["幕内", "十両", "休場力士", "力士"].includes(t) &&
+    !/[\d※:：\/]/.test(t) &&
+    /^[぀-ヿ㐀-鿿々]+$/.test(t)
+  );
 }
 
 // ---------- 勝者判定（マーク優先、なければ星取差分） ----------
@@ -134,6 +160,7 @@ const yyyymm = basho.key.replace("-", "");
 const days = {};
 const banzuke = new Map(); // name -> rank（初出を採用）
 const winsMap = {};        // 星取差分用
+let kyujoToday = [];       // 本日時点の休場力士
 
 const fetchDays = [];
 for (let d = 1; d <= Math.min(15, basho.day + 1); d++) fetchDays.push(d);
@@ -149,6 +176,8 @@ for (const d of fetchDays) {
     console.log(`day${d}: 取得失敗 ${e.message}`);
     continue;
   }
+  const ky = parseKyujo(html);
+  if (ky.length) kyujoToday = [...new Set([...kyujoToday, ...ky])];
   const parsed = parseDay(html);
   if (!parsed.length) { console.log(`day${d}: 取組なし（未発表）`); continue; }
   const bouts = [];
@@ -183,20 +212,36 @@ let prev = null;
 if (existsSync(OUT)) {
   try { prev = JSON.parse(readFileSync(OUT, "utf8")); } catch (e) { }
 }
-if (prev && prev.bashoKey === basho.key && prev.days) {
-  for (const [d, bouts] of Object.entries(prev.days)) {
-    const nd = days[d];
-    if (!nd) { days[d] = bouts; continue; }
-    // 旧データで確定済み・新データで未確定なら旧を残す
-    bouts.forEach((ob, i) => { if (ob.win && nd[i] && !nd[i].win && ob.e === nd[i].e) nd[i] = ob; });
+let kyujoLog = {};
+let injuredCarry = [];
+if (prev && prev.bashoKey === basho.key) {
+  if (prev.days) {
+    for (const [d, bouts] of Object.entries(prev.days)) {
+      const nd = days[d];
+      if (!nd) { days[d] = bouts; continue; }
+      // 旧データで確定済み・新データで未確定なら旧を残す
+      bouts.forEach((ob, i) => { if (ob.win && nd[i] && !nd[i].win && ob.e === nd[i].e) nd[i] = ob; });
+    }
   }
+  kyujoLog = prev.kyujoLog || {};
+  injuredCarry = prev.injuredCarry || [];
+} else if (prev && prev.kyujoLog) {
+  // 場所が替わった: 前場所で5日以上休場した力士 → 今場所「怪我明け」(仕様4.2 B条件)
+  const count = {};
+  Object.values(prev.kyujoLog).forEach(names => names.forEach(n => { count[n] = (count[n] || 0) + 1; }));
+  injuredCarry = Object.entries(count).filter(([, c]) => c >= 5).map(([n]) => n);
+  console.log("前場所の怪我明け持ち越し:", injuredCarry.join("、") || "なし");
 }
+// 本日分の休場記録を追記（同日は上書き更新）
+if (kyujoToday.length) kyujoLog[String(basho.day)] = kyujoToday;
 
 const out = {
   bashoKey: basho.key,
   updatedAt: new Date().toISOString(),
   source: "sports.yahoo.co.jp/sumo",
   banzuke: [...banzuke.entries()].map(([name, rank]) => ({ name, rank })),
+  kyujoLog,
+  injuredCarry,
   days
 };
 mkdirSync("data", { recursive: true });
