@@ -915,6 +915,14 @@ async function ensureBashoState() {
     settlePending();
     if (canFinish()) await processFinish();
   }
+  // 番付編成会議（千秋楽の3日後=水曜 10:00 JST に確定発表）
+  if (G.bashoKey && G.finishedProcessed && !G.banzukeAnnounced && typeof G.finalPoints === "number") {
+    const [by, bm] = G.bashoKey.split("-").map(Number);
+    const wedDate = Date.UTC(by, bm - 1, secondSunday(by, bm)) + 17 * 86400e3; // 初日+17日=水曜
+    if (info.now.dateMs > wedDate || (info.now.dateMs === wedDate && info.now.hm >= 10 * 60)) {
+      await announceBanzuke();
+    }
+  }
   // 新しい場所が始まっていたら参加
   if (info.current && G.bashoKey !== info.current.key) {
     if (G.bashoKey) { G.bashoCount++; G.stats.bashoPlayed = G.bashoCount; }
@@ -924,6 +932,7 @@ async function ensureBashoState() {
     G.dayLog = []; G.betDays = [];
     G.hitsThisBasho = 0; G.betsThisBasho = 0;
     G.finishedProcessed = false;
+    G.finalPoints = null; G.banzukeAnnounced = false;
     G.stats.rescuedThisBasho = false;
   }
   // 今場所のシミュレーション構築 + 未精算ベットの精算
@@ -1185,14 +1194,13 @@ async function processFinish() {
   s.bashoFinished++;
   s.maxPoints = Math.max(s.maxPoints, G.points);
 
-  // 番付（オンライン: 全プレイヤーで算定）
-  const leaders = await fetchLeaderboard(G.bashoKey);
-  const banzuke = computeBanzuke(leaders);
-  s.bestBanzuke = Math.max(s.bestBanzuke, banzuke.level);
-  if (banzuke.level === 9) s.totoTsunaCount++;
-  G.banzukeLevel = banzuke.level;
+  // 番付は千秋楽では確定させない（水曜10時の「番付編成会議」で発表）
+  // 千秋楽終了時の持ち米を凍結してクラウドに同期しておく
+  G.finalPoints = G.points;
+  G.banzukeAnnounced = false;
 
   // 価値換算 + 一門祝勝会（一門平均的中率1位で×1.1）
+  const leaders = await fetchLeaderboard(G.bashoKey);
   const kg = round2(G.points * 0.15);
   const tawara = round2(kg / 60);
   const yen = Math.round(kg * 600);
@@ -1213,11 +1221,29 @@ async function processFinish() {
     champion: champion.name, playoff, championWins: maxW,
     shukun, kanto, gino, yushoResult, sanshoResult,
     finalPoints: G.points, hits: G.hitsThisBasho, bets: G.betsThisBasho,
-    banzuke: { level: banzuke.level, levelName: banzuke.levelName, pos: banzuke.pos, total: banzuke.total },
+    banzuke: null, // 水曜の番付編成会議で確定
     kg, tawara, yen, ichimonWin, topIchimon
   };
   G.finishedProcessed = true;
   pendingModals.push({ type: "bashoResult" });
+  checkAchievements();
+  save();
+}
+
+// ============================================================
+// 番付編成会議（千秋楽3日後の水曜10:00に確定発表）
+// 全員の「千秋楽終了時の凍結スコア(final_points)」で番付を算定する
+// ============================================================
+async function announceBanzuke() {
+  const s = G.stats;
+  const leaders = await fetchLeaderboard(G.bashoKey);
+  const bz = computeBanzuke(leaders, true);
+  G.banzukeLevel = bz.level;
+  s.bestBanzuke = Math.max(s.bestBanzuke, bz.level);
+  if (bz.level === 9) s.totoTsunaCount++;
+  if (G.lastResult) G.lastResult.banzuke = { level: bz.level, levelName: bz.levelName, pos: bz.pos, total: bz.total };
+  G.banzukeAnnounced = true;
+  pendingModals.push({ type: "banzuke", data: bz });
   checkAchievements();
   save();
 }
@@ -1275,7 +1301,7 @@ async function sbInit() {
 }
 async function pushProfile() {
   if (!SB || !MYID || !G) return;
-  const { error } = await SB.from("players").upsert({
+  const row = {
     id: MYID,
     shikona: G.profile.shikona,
     ichimon: G.profile.ichimon,
@@ -1286,8 +1312,15 @@ async function pushProfile() {
     bets: G.betsThisBasho,
     banzuke_level: G.banzukeLevel,
     basho_count: G.bashoCount,
+    final_points: (typeof G.finalPoints === "number") ? G.finalPoints : null,
     updated_at: new Date().toISOString()
-  });
+  };
+  let { error } = await SB.from("players").upsert(row);
+  if (error && /final_points/.test(error.message)) {
+    // final_points列が未作成の環境向けフォールバック
+    delete row.final_points;
+    ({ error } = await SB.from("players").upsert(row));
+  }
   if (error) console.warn("同期失敗:", error.message);
 }
 let pushTimer = null;
@@ -1298,30 +1331,40 @@ function syncCloud() {
 }
 async function fetchLeaderboard(bashoKey) {
   if (!SB) return null;
-  const { data, error } = await SB.from("players")
-    .select("id, shikona, ichimon, title, points, hits, bets, basho_count")
+  let { data, error } = await SB.from("players")
+    .select("id, shikona, ichimon, title, points, hits, bets, basho_count, final_points")
     .eq("basho_key", bashoKey)
     .order("points", { ascending: false })
     .limit(200);
+  if (error && /final_points/.test(error.message)) {
+    ({ data, error } = await SB.from("players")
+      .select("id, shikona, ichimon, title, points, hits, bets, basho_count")
+      .eq("basho_key", bashoKey)
+      .order("points", { ascending: false })
+      .limit(200));
+  }
   if (error) { console.warn("ランキング取得失敗:", error.message); return null; }
   LEADER = data;
   return data;
 }
 
 // 番付算定（仕様6）: list=players行 or null（ローカルのみ）
-function computeBanzuke(list) {
+// useFinal=true なら千秋楽終了時の凍結スコア(final_points)を優先して使う
+function computeBanzuke(list, useFinal) {
   const rows = [];
+  const pts = p => (useFinal && typeof p.final_points === "number") ? p.final_points : p.points;
+  const myPts = (useFinal && typeof G.finalPoints === "number") ? G.finalPoints : G.points;
   if (list && list.length) {
     list.forEach(p => rows.push({
       id: p.id, name: p.shikona, title: p.title, ichimon: p.ichimon,
-      points: p.points, rate: p.bets ? p.hits / p.bets : 0,
+      points: pts(p), rate: p.bets ? p.hits / p.bets : 0,
       isNew: (p.basho_count || 1) === 1, me: p.id === MYID
     }));
     if (MYID && !rows.some(r => r.me) && G.betsThisBasho > 0) {
-      rows.push({ id: MYID, name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: G.points, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, isNew: G.bashoCount === 1, me: true });
+      rows.push({ id: MYID, name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, isNew: G.bashoCount === 1, me: true });
     }
   } else {
-    rows.push({ id: "me", name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: G.points, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, isNew: G.bashoCount === 1, me: true });
+    rows.push({ id: "me", name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, isNew: G.bashoCount === 1, me: true });
   }
   rows.sort((x, y2) => y2.points - x.points || y2.rate - x.rate);
   const N = rows.length;
@@ -1343,7 +1386,9 @@ function computeBanzuke(list) {
 // ちゃんこ・クイズ・称号（v1と同一）
 // ============================================================
 function todayStr() { const t = jstNow(); return t.y + "-" + String(t.m).padStart(2, "0") + "-" + String(t.d).padStart(2, "0"); }
-function canChanko() { return localStorage.getItem("dailyBonus") !== todayStr(); }
+// 千秋楽後〜番付発表(水曜10時)までは謹慎期間: ちゃんこ・クイズ休止でスコア凍結
+function scoreFrozen() { return !!(G && G.finishedProcessed && !G.banzukeAnnounced); }
+function canChanko() { return !scoreFrozen() && localStorage.getItem("dailyBonus") !== todayStr(); }
 function takeChanko() {
   if (!canChanko()) return false;
   localStorage.setItem("dailyBonus", todayStr());
@@ -1356,9 +1401,11 @@ function takeChanko() {
   return true;
 }
 function canQuiz() {
+  if (scoreFrozen()) return false;
   return !(G.quizToday && G.quizToday.date === todayStr() && G.quizToday.count >= 1);
 }
 function getQuiz() {
+  if (scoreFrozen()) return null;
   if (G.quizToday.date !== todayStr()) G.quizToday = { date: todayStr(), count: 0 };
   if (G.quizToday.count >= 1) return null; // 1日1問まで
   const unanswered = QUIZ.map((q, i) => i).filter(i => !G.answeredQuiz.includes(i));
@@ -1570,6 +1617,7 @@ function playPendingModals() {
   if (ev.type === "settle") showSettleModal(ev.data);
   else if (ev.type === "rescue") showRescue();
   else if (ev.type === "bashoResult") showBashoResult();
+  else if (ev.type === "banzuke") showBanzukeModal(ev.data);
   else playPendingModals();
 }
 
@@ -1846,8 +1894,9 @@ function showBashoResult() {
     <div class="center" style="line-height:2">
       あなたの成績：${r.bets}ベット ${r.hits}的中<br>
       最終所持米：<b style="font-size:20px;color:var(--maroon)">${fmt(r.finalPoints)}合</b><br>
-      番付：<span class="rank-chip l${r.banzuke.level}" style="font-size:14px;padding:2px 10px">${r.banzuke.levelName}</span>
-      ${r.banzuke.pos ? `<span class="muted">（${r.banzuke.total}人中 ${r.banzuke.pos}位）</span>` : ""}
+      ${r.banzuke
+        ? `番付：<span class="rank-chip l${r.banzuke.level}" style="font-size:14px;padding:2px 10px">${r.banzuke.levelName}</span>${r.banzuke.pos ? `<span class="muted">（${r.banzuke.total}人中 ${r.banzuke.pos}位）</span>` : ""}`
+        : `<span class="muted">📜 トト番付は<b>水曜10:00の番付編成会議</b>にて発表</span>`}
     </div>
     <div class="day-summary" style="font-size:13px;line-height:2">
       📦 米俵換算リザルト<br>
@@ -1861,22 +1910,49 @@ function showBashoResult() {
 
 function offseasonHTML(info) {
   const r = G.lastResult;
+  const frozen = scoreFrozen();
   let count = "";
   if (info.next) {
     const days = Math.ceil((info.next.startMs - jstNow().dateMs) / 86400e3);
     count = `次の <b>${esc(info.next.name)}</b> 初日まで <b style="font-size:20px;color:var(--maroon)">あと${days}日</b><br><span class="muted">（初日 ${new Date(info.next.startMs).toISOString().slice(0, 10)}・各取組の直前まで受付／結果は随時反映）</span>`;
   }
-  return `
-    <div class="offseason-note">
-      <b style="font-size:17px">🌙 ${G.finishedProcessed && info.current ? "千秋楽 打ち止め" : "オフシーズン"}</b><br>
-      ${r ? `${esc(r.bashoName)} 優勝：${esc(r.champion)}<br>あなたの番付：<b>${r.banzuke.levelName}</b><br>` : "初場所の初日をお待ちください。<br>"}
-      ${count}
-    </div>
-    <div class="bonus-row">
+  const banzukeLine = r
+    ? (r.banzuke
+      ? `あなたの番付：<b>${r.banzuke.levelName}</b><br>`
+      : `📜 <b>番付編成会議</b>（千秋楽後の水曜10:00）にて番付発表！<br><span class="muted">それまでスコアは凍結・ちゃんこ/クイズもお休み</span><br>`)
+    : "";
+  const bonusArea = frozen
+    ? `<div class="offseason-note" style="padding:10px">🧘 力士は番付発表まで謹慎中。ちゃんこ・クイズはお休みです。</div>`
+    : `<div class="bonus-row">
       <button class="bonus-btn" onclick="onChanko()" ${canChanko() ? "" : "disabled"}><span class="big">🍲</span>ちゃんこ${canChanko() ? "<br>+1,000合" : "<br>本日済み"}</button>
       <button class="bonus-btn" onclick="openQuiz()" ${canQuiz() ? "" : "disabled"}><span class="big">📖</span>相撲クイズ${canQuiz() ? "<br>1日1問 500〜1,000合" : "<br>本日済み"}</button>
     </div>
     <p class="muted center">オフシーズン中もちゃんことクイズで米を蓄えられます</p>`;
+  return `
+    <div class="offseason-note">
+      <b style="font-size:17px">🌙 ${G.finishedProcessed && info.current ? "千秋楽 打ち止め" : "オフシーズン"}</b><br>
+      ${r ? `${esc(r.bashoName)} 優勝：${esc(r.champion)}<br>${banzukeLine}` : "初場所の初日をお待ちください。<br>"}
+      ${count}
+    </div>
+    ${bonusArea}`;
+}
+
+// 番付編成会議の発表モーダル
+function showBanzukeModal(bz) {
+  const top = bz.table.slice(0, 5).map(u =>
+    `<div class="result-line"><span>${u.pos}位 <span class="rank-chip l${u.level}">${u.levelName}</span> ${esc(u.name)}${u.me ? " ★" : ""}</span><span>${fmt(u.points)}合</span></div>`).join("");
+  openModal(`
+    <h2 class="banner">📜 番付編成会議 — トト番付発表</h2>
+    <div class="center" style="line-height:2.2;margin:10px 0">
+      <span class="muted">${esc(G.lastResult ? G.lastResult.bashoName : "")} 確定番付</span><br>
+      <span class="rank-chip l${bz.level}" style="font-size:18px;padding:4px 16px">${bz.levelName}</span><br>
+      ${bz.pos ? `<b>${bz.total}人中 ${bz.pos}位</b>` : "<span class='muted'>今場所は番付対象外（ベットなし）</span>"}
+    </div>
+    <p style="font-size:12px;font-weight:bold;color:var(--maroon)">上位番付</p>
+    ${top}
+    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">承知つかまつった</button>
+  `);
+  oyakataSay(bz.level >= 5 ? "win" : "lose");
 }
 
 // ---------------- 場所予想タブ ----------------
@@ -1992,7 +2068,7 @@ async function renderRanking() {
   if (!area) return;
   let list = null;
   if (SB && G.bashoKey) list = await fetchLeaderboard(G.bashoKey);
-  const bz = computeBanzuke(list);
+  const bz = computeBanzuke(list, G.finishedProcessed);
   // 本物の番付と同じく東西交互（1位=東、2位=西、3位=東…）
   const east = bz.table.filter((_, i) => i % 2 === 0);
   const west = bz.table.filter((_, i) => i % 2 === 1);
@@ -2013,7 +2089,7 @@ async function renderRanking() {
       ${rows.join("")}
     </table>
     <p class="muted" style="margin-top:4px">
-      ${SB ? `🟢 オンライン：${bz.total}名参加${info.current && !G.finishedProcessed ? "（場所中は速報値・確定は千秋楽）" : "（確定番付）"}` : "⚪ オフライン：自分のみ表示"}
+      ${SB ? `🟢 オンライン：${bz.total}名参加${info.current && !G.finishedProcessed ? "（場所中は速報値）" : scoreFrozen() ? "（速報値・確定は水曜10:00の番付編成会議）" : "（確定番付）"}` : "⚪ オフライン：自分のみ表示"}
       ${bz.pos ? `／あなた：${bz.pos}位` : ""}
     </p>`;
 }
