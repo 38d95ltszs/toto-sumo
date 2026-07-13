@@ -2039,7 +2039,18 @@ function drawChart() {
   const ctx = cv.getContext("2d");
   const W = cv.width, H = cv.height, P = 40;
   ctx.clearRect(0, 0, W, H);
-  const hist = (G.pointsHistory && G.pointsHistory.length) ? G.pointsHistory : [{ day: 0, points: G.points }];
+  const hist = ((G.pointsHistory && G.pointsHistory.length) ? G.pointsHistory : [{ day: 0, points: G.points }]).slice();
+  // 当日のリアルタイム値を追加（日次確定前の途中経過を反映）
+  const info = bashoInfo();
+  let liveIdx = -1;
+  if (info.current && !G.finishedProcessed) {
+    const last = hist[hist.length - 1];
+    if (!last || last.points !== G.points || last.day !== info.current.day) {
+      const x = hist.some(h => h.day === info.current.day) ? Math.min(15, info.current.day + 0.5) : info.current.day;
+      hist.push({ day: x, points: G.points, live: true });
+      liveIdx = hist.length - 1;
+    }
+  }
   const xs = d => P + (W - P * 2) * (d / 15);
   const vals = hist.map(h => h.points);
   const maxV = Math.max(33000, ...vals) * 1.05, minV = 0;
@@ -2060,9 +2071,13 @@ function drawChart() {
   hist.forEach((h, i) => { const x = xs(h.day), y = ys(h.points); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
   ctx.stroke();
   hist.forEach(h => {
-    ctx.fillStyle = "#c9a227";
-    ctx.beginPath(); ctx.arc(xs(h.day), ys(h.points), 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = h.live ? "#b3261e" : "#c9a227";
+    ctx.beginPath(); ctx.arc(xs(h.day), ys(h.points), h.live ? 5 : 4, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = "#5c1a1a"; ctx.lineWidth = 1.5; ctx.stroke();
+    if (h.live) {
+      ctx.fillStyle = "#b3261e"; ctx.font = "bold 11px serif";
+      ctx.fillText("現在 " + fmt(h.points), Math.min(xs(h.day) + 8, W - 90), ys(h.points) - 8);
+    }
   });
 }
 
