@@ -1982,8 +1982,8 @@ async function renderRanking() {
       <span style="color:#a8861a;font-size:10px;line-height:1.4">${esc(u.title || "") || "&nbsp;"}</span><br>
       <b style="font-size:13px">${esc(u.name)}</b>${u.me ? " ★" : ""}` : "";
     rows.push(`<tr class="${(e && e.me) || (w && w.me) ? "me" : ""}">
-      <td>${e ? e.pos : ""}</td><td style="text-align:left">${cell(e)}</td><td>${e ? fmt(e.points) : ""}</td>
-      <td>${w ? fmt(w.points) : ""}</td><td style="text-align:right">${cell(w)}</td><td>${w ? w.pos : ""}</td></tr>`);
+      <td>${e ? e.pos : ""}</td><td style="text-align:center">${cell(e)}</td><td>${e ? fmt(e.points) : ""}</td>
+      <td>${w ? fmt(w.points) : ""}</td><td style="text-align:center">${cell(w)}</td><td>${w ? w.pos : ""}</td></tr>`);
   }
   const info = bashoInfo();
   area.innerHTML = `
