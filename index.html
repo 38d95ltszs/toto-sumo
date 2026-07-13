@@ -586,8 +586,8 @@ const QUIZ = [
 
 const QUIZ_CATS = ["歴史", "決まり手", "番付・制度", "ルール・作法", "記録", "行司・呼出", "部屋・一門", "儀式・文化", "雑学"];
 
-// 番付システム（仕様 6）レベル: 9=トト綱 8=トー関 7=関トト 6=ト結 5=関取 4=若い衆 3=新弟子
-const BANZUKE_NAMES = { 9: "トト綱", 8: "トー関", 7: "関トト", 6: "ト結", 5: "関取", 4: "若い衆", 3: "新弟子" };
+// 番付システム レベル: 9=トト綱 8=トー関 7=関トト 6=ト結（各2名まで） 5=関取 4=幕下 3=新弟子
+const BANZUKE_NAMES = { 9: "トト綱", 8: "トー関", 7: "関トト", 6: "ト結", 5: "関取", 4: "幕下", 3: "新弟子" };
 // ============================================================
 // トト相撲 ONLINE — コアロジック
 // 全プレイヤー共通の取組・結果（シード乱数）+ Supabase共有ランキング
@@ -1368,14 +1368,21 @@ function computeBanzuke(list, useFinal) {
   }
   rows.sort((x, y2) => y2.points - x.points || y2.rate - x.rate);
   const N = rows.length;
+  // 役力士は各2名まで: 33,000合以上の上位から トト綱2名→トー関2名→関トト2名→ト結2名→残りは関取
+  // 33,000合未満は幕下（初参加のみ新弟子）
+  let elig = 0;
   rows.forEach((u, i) => {
     u.pos = i + 1;
-    if (u.points < 33000) u.level = u.isNew ? 3 : 4;
-    else if (i < 4) u.level = 9;
-    else if (u.pos <= Math.ceil(N * 0.05)) u.level = 8;
-    else if (u.pos <= Math.ceil(N * 0.10)) u.level = 7;
-    else if (u.pos <= Math.ceil(N * 0.20)) u.level = 6;
-    else u.level = 5;
+    if (u.points < 33000) {
+      u.level = u.isNew ? 3 : 4;
+    } else {
+      if (elig < 2) u.level = 9;
+      else if (elig < 4) u.level = 8;
+      else if (elig < 6) u.level = 7;
+      else if (elig < 8) u.level = 6;
+      else u.level = 5;
+      elig++;
+    }
     u.levelName = BANZUKE_NAMES[u.level];
   });
   const me = rows.find(u => u.me);
@@ -1939,17 +1946,34 @@ function offseasonHTML(info) {
 
 // 番付編成会議の発表モーダル
 function showBanzukeModal(bz) {
+  const r = G.lastResult;
   const top = bz.table.slice(0, 5).map(u =>
     `<div class="result-line"><span>${u.pos}位 <span class="rank-chip l${u.level}">${u.levelName}</span> ${esc(u.name)}${u.me ? " ★" : ""}</span><span>${fmt(u.points)}合</span></div>`).join("");
+  // 確定スコアの価値換算（凍結された千秋楽終了時の持ち米で計算）
+  let conv = "";
+  if (r && typeof G.finalPoints === "number") {
+    const kg = Math.round(G.finalPoints * 0.15 * 100) / 100;
+    const tawara = Math.round(kg / 60 * 100) / 100;
+    const yen = Math.round(kg * 600 * (r.ichimonWin ? 1.1 : 1));
+    conv = `
+    <div class="day-summary" style="font-size:13px;line-height:2;margin-top:12px">
+      📦 確定リザルト換算<br>
+      最終持ち米 <b style="font-size:17px;color:var(--maroon)">${fmt(G.finalPoints)}合</b><br>
+      重さ <b>${fmt(kg)}kg</b> ＝ 米俵 <b>${tawara}俵</b><br>
+      市場価値 <b>${fmt(yen)}円</b>（令和8年物価）
+      ${r.ichimonWin ? `<br><span class="hit">🎉 ${esc(G.profile.ichimon)}一門 祝勝会ボーナス×1.1 込み</span>` : ""}
+    </div>`;
+  }
   openModal(`
     <h2 class="banner">📜 番付編成会議 — トト番付発表</h2>
     <div class="center" style="line-height:2.2;margin:10px 0">
-      <span class="muted">${esc(G.lastResult ? G.lastResult.bashoName : "")} 確定番付</span><br>
+      <span class="muted">${esc(r ? r.bashoName : "")} 確定番付</span><br>
       <span class="rank-chip l${bz.level}" style="font-size:18px;padding:4px 16px">${bz.levelName}</span><br>
       ${bz.pos ? `<b>${bz.total}人中 ${bz.pos}位</b>` : "<span class='muted'>今場所は番付対象外（ベットなし）</span>"}
     </div>
     <p style="font-size:12px;font-weight:bold;color:var(--maroon)">上位番付</p>
     ${top}
+    ${conv}
     <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">承知つかまつった</button>
   `);
   oyakataSay(bz.level >= 5 ? "win" : "lose");
