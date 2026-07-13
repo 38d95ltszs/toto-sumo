@@ -1894,7 +1894,7 @@ function renderBashoTab() {
       <br>的中すれば千秋楽終了時の持ち米が <b style="font-size:16px">${mult}倍</b>！（${yb.day || "?"}日目予想）</div>`;
   } else {
     const mult = yushoMult(info.current.day);
-    const standings = RIKISHI.slice().sort((x, y) => SIM.rikishi[y.id].wins - SIM.rikishi[x.id].wins);
+    const standings = rikishiByBanzuke().filter(r2 => r2.rank[0] !== "J"); // 横綱→幕尻（十両は除外）
     yusho = `
       <div class="note">的中すると<b>千秋楽終了時の持ち米すべて</b>が倍付けされる大勝負！ 倍率は予想した日で決まり、
       <b>初日15倍 → 14日目2倍 → 千秋楽1.5倍</b> と1日ごとに下がります。本日予想なら <b>×${mult}</b>。受付は<b>千秋楽14:30</b>まで、確定後は変更不可。</div>
@@ -1916,7 +1916,7 @@ function renderBashoTab() {
     sansho = `<div class="note">受付は14日目終了までです。</div>`;
   } else {
     const mult = SANSHO_ODDS[dd];
-    const opts = ["該当者なし"].concat(rikishiByBanzuke().filter(r2 => !["Y", "O"].includes(r2.rank)).map(r2 => r2.name));
+    const opts = ["該当者なし"].concat(rikishiByBanzuke().filter(r2 => !["Y", "O"].includes(r2.rank) && r2.rank[0] !== "J").map(r2 => r2.name));
     const sel = id => `<select id="${id}">${opts.map(n => `<option>${esc(n)}</option>`).join("")}</select>`;
     sansho = `
       <div class="note">的中した賞1つにつき、<b>千秋楽終了時の持ち米が×${mult}</b>（3つ当てれば×${mult}×${mult}×${mult}の重ね掛け！）。
