@@ -683,8 +683,22 @@ function estStartHM(i, n) {
   if (n <= 1) return FIRST_BOUT_HM;
   return Math.round(FIRST_BOUT_HM + i * (LAST_BOUT_HM - FIRST_BOUT_HM) / (n - 1));
 }
-function boutLockHM(i, n) { return estStartHM(i, n) - LOCK_MARGIN; }
+function boutLockHM(slot, n) { return estStartHM(slot, n) - LOCK_MARGIN; }
 function fmtHM(hm) { return Math.floor(hm / 60) + ":" + String(hm % 60).padStart(2, "0"); }
+
+// 進行順: 番付合計が低い取組ほど早く、結び（横綱戦）が最後
+// 戻り値は「進行順に並んだ取組index」の配列
+function boutOrder(day) {
+  const dd = SIM && SIM.days[day];
+  if (!dd) return [];
+  const score = b => rankPoint(rk(b.east).rank) + rankPoint(rk(b.west).rank);
+  return dd.torikumi.map((b, i) => i).sort((a, b2) => {
+    const d = score(dd.torikumi[a]) - score(dd.torikumi[b2]);
+    return d !== 0 ? d : b2 - a; // 同格は掲載の下段（=番付下位）を先に
+  });
+}
+// その取組が進行順で何番目か（0=最初、n-1=結び）
+function boutSlot(day, i) { return boutOrder(day).indexOf(i); }
 
 // 取組の受付状態: "open"（受付中）/ "locked"（締切・取組中）/ "done"（結果確定）
 function boutState(day, i) {
@@ -697,7 +711,7 @@ function boutState(day, i) {
   if (!info.current || info.current.key !== SIM.key) return "locked";
   const cur = info.current.day;
   if (day < cur || day > cur + 1) return "locked";
-  if (day === cur) return info.now.hm >= boutLockHM(i, dd.torikumi.length) ? "locked" : "open";
+  if (day === cur) return info.now.hm >= boutLockHM(boutSlot(day, i), dd.torikumi.length) ? "locked" : "open";
   return info.now.hm >= NEXT_OPEN_HM ? "open" : "locked"; // 翌日分
 }
 
@@ -1581,7 +1595,7 @@ function renderTorikumi() {
     const openCount = dd.torikumi.filter((bt, i) => boutState(day, i) === "open").length;
     html += `<div class="day-banner">⚔ ${day}日目 ${day === 8 ? "中日" : day === 15 ? "千秋楽" : ""}
       <br><span style="font-size:11px">各取組の直前まで受付 ／ 確定 ${done}/${n}番 ${openCount ? `・受付中 ${openCount}番` : ""}</span></div>`;
-    dd.torikumi.forEach((bout, i) => { html += boutCardHTML(bout, i, day); });
+    boutOrder(day).forEach(i => { html += boutCardHTML(dd.torikumi[i], i, day); });
   } else {
     html += `<div class="offseason-note">📋 ${day}日目の取組は発表待ちです。<br>データが更新されると予想できるようになります。</div>`;
   }
@@ -1590,7 +1604,7 @@ function renderTorikumi() {
   if (hm >= NEXT_OPEN_HM && day < 15 && !G.finishedProcessed) {
     if (SIM.days[day + 1]) {
       html += `<div class="day-banner">🌅 ${day + 1}日目 前売り受付中<br><span style="font-size:11px">明日の各取組直前まで変更可能</span></div>`;
-      SIM.days[day + 1].torikumi.forEach((bout, i) => { html += boutCardHTML(bout, i, day + 1); });
+      boutOrder(day + 1).forEach(i => { html += boutCardHTML(SIM.days[day + 1].torikumi[i], i, day + 1); });
     } else {
       html += `<div class="offseason-note">🌅 ${day + 1}日目の取組は発表待ちです。<br>発表され次第、前売り予想ができます。</div>`;
     }
@@ -1641,7 +1655,7 @@ function boutCardHTML(bout, i, day) {
   } else if (state === "locked") {
     html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">🔒 締切（取組中・結果待ち）</span></div>`;
   } else {
-    html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">⏳ 締切 ${fmtHM(boutLockHM(i, n))}頃</span></div>`;
+    html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">⏳ 締切 ${fmtHM(boutLockHM(boutSlot(day, i), n))}頃</span></div>`;
   }
   if (bet) {
     const r = rk(bet.side === "east" ? bout.east : bout.west);
