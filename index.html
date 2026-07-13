@@ -1595,7 +1595,7 @@ function renderTorikumi() {
     const openCount = dd.torikumi.filter((bt, i) => boutState(day, i) === "open").length;
     html += `<div class="day-banner">⚔ ${day}日目 ${day === 8 ? "中日" : day === 15 ? "千秋楽" : ""}
       <br><span style="font-size:11px">各取組の直前まで受付 ／ 確定 ${done}/${n}番 ${openCount ? `・受付中 ${openCount}番` : ""}</span></div>`;
-    boutOrder(day).forEach(i => { html += boutCardHTML(dd.torikumi[i], i, day); });
+    boutOrder(day).slice().reverse().forEach(i => { html += boutCardHTML(dd.torikumi[i], i, day); }); // 結びの一番から表示
   } else {
     html += `<div class="offseason-note">📋 ${day}日目の取組は発表待ちです。<br>データが更新されると予想できるようになります。</div>`;
   }
@@ -1604,7 +1604,7 @@ function renderTorikumi() {
   if (hm >= NEXT_OPEN_HM && day < 15 && !G.finishedProcessed) {
     if (SIM.days[day + 1]) {
       html += `<div class="day-banner">🌅 ${day + 1}日目 前売り受付中<br><span style="font-size:11px">明日の各取組直前まで変更可能</span></div>`;
-      boutOrder(day + 1).forEach(i => { html += boutCardHTML(SIM.days[day + 1].torikumi[i], i, day + 1); });
+      boutOrder(day + 1).slice().reverse().forEach(i => { html += boutCardHTML(SIM.days[day + 1].torikumi[i], i, day + 1); });
     } else {
       html += `<div class="offseason-note">🌅 ${day + 1}日目の取組は発表待ちです。<br>発表され次第、前売り予想ができます。</div>`;
     }
