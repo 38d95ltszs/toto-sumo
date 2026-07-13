@@ -1136,30 +1136,43 @@ async function processFinish() {
   const ginoCand = nonSanyaku.filter(r => rikishi[r.id].wins >= 10 && r.name !== kanto);
   const gino = (ginoCand.length && rngF() > 0.3) ? ginoCand[Math.floor(rngF() * ginoCand.length)].name : "該当者なし";
 
-  let yushoResult = null;
-  if (G.yushoBet) {
-    const hit = G.yushoBet.rikishiId === champion.id;
-    let bonus = 0;
-    if (hit) {
-      const last = G.dayLog.find(d => d.day === 15);
-      bonus = last ? Math.max(0, last.net) : 0;
-      G.points += bonus; s.totalEarned += bonus; s.yushoHits++;
-    }
-    yushoResult = { hit, pick: rk(G.yushoBet.rikishiId).name, bonus };
-  }
+  // 三賞予想の精算: 的中した賞1つにつき持ち米に倍率を重ね掛け
   let sanshoResult = null;
   if (G.sanshoBet) {
     const sb = G.sanshoBet;
-    const mult = SANSHO_ODDS[sb.day] || 1.2;
+    const mult = sb.mult || SANSHO_ODDS[sb.day] || 1.2;
+    if (sb.amount) G.points += sb.amount * 3; // 旧方式（予想料制）の返還
     const r1 = sb.shukun === shukun, r2 = sb.kanto === kanto, r3 = sb.gino === gino;
     let gain = 0;
-    [r1, r2, r3].forEach(hit => { if (hit) gain += Math.round(sb.amount * mult); });
+    [r1, r2, r3].forEach(hit => {
+      if (!hit) return;
+      const add = Math.round(G.points * (mult - 1));
+      G.points += add; gain += add;
+    });
     if (r1) s.shukunHits++;
     if (r2) s.kantoHits++;
     if (r3) s.ginoHits++;
     if (r1 && r2 && r3) s.sanshoSweeps++;
-    if (gain > 0) { G.points += gain; s.totalEarned += gain; }
+    if (gain > 0) s.totalEarned += gain;
     sanshoResult = { r1, r2, r3, gain, mult };
+  }
+
+  // 優勝予想の精算（三賞まで精算し終えた「千秋楽終了時の持ち米すべて」に倍率を掛ける）
+  let yushoResult = null;
+  if (G.yushoBet) {
+    const yb = G.yushoBet;
+    const hit = yb.rikishiId === champion.id;
+    let bonus = 0;
+    if (hit) {
+      // 旧データ互換: 予想料方式で確定していた場合は返還してから倍付け
+      if (yb.amount) { G.points += yb.amount; }
+      const mult = yb.mult || (yb.day ? yushoMult(yb.day) : 2);
+      bonus = Math.round(G.points * (mult - 1));
+      G.points += bonus; s.totalEarned += bonus; s.yushoHits++;
+      yushoResult = { hit, pick: rk(yb.rikishiId).name, bonus, mult, total: G.points };
+    } else {
+      yushoResult = { hit, pick: rk(yb.rikishiId).name, bonus: 0, mult: yb.mult };
+    }
   }
 
   if (G.betsThisBasho >= 20 && G.hitsThisBasho / G.betsThisBasho > 0.5) {
@@ -1212,12 +1225,17 @@ async function processFinish() {
 // ============================================================
 // 場所予想
 // ============================================================
+// 優勝予想の倍率: 予想した日が早いほど高い（初日15倍 … 14日目2倍、千秋楽1.5倍）
+// 的中すると千秋楽終了時の持ち米すべてが倍率分に膨れ上がる
+function yushoMult(day) { return day >= 15 ? 1.5 : 16 - day; }
+const YUSHO_DEADLINE_HM = 14 * 60 + 30; // 優勝予想は千秋楽14:30締切
 function placeYushoBet(rikishiId) {
   const info = bashoInfo();
   if (!info.current || G.finishedProcessed) return { ok: false, msg: "受付期間外です" };
-  if (info.current.day === 15 && info.now.hm >= DEADLINE_HM) return { ok: false, msg: "千秋楽の取組が始まりました（受付終了）" };
+  if (info.current.day === 15 && info.now.hm >= YUSHO_DEADLINE_HM) return { ok: false, msg: "優勝予想は千秋楽14:30で締め切りました" };
   if (G.yushoBet) return { ok: false, msg: "確定済みです" };
-  G.yushoBet = { rikishiId };
+  const day = info.current.day;
+  G.yushoBet = { rikishiId, day, mult: yushoMult(day) };
   save();
   return { ok: true };
 }
@@ -1226,15 +1244,12 @@ function doneDaysNow() {
   if (!info.current) return 15;
   return info.current.day - (info.now.hm >= RESULT_HM ? 0 : 1);
 }
-function placeSanshoBet(shukun, kanto, gino, amount) {
+function placeSanshoBet(shukun, kanto, gino) {
   const dd = doneDaysNow();
   if (dd < 8) return { ok: false, msg: "三賞予想は8日目終了後(18時以降)に解放されます" };
   if (dd > 14) return { ok: false, msg: "受付は14日目終了までです" };
   if (G.sanshoBet) return { ok: false, msg: "確定済みです（変更不可）" };
-  amount = Math.floor(amount / 100) * 100;
-  if (amount < 100 || amount * 3 > G.points) return { ok: false, msg: "予想料が不足しています（1賞につき同額）" };
-  G.points -= amount * 3;
-  G.sanshoBet = { shukun, kanto, gino, amount, day: dd };
+  G.sanshoBet = { shukun, kanto, gino, day: dd, mult: SANSHO_ODDS[dd] || 1.2 };
   save();
   return { ok: true };
 }
@@ -1815,10 +1830,10 @@ function showBashoResult() {
   if (!r) { playPendingModals(); return; }
   const yen = r.ichimonWin ? Math.round(r.yen * 1.1) : r.yen;
   let special = "";
-  if (r.yushoResult) special += `<div class="result-line"><span>優勝予想：${esc(r.yushoResult.pick)}</span><span class="${r.yushoResult.hit ? "hit" : "miss"}">${r.yushoResult.hit ? "的中！千秋楽獲得2倍 +" + fmt(r.yushoResult.bonus) : "はずれ"}</span></div>`;
+  if (r.yushoResult) special += `<div class="result-line"><span>優勝予想：${esc(r.yushoResult.pick)}${r.yushoResult.mult ? `（×${r.yushoResult.mult}）` : ""}</span><span class="${r.yushoResult.hit ? "hit" : "miss"}">${r.yushoResult.hit ? "的中！持ち米倍付け +" + fmt(r.yushoResult.bonus) : "はずれ"}</span></div>`;
   if (r.sanshoResult) {
     const sr = r.sanshoResult;
-    special += `<div class="result-line"><span>三賞予想（×${sr.mult}）</span><span class="${sr.gain ? "hit" : "miss"}">${["殊勲", "敢闘", "技能"].filter((_, i) => [sr.r1, sr.r2, sr.r3][i]).join("・") || "全はずれ"} ${sr.gain ? "+" + fmt(sr.gain) : ""}</span></div>`;
+    special += `<div class="result-line"><span>三賞予想（1賞ごとに×${sr.mult}）</span><span class="${sr.gain ? "hit" : "miss"}">${["殊勲", "敢闘", "技能"].filter((_, i) => [sr.r1, sr.r2, sr.r3][i]).join("・") || "全はずれ"} ${sr.gain ? "持ち米倍付け +" + fmt(sr.gain) : ""}</span></div>`;
   }
   openModal(`
     <h2 class="banner">🏆 ${esc(r.bashoName)} 千秋楽</h2>
@@ -1873,21 +1888,27 @@ function renderBashoTab() {
 
   let yusho;
   if (G.yushoBet) {
-    yusho = `<div class="locked-box"><span class="seal">確定</span> 優勝予想：<b>${esc(rk(G.yushoBet.rikishiId).name)}</b><br><span class="muted">的中すれば千秋楽の獲得ポイントが2倍！</span></div>`;
+    const yb = G.yushoBet;
+    const mult = yb.mult || 2;
+    yusho = `<div class="locked-box"><span class="seal">確定</span> 優勝予想：<b>${esc(rk(yb.rikishiId).name)}</b>
+      <br>的中すれば千秋楽終了時の持ち米が <b style="font-size:16px">${mult}倍</b>！（${yb.day || "?"}日目予想）</div>`;
   } else {
+    const mult = yushoMult(info.current.day);
     const standings = RIKISHI.slice().sort((x, y) => SIM.rikishi[y.id].wins - SIM.rikishi[x.id].wins);
     yusho = `
-      <div class="note">受付：千秋楽の取組開始（15:30）前まで。的中すると<b>千秋楽に獲得した全ポイントが2倍</b>。確定後は変更不可。</div>
+      <div class="note">的中すると<b>千秋楽終了時の持ち米すべて</b>が倍付けされる大勝負！ 倍率は予想した日で決まり、
+      <b>初日15倍 → 14日目2倍 → 千秋楽1.5倍</b> と1日ごとに下がります。本日予想なら <b>×${mult}</b>。受付は<b>千秋楽14:30</b>まで、確定後は変更不可。</div>
       <div class="form-row"><label>力士</label>
         <select id="yusho-pick">${standings.map(r2 => `<option value="${r2.id}">${esc(r2.name)}（${rankLabel(r2.rank)}・${SIM.rikishi[r2.id].wins}勝${SIM.rikishi[r2.id].losses}敗）</option>`).join("")}</select>
       </div>
-      <button class="btn btn-primary" onclick="onYusho()">この力士で確定する</button>`;
+      <button class="btn btn-primary" onclick="onYusho()">この力士に全てを懸ける（×${mult}）</button>`;
   }
 
   let sansho;
   if (G.sanshoBet) {
     const sb = G.sanshoBet;
-    sansho = `<div class="locked-box"><span class="seal">確定</span> 三賞予想（${SANSHO_ODDS[sb.day]}倍・各${fmt(sb.amount)}合）<br>
+    const m = sb.mult || SANSHO_ODDS[sb.day] || 1.2;
+    sansho = `<div class="locked-box"><span class="seal">確定</span> 三賞予想（${sb.day}日目終了時・的中1賞ごとに持ち米×<b>${m}</b>）<br>
       殊勲賞：<b>${esc(sb.shukun)}</b>／敢闘賞：<b>${esc(sb.kanto)}</b>／技能賞：<b>${esc(sb.gino)}</b></div>`;
   } else if (dd < 8) {
     sansho = `<div class="note">🔒 三賞予想は <b>8日目終了後(18:00)</b> に解放されます（現在 ${dd}日目終了）。早いほど高倍率（8日目終了2.5倍→14日目終了1.2倍）。</div>`;
@@ -1898,12 +1919,12 @@ function renderBashoTab() {
     const opts = ["該当者なし"].concat(rikishiByBanzuke().filter(r2 => !["Y", "O"].includes(r2.rank)).map(r2 => r2.name));
     const sel = id => `<select id="${id}">${opts.map(n => `<option>${esc(n)}</option>`).join("")}</select>`;
     sansho = `
-      <div class="note">現在 <b>${dd}日目終了時点 → ${mult}倍</b>。各賞に同額を賭け、的中した賞ごとに払い戻し。同じ力士を複数選択可。確定後は変更不可。</div>
+      <div class="note">的中した賞1つにつき、<b>千秋楽終了時の持ち米が×${mult}</b>（3つ当てれば×${mult}×${mult}×${mult}の重ね掛け！）。
+      早く予想するほど高倍率（8日目終了2.5倍→14日目終了1.2倍）。同じ力士を複数選択可。確定後は変更不可。</div>
       <div class="form-row"><label>殊勲賞</label>${sel("sansho-shukun")}</div>
       <div class="form-row"><label>敢闘賞</label>${sel("sansho-kanto")}</div>
       <div class="form-row"><label>技能賞</label>${sel("sansho-gino")}</div>
-      <div class="form-row"><label>予想料</label><input type="number" id="sansho-amount" value="1000" step="100" min="100"> 合 ×3賞</div>
-      <button class="btn btn-primary" onclick="onSansho()">三賞予想を確定する</button>`;
+      <button class="btn btn-primary" onclick="onSansho()">三賞予想を確定する（×${mult}）</button>`;
   }
 
   const standings = RIKISHI.slice().sort((x, y) => SIM.rikishi[y.id].wins - SIM.rikishi[x.id].wins || rankPoint(y.rank) - rankPoint(x.rank));
@@ -1921,10 +1942,10 @@ function onYusho() {
   const res = placeYushoBet(parseInt($("#yusho-pick").value, 10));
   if (!res.ok) { alert(res.msg); return; }
   oyakataSay("yusho");
-  renderBashoTab();
+  renderHeader(); renderBashoTab();
 }
 function onSansho() {
-  const res = placeSanshoBet($("#sansho-shukun").value, $("#sansho-kanto").value, $("#sansho-gino").value, parseInt($("#sansho-amount").value || "0", 10));
+  const res = placeSanshoBet($("#sansho-shukun").value, $("#sansho-kanto").value, $("#sansho-gino").value);
   if (!res.ok) { alert(res.msg); return; }
   renderHeader(); renderBashoTab();
 }
