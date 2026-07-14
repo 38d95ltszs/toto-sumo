@@ -622,7 +622,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14n"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14p"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -1861,9 +1861,11 @@ function renderTorikumi() {
   if (G.finishedProcessed) { el.innerHTML = configWarning() + offseasonHTML(info); return; }
 
   const day = info.current.day, hm = info.now.hm;
-  const modeBanner = DATA_MODE === "real"
-    ? `<p class="muted center" style="margin-bottom:8px">🛰 実データ連動中（場所中は約10分間隔で自動更新）</p>`
-    : `<p class="muted center" style="margin-bottom:8px">🎲 シミュレーションモード（実データ未取得）</p>`;
+  const modeBanner = `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="muted" style="font-size:12px">${DATA_MODE === "real" ? "🛰 実データ連動中（場所中は約10分間隔で自動更新）" : "🎲 シミュレーションモード（実データ未取得）"}</span>
+      <button class="btn btn-ghost btn-sm" onclick="onNewsRefresh(this)" style="white-space:nowrap">↻ 更新</button>
+    </div>`;
   let html = configWarning() + modeBanner + bonusRowHTML();
 
   // 並び順切替（番付順=結びから / 時系列順=序盤から）
@@ -2316,7 +2318,8 @@ function renderBashoTab() {
   // 大相撲ニュース（予想のヒント・スポナビ経由）
   let newsCard = "";
   if (DATA_MODE === "real" && REAL && REAL.news && REAL.news.length) {
-    newsCard = `<div class="card"><h3>📰 大相撲ニュース</h3>
+    newsCard = `<div class="card"><h3>📰 大相撲ニュース
+      <button class="btn btn-ghost btn-sm" onclick="onNewsRefresh(this)" style="float:right">↻ 更新</button></h3>
       <div class="note">予想のヒントに。見出しをタップすると記事が開きます（Yahoo!ニュース）。</div>
       ${REAL.news.map(n => `<div class="result-line"><a href="${esc(n.u)}" target="_blank" rel="noopener" style="color:var(--maroon);text-decoration:none;font-size:13px;line-height:1.7">▸ ${esc(n.t)}</a></div>`).join("")}
     </div>`;
@@ -2350,6 +2353,16 @@ function playThunder(done) {
   if (navigator.vibrate) navigator.vibrate([90, 40, 140]);
   setTimeout(() => document.body.classList.remove("shake"), 600);
   setTimeout(() => { el.remove(); if (done) done(); }, 1000);
+}
+
+// 最新データの読み直し（ニュース・結果とも最新のbasho.jsonを反映）
+async function onNewsRefresh(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+  await loadRealData();
+  await ensureBashoState();
+  renderAll();
+  playPendingModals();
+  showToast("📰 更新", `データを読み直しました（クロールは自動・日中は毎時、取組中は10分毎）`);
 }
 
 function onYusho() {
