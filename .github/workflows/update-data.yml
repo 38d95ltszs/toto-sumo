@@ -1,13 +1,12 @@
 # トト相撲 — 取組データ自動更新（.github/workflows/update-data.yml に配置）
+# 取組時間帯は1つのジョブが内部で10分おきに取得を繰り返す（cron遅延対策）
 name: update sumo data
 
 on:
   schedule:
-    # 取組時間帯（JST 15:00〜18:50）は10分間隔でライブ更新
-    - cron: "*/10 6-9 * * *"
-    # JST 19:15（最終確定） / 翌朝8:15（翌日取組の取りこぼし回収）
-    - cron: "15 10 * * *"
-    - cron: "15 23 * * *"
+    - cron: "50 6 * * *"   # JST 15:50 ライブループ開始（〜約19:00まで10分毎に更新）
+    - cron: "15 10 * * *"  # JST 19:15 最終確定
+    - cron: "15 23 * * *"  # JST 翌朝8:15 翌日取組の取りこぼし回収
   workflow_dispatch: {}
 
 permissions:
@@ -20,24 +19,50 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 220
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "24"
 
-      - name: fetch data
-        run: node scraper/fetch_basho.mjs
-
-      - name: commit if changed
+      - name: git config
         run: |
           git config user.name "toto-sumo-bot"
           git config user.email "actions@users.noreply.github.com"
+
+      - name: live loop (JST 15:50-19:00, every 10 min)
+        if: github.event.schedule == '50 6 * * *'
+        run: |
+          for i in $(seq 1 19); do
+            echo "===== cycle $i $(TZ=Asia/Tokyo date +'%H:%M') ====="
+            node scraper/fetch_basho.mjs || true
+            git add data/basho.json || true
+            if git diff --cached --quiet; then
+              echo "変更なし"
+            else
+              git commit -m "data: live $(TZ=Asia/Tokyo date +'%m-%d %H:%M')"
+              git pull --rebase origin main || true
+              git push
+            fi
+            # 場所期間外なら1回で終了
+            if ! node -e "process.exit(require('fs').existsSync('data/basho.json')?0:1)"; then exit 0; fi
+            sleep 600
+          done
+
+      - name: fetch once
+        if: github.event.schedule != '50 6 * * *'
+        run: node scraper/fetch_basho.mjs
+
+      - name: commit once
+        if: github.event.schedule != '50 6 * * *'
+        run: |
           git add data/basho.json || true
           if git diff --cached --quiet; then
             echo "変更なし"
           else
-            git commit -m "data: $(date +'%Y-%m-%d %H:%M') update"
+            git commit -m "data: $(TZ=Asia/Tokyo date +'%m-%d %H:%M') update"
+            git pull --rebase origin main || true
             git push
           fi
