@@ -1689,6 +1689,15 @@ function renderTorikumi() {
       <button class="bonus-btn" onclick="openQuiz()" ${canQuiz() ? "" : "disabled"}><span class="big">📖</span>相撲クイズ${canQuiz() ? "<br>1日1問 500〜1,000合" : "<br>本日済み"}</button>
     </div>`;
 
+  // 並び順切替（番付順=結びから / 時系列順=序盤から）
+  const sm = UI.sortMode || localStorage.getItem("sortMode") || "banzuke";
+  UI.sortMode = sm;
+  html += `<div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-bottom:8px">
+    <span class="muted" style="font-size:11px">並び順：</span>
+    <button class="btn btn-sm ${sm === "banzuke" ? "btn-primary" : "btn-ghost"}" onclick="setSortMode('banzuke')">番付順</button>
+    <button class="btn btn-sm ${sm === "time" ? "btn-primary" : "btn-ghost"}" onclick="setSortMode('time')">時系列順</button>
+  </div>`;
+
   // 本日の取組（各取組の直前まで受付・結果は随時反映）— アコーディオン
   const dd = SIM.days[day];
   if (dd) {
@@ -1698,7 +1707,7 @@ function renderTorikumi() {
     // デフォルト: 受付中の取組が残っていれば開、全取組終了なら閉
     const openToday = UI.accToday !== undefined ? UI.accToday : openCount > 0;
     let cards = "";
-    boutOrder(day).slice().reverse().forEach(i => { cards += boutCardHTML(dd.torikumi[i], i, day); }); // 結びの一番から表示
+    displayOrder(day).forEach(i => { cards += boutCardHTML(dd.torikumi[i], i, day); });
     html += `
     <details class="acc" ${openToday ? "open" : ""} ontoggle="UI.accToday=this.open">
       <summary class="day-banner">⚔ ${day}日目 ${day === 8 ? "中日" : day === 15 ? "千秋楽" : ""} 取組・結果
@@ -1716,7 +1725,7 @@ function renderTorikumi() {
     if (SIM.days[day + 1]) {
       const openTmr = UI.accTomorrow !== undefined ? UI.accTomorrow : true;
       let cards = "";
-      boutOrder(day + 1).slice().reverse().forEach(i => { cards += boutCardHTML(SIM.days[day + 1].torikumi[i], i, day + 1); });
+      displayOrder(day + 1).forEach(i => { cards += boutCardHTML(SIM.days[day + 1].torikumi[i], i, day + 1); });
       const nTmr = G.bets.filter(x => x.day === day + 1 && !x.settled).length;
       html += `
       <details class="acc" ${openTmr ? "open" : ""} ontoggle="UI.accTomorrow=this.open">
@@ -1734,6 +1743,17 @@ function renderTorikumi() {
     html += `<div class="offseason-note">千秋楽の結果が出揃いました。場所締めの処理をお待ちください。</div>`;
   }
   el.innerHTML = html;
+}
+
+// 表示順: 番付順=結びの一番が先頭 / 時系列順=序盤の取組が先頭
+function displayOrder(day) {
+  const order = boutOrder(day);
+  return UI.sortMode === "time" ? order : order.slice().reverse();
+}
+function setSortMode(m) {
+  UI.sortMode = m;
+  localStorage.setItem("sortMode", m);
+  renderTorikumi();
 }
 
 function fighterHTML(bout, i, side, day, state) {
