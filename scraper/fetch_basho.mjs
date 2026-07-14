@@ -136,6 +136,23 @@ function parseKyujo(html) {
   );
 }
 
+// ---------- 新着ニュース見出しのパース ----------
+function parseNews(html) {
+  const out = [];
+  const seen = new Set();
+  const re = /<a[^>]+href="(https:\/\/news\.yahoo\.co\.jp\/articles\/[^"#]+)"[^>]*>([\s\S]*?)<\/a>/g;
+  let m;
+  while ((m = re.exec(html)) && out.length < 6) {
+    const url = m[1];
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const title = m[2].replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (title.length < 8) continue;
+    out.push({ t: title, u: url });
+  }
+  return out;
+}
+
 // ---------- 勝者判定（マーク優先、なければ星取差分） ----------
 // recMap: name -> {w, l} 直近の既知星取。片方が十両から上がってきた場合でも
 // 幕内側の勝敗の増分だけで判定できるよう、勝ち数と負け数の両方を見る。
@@ -179,6 +196,7 @@ const days = {};
 const banzuke = new Map(); // name -> rank（初出を採用）
 const recMap = {};         // name -> {w, l} 星取差分用
 let kyujoToday = [];       // 本日時点の休場力士
+let news = [];             // 新着ニュース見出し
 
 const fetchDays = [];
 for (let d = 1; d <= Math.min(15, basho.day + 1); d++) fetchDays.push(d);
@@ -196,6 +214,8 @@ for (const d of fetchDays) {
   }
   const ky = parseKyujo(html);
   if (ky.length) kyujoToday = [...new Set([...kyujoToday, ...ky])];
+  const nw = parseNews(html);
+  if (nw.length) news = nw;
   const parsed = parseDay(html);
   if (!parsed.length) { console.log(`day${d}: 取組なし（未発表）`); continue; }
   const bouts = [];
@@ -247,6 +267,7 @@ if (prev && prev.bashoKey === basho.key) {
   }
   kyujoLog = prev.kyujoLog || {};
   injuredCarry = prev.injuredCarry || [];
+  if (!news.length && prev.news) news = prev.news;
 } else if (prev && prev.kyujoLog) {
   // 場所が替わった: 前場所で5日以上休場した力士 → 今場所「怪我明け」(仕様4.2 B条件)
   const count = {};
@@ -264,6 +285,7 @@ const out = {
   banzuke: [...banzuke.entries()].map(([name, v]) => ({ name, rank: v.rank, side: v.side })),
   kyujoLog,
   injuredCarry,
+  news,
   days
 };
 mkdirSync("data", { recursive: true });
