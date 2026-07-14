@@ -622,7 +622,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14s"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14t"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -1052,9 +1052,11 @@ function placeBet(day, boutIdx, side, amount, kimarite, kAmount) {
     G.betsThisBasho = Math.max(0, G.betsThisBasho - 1);
   }
   const odds = finalOdds(bout, side);
+  // 決まり手予想の倍率も張った時点で固定（懸賞一番なら×3込み）
+  const kOdds = kimarite ? round2(KIMARITE_BET.find(k => k.key === kimarite).odds * (bout.kensho ? 3 : 1)) : null;
   const allPoints = total === G.points;
   G.points -= total;
-  G.bets.push({ day, bout: boutIdx, side, amount, odds, kimarite: kimarite || null, kAmount, settled: false });
+  G.bets.push({ day, bout: boutIdx, side, amount, odds, kimarite: kimarite || null, kAmount, kOdds, settled: false });
   const s = G.stats;
   s.totalBets++;
   s.maxBet = Math.max(s.maxBet, amount);
@@ -1138,8 +1140,9 @@ function settlePending() {
       const isOther = !["押し出し", "寄り切り", "はたき込み"].includes(actual);
       kHit = (bet.kimarite === actual) || (bet.kimarite === "それ以外" && isOther);
       if (kHit) {
-        // 懸賞一番は決まり手予想もオッズ×3
-        kGain = Math.round(bet.kAmount * KIMARITE_BET.find(k => k.key === bet.kimarite).odds * (bout.kensho ? 3 : 1));
+        // 張った時点で固定した倍率で精算（旧データはその時のルールで再計算）
+        const kOdds = bet.kOdds || round2(KIMARITE_BET.find(k => k.key === bet.kimarite).odds * (bout.kensho ? 3 : 1));
+        kGain = Math.round(bet.kAmount * kOdds);
         s.kimariteHits++; s.kimariteStreak++;
         s.kimariteStreakBest = Math.max(s.kimariteStreakBest, s.kimariteStreak);
         if (bet.kimarite === "それ以外") s.rareKimariteHits++;
