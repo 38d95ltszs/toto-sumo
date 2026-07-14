@@ -622,7 +622,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14t"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14v"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -924,11 +924,18 @@ function simulateBoutDet(bout, rikishi, rngD) {
   if ((lr.rank === "Y" || lr.rank === "O") && rankPoint(wr.rank) <= 10) rikishi[winner].kinboshi++;
 }
 
-// プレイヤー個別最終オッズ（一門+0.2 → 懸賞×3）
-function finalOdds(bout, side) {
+// プレイヤー個別最終オッズ: 一門×2・推し力士×2 → 懸賞×3
+// ※一門・推し力士の変更は8日目まで（終盤の乗り換え悪用防止）
+const PROFILE_LOCK_FROM_DAY = 9;
+function profileLocked() {
+  const info = bashoInfo();
+  return !!(info.current && info.current.day >= PROFILE_LOCK_FROM_DAY && G && !G.finishedProcessed);
+}
+function finalOdds(bout, side, day) {
   let o = side === "east" ? bout.oddsE : bout.oddsW;
   const r = rk(side === "east" ? bout.east : bout.west);
-  if (r.ichimon === G.profile.ichimon) o += 0.2;
+  if (r.ichimon === G.profile.ichimon) o *= 2;
+  if (r.id === G.profile.oshiId) o *= 2;
   if (bout.kensho) o *= 3; // 懸賞一番はライトユーザー向けの大盤振る舞い
   return round2(o);
 }
@@ -1051,7 +1058,7 @@ function placeBet(day, boutIdx, side, amount, kimarite, kAmount) {
     G.stats.totalBets = Math.max(0, G.stats.totalBets - 1);
     G.betsThisBasho = Math.max(0, G.betsThisBasho - 1);
   }
-  const odds = finalOdds(bout, side);
+  const odds = finalOdds(bout, side, day);
   // 決まり手予想の倍率も張った時点で固定（懸賞一番なら×3込み）
   const kOdds = kimarite ? round2(KIMARITE_BET.find(k => k.key === kimarite).odds * (bout.kensho ? 3 : 1)) : null;
   const allPoints = total === G.points;
@@ -1118,7 +1125,7 @@ function settlePending() {
     bet.settled = true; bet.hit = hit;
     if (hit) {
       gain = Math.round(bet.amount * bet.odds);
-      if (pick === G.profile.oshiId) { oshiBonus = Math.round(gain * 0.1); s.oshiHits++; }
+      if (pick === G.profile.oshiId) s.oshiHits++; // 推しボーナスはオッズ×2に統合済み
       s.totalHits++; s.currentStreak++;
       if (s.currentMissStreak >= 7) s.phoenixHits++;
       s.currentMissStreak = 0;
@@ -2016,7 +2023,7 @@ function fighterHTML(bout, i, side, day, state) {
   const id = side === "east" ? bout.east : bout.west;
   const r = rk(id);
   const st = SIM.rikishi[id];
-  const odds = finalOdds(bout, side);
+  const odds = finalOdds(bout, side, day);
   const bet = G.bets.find(x => x.day === day && x.bout === i && !x.settled);
   const picked = bet && bet.side === side;
   const winner = bout.result && bout.result.winner === id;
@@ -2024,8 +2031,8 @@ function fighterHTML(bout, i, side, day, state) {
   let tags = "";
   if (side === "east" ? bout.kachiE : bout.kachiW) tags += `<span class="f-tag" style="background:#e8f5e9;color:#2e7d32;border:1px solid #9ccc9c">☆勝ち越し王手×2</span> `;
   if (st.injured) tags += `<span class="f-tag tag-injured">🩹怪我明け×2</span> `;
-  if (r.ichimon === G.profile.ichimon) tags += `<span class="f-tag tag-ichimon">一門+0.2</span> `;
-  if (id === G.profile.oshiId) tags += `<span class="f-tag tag-oshi">⭐推し</span>`;
+  if (r.ichimon === G.profile.ichimon) tags += `<span class="f-tag tag-ichimon">一門×2</span> `;
+  if (id === G.profile.oshiId) tags += `<span class="f-tag tag-oshi">⭐推し×2</span>`;
   const clickable = state === "open";
   return `
     <button class="fighter ${picked ? "picked-" + side : ""}" ${clickable ? `onclick="openBetPanel(${i},'${side}',${day})"` : 'style="cursor:default;' + (loser ? "opacity:.55" : "") + '"'}>
@@ -2080,7 +2087,7 @@ function boutCardHTML(bout, i, day) {
   if (open) {
     const side = UI.openBet.side;
     const r = rk(side === "east" ? bout.east : bout.west);
-    const odds = finalOdds(bout, side);
+    const odds = finalOdds(bout, side, day);
     html += `
     <div class="bet-panel">
       <div class="bet-row"><b>${esc(r.name)}</b>（${odds.toFixed(2)}倍）に賭ける</div>
@@ -2428,8 +2435,9 @@ async function renderKometori() {
     <div class="section-title">⚙ プロフィール（入門の儀の変更）</div>
     <div class="card">
       <div class="form-row"><label>四股名</label><input id="pf-name" maxlength="10" value="${esc(G.profile.shikona)}"></div>
-      <div class="form-row"><label>所属一門</label><select id="pf-ichimon">${ICHIMON.map(x => `<option ${x === G.profile.ichimon ? "selected" : ""}>${x}</option>`).join("")}</select></div>
-      <div class="form-row"><label>推し力士</label><select id="pf-oshi">${rikishiByBanzuke().map(r2 => `<option value="${esc(r2.name)}" ${r2.name === G.profile.oshiName ? "selected" : ""}>${esc(r2.name)}（${rankLabel(r2.rank)}）</option>`).join("")}</select></div>
+      <div class="form-row"><label>所属一門</label><select id="pf-ichimon" ${profileLocked() ? "disabled" : ""}>${ICHIMON.map(x => `<option ${x === G.profile.ichimon ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+      <div class="form-row"><label>推し力士</label><select id="pf-oshi" ${profileLocked() ? "disabled" : ""}>${rikishiByBanzuke().map(r2 => `<option value="${esc(r2.name)}" ${r2.name === G.profile.oshiName ? "selected" : ""}>${esc(r2.name)}（${rankLabel(r2.rank)}）</option>`).join("")}</select></div>
+      ${profileLocked() ? `<div class="note">🔒 一門・推し力士の変更は<b>8日目まで</b>。9日目以降は場所が終わるまで変更できません（四股名は変更可）。</div>` : ""}
       <button class="btn btn-primary" onclick="onSaveProfile()">変更を保存</button>
     </div>
     <button class="btn btn-ghost btn-wide" onclick="onReset()" style="margin-top:6px;color:var(--red);border-color:var(--red)">⚠ 全データをリセット（廃業）</button>
@@ -2515,10 +2523,17 @@ function onSaveProfile() {
   const name = $("#pf-name").value.trim().slice(0, 10);
   if (!name) { alert("四股名を入力してください"); return; }
   G.profile.shikona = name;
-  G.profile.ichimon = $("#pf-ichimon").value;
-  G.profile.oshiName = $("#pf-oshi").value;
-  const oshi = RIKISHI.find(r => r.name === G.profile.oshiName);
-  G.profile.oshiId = oshi ? oshi.id : null;
+  if (profileLocked()) {
+    const newIchimon = $("#pf-ichimon").value, newOshi = $("#pf-oshi").value;
+    if (newIchimon !== G.profile.ichimon || newOshi !== G.profile.oshiName) {
+      alert("一門・推し力士の変更は8日目まで。今場所はこのままで土俵を務めてください。");
+    }
+  } else {
+    G.profile.ichimon = $("#pf-ichimon").value;
+    G.profile.oshiName = $("#pf-oshi").value;
+    const oshi = RIKISHI.find(r => r.name === G.profile.oshiName);
+    G.profile.oshiId = oshi ? oshi.id : null;
+  }
   save(); renderHeader();
   showToast("⚙ プロフィール", "変更を保存しました");
 }
