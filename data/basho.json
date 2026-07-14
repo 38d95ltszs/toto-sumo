@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-14T11:46:25.281Z",
+ "updatedAt": "2026-07-14T14:39:15.977Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -244,6 +244,28 @@
   ]
  },
  "injuredCarry": [],
+ "news": [
+  {
+   "t": "【相撲編集部が選ぶ名古屋場所３日目の一番】藤ノ川が豊昇龍を倒して、戦後初の初挑戦から４番連続横綱撃破！ BBM Sports 2026/7/14 23:00",
+   "u": "https://news.yahoo.co.jp/articles/755d5944d8212f71890cce5a28626f7afb925f9d"
+  },
+  {
+   "t": "「決めきれなかった」連敗の横綱・大の里、藤ノ川に苦杯 大相撲 毎日新聞 2026/7/14 22:57",
+   "u": "https://news.yahoo.co.jp/articles/a5162fd615fd6b89a5976d2c358922e8cd6f5c6c"
+  },
+  {
+   "t": "高安「ドキドキしました」まげをつかんだのではと物言いつくも、軍配通り初日から３連勝 日刊スポーツ 2026/7/14 22:30",
+   "u": "https://news.yahoo.co.jp/articles/e07961ad695d525397bef50de3ce741b4f1c90c9"
+  },
+  {
+   "t": "藤ノ川が横綱初挑戦から4連勝 戦後初の快挙 大相撲名古屋場所 毎日新聞 2026/7/14 22:26",
+   "u": "https://news.yahoo.co.jp/articles/15d9dfda6711244e2cbb10349d7bb0918341c867"
+  },
+  {
+   "t": "「立ち合いで当たれたから動けた」 藤ノ川、右足1本で逆転 大相撲名古屋場所3日目 産経新聞 2026/7/14 22:10",
+   "u": "https://news.yahoo.co.jp/articles/e5dc5d5bc423ece6662cdb0d20d07d6040e59e6a"
+  }
+ ],
  "days": {
   "1": [
    {
