@@ -622,7 +622,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14j"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14k"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -2310,12 +2310,22 @@ function renderBashoTab() {
   const starRows = standings.slice(0, 10).map((r2, i) =>
     `<tr><td>${i + 1}</td><td style="text-align:left"><b>${esc(r2.name)}</b> <span class="muted">${rankLabel(r2.rank)}</span></td><td>${SIM.rikishi[r2.id].wins}勝${SIM.rikishi[r2.id].losses}敗</td></tr>`).join("");
 
+  // 大相撲ニュース（予想のヒント・スポナビ経由）
+  let newsCard = "";
+  if (DATA_MODE === "real" && REAL && REAL.news && REAL.news.length) {
+    newsCard = `<div class="card"><h3>📰 大相撲ニュース</h3>
+      <div class="note">予想のヒントに。見出しをタップすると記事が開きます（Yahoo!ニュース）。</div>
+      ${REAL.news.map(n => `<div class="result-line"><a href="${esc(n.u)}" target="_blank" rel="noopener" style="color:var(--maroon);text-decoration:none;font-size:13px;line-height:1.7">▸ ${esc(n.t)}</a></div>`).join("")}
+    </div>`;
+  }
+
   el.innerHTML = `
     <div class="card"><h3>🏆 優勝予想</h3>${yusho}</div>
     <div class="card"><h3>🎖 三賞予想（殊勲・敢闘・技能）</h3>${sansho}</div>
     <div class="card"><h3>⭐ 優勝争い（上位10名・${dd}日目終了時点）</h3>
       <table class="banzuke"><tr><th>順</th><th>力士</th><th>成績</th></tr>${starRows}</table>
-    </div>`;
+    </div>
+    ${newsCard}`;
 }
 // ⚡ 電撃演出（全てを懸けた瞬間）
 function playThunder(done) {
@@ -2637,7 +2647,7 @@ function showBeginnerGuide() {
     <h2 style="color:var(--maroon)">👹 親方の心得</h2>
     <div style="background:#fff;border:2px solid var(--maroon);border-radius:12px;padding:14px;font-size:14px;line-height:2">
       「よう来たな、新弟子。トト相撲の稽古をつけてやろう。<br><br>
-      一、初日は<b>🚩懸賞のかかった一番</b>と、<b>⚖東西対抗戦</b>に賭けるのがオススメじゃ。どちらも<b>オッズ3倍</b>、覚えやすくて実入りも良い。<br><br>
+      一、はじめは<b>🚩懸賞のかかった一番</b>と、<b>⚖東西対抗戦</b>に賭けるのがオススメじゃ。どちらも<b>オッズ3倍</b>、覚えやすくて実入りも良い。<br><br>
       一、取組は<b>各取組の直前まで</b>受付。オッズは力士の調子で毎日動く生き物じゃ。<br><br>
       一、<b>🍲ちゃんこ</b>と<b>📖相撲クイズ</b>は毎日タダで米が増える。忘れるでない。<br><br>
       一、腕に覚えが出てきたら「場所予想」の<b>優勝予想</b>じゃ。早く当てるほど、千秋楽の持ち米が<b>丸ごと倍々</b>になる大勝負よ。<br><br>
