@@ -622,7 +622,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14p"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14s"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -731,11 +731,15 @@ function resultsReady(day) {
   if (!info.current) return true; // 場所外=過去場所は全日確定
   return day < info.current.day || (day === info.current.day && info.now.hm >= RESULT_HM);
 }
-function estStartHM(i, n) {
-  if (n <= 1) return FIRST_BOUT_HM;
-  return Math.round(FIRST_BOUT_HM + i * (LAST_BOUT_HM - FIRST_BOUT_HM) / (n - 1));
+// 千秋楽は表彰式のため約1時間前倒し（15:00開始・結び17:20頃・17:30終了）
+const FIRST_BOUT_HM_SENSHURAKU = 15 * 60, LAST_BOUT_HM_SENSHURAKU = 17 * 60 + 20;
+function estStartHM(slot, n, day) {
+  const first = day === 15 ? FIRST_BOUT_HM_SENSHURAKU : FIRST_BOUT_HM;
+  const last = day === 15 ? LAST_BOUT_HM_SENSHURAKU : LAST_BOUT_HM;
+  if (n <= 1) return first;
+  return Math.round(first + slot * (last - first) / (n - 1));
 }
-function boutLockHM(slot, n) { return estStartHM(slot, n) - LOCK_MARGIN; }
+function boutLockHM(slot, n, day) { return estStartHM(slot, n, day) - LOCK_MARGIN; }
 function fmtHM(hm) { return Math.floor(hm / 60) + ":" + String(hm % 60).padStart(2, "0"); }
 
 // 進行順: 番付合計が低い取組ほど早く、結び（横綱戦）が最後
@@ -763,7 +767,7 @@ function boutState(day, i) {
   if (!info.current || info.current.key !== SIM.key) return "locked";
   const cur = info.current.day;
   if (day < cur || day > cur + 1) return "locked";
-  if (day === cur) return info.now.hm >= boutLockHM(boutSlot(day, i), dd.torikumi.length) ? "locked" : "open";
+  if (day === cur) return info.now.hm >= boutLockHM(boutSlot(day, i), dd.torikumi.length, day) ? "locked" : "open";
   return info.now.hm >= NEXT_OPEN_HM ? "open" : "locked"; // 翌日分
 }
 
@@ -789,7 +793,7 @@ function ewState(day) {
   const info = bashoInfo();
   if (!info.current || info.current.key !== SIM.key) return "locked";
   const cur = info.current.day;
-  if (day === cur) return info.now.hm < boutLockHM(0, dd.torikumi.length) ? "open" : "locked";
+  if (day === cur) return info.now.hm < boutLockHM(0, dd.torikumi.length, day) ? "open" : "locked";
   if (day === cur + 1) return info.now.hm >= NEXT_OPEN_HM ? "open" : "locked";
   return "locked";
 }
@@ -837,7 +841,7 @@ function buildSim(key, uptoDay) {
   const days = [null]; // days[1..15]
   for (let d = 1; d <= Math.min(uptoDay, 15); d++) {
     const rngD = rngOf(key + "::day" + d);
-    const bouts = makeTorikumiDet(rikishi, rngD);
+    const bouts = makeTorikumiDet(rikishi, rngD, d);
     days[d] = { day: d, torikumi: bouts };
     if (resultsReady(d) || !isCurrentBasho(key)) {
       bouts.forEach(bt => simulateBoutDet(bt, rikishi, rngD));
@@ -850,7 +854,7 @@ function isCurrentBasho(key) {
   return info.current && info.current.key === key;
 }
 
-function makeTorikumiDet(rikishi, rngD) {
+function makeTorikumiDet(rikishi, rngD, day) {
   const standings = RIKISHI.slice().sort((x, y) => {
     const rx = rikishi[x.id], ry = rikishi[y.id];
     if (ry.wins !== rx.wins) return ry.wins - rx.wins;
@@ -866,7 +870,7 @@ function makeTorikumiDet(rikishi, rngD) {
     if (!opp) break;
     used.add(r.id); used.add(opp.id);
     const [east, west] = rankPoint(r.rank) >= rankPoint(opp.rank) ? [r, opp] : [opp, r];
-    bouts.push(makeBoutDet(east, west, rikishi));
+    bouts.push(makeBoutDet(east, west, rikishi, day));
   }
   bouts.sort((a, b) => (rankPoint(rk(a.east).rank) + rankPoint(rk(a.west).rank)) - (rankPoint(rk(b.east).rank) + rankPoint(rk(b.west).rank)));
   // 懸賞一番（決定論的）
@@ -883,7 +887,7 @@ function rk(id) { return RIKISHI.find(r => r.id === id); }
 // 調子係数: 実効ポイント = 番付ポイント + (勝ち星-負け星)×FORM_COEF
 // 星取が積み上がるほどオッズが動く（終盤ほど番付より「今の調子」が効く）
 const FORM_COEF = 0.7;
-function makeBoutDet(east, west, rikishi) {
+function makeBoutDet(east, west, rikishi, day) {
   const eff = r => rankPoint(r.rank) + (rikishi[r.id].wins - rikishi[r.id].losses) * FORM_COEF;
   const pe = eff(east), pw = eff(west);
   const diff = Math.abs(pe - pw);
@@ -892,7 +896,14 @@ function makeBoutDet(east, west, rikishi) {
   else { oddsE = 1.2 + diff * 0.15; oddsW = 1.2 + diff * 0.05; }
   if (rikishi[east.id].injured) oddsE *= 2;
   if (rikishi[west.id].injured) oddsW *= 2;
-  return { east: east.id, west: west.id, oddsE: round2(oddsE), oddsW: round2(oddsW), kensho: false, result: null };
+  // 勝ち越しに王手（7勝で迎えた取組）: その力士側のオッズ×2
+  const kachiE = rikishi[east.id].wins === 7, kachiW = rikishi[west.id].wins === 7;
+  if (kachiE) oddsE *= 2;
+  if (kachiW) oddsW *= 2;
+  // 日程ボーナス: 初日と2週目(8〜12日目)は全取組×2、終盤3日間(13日目〜千秋楽)は鉄火場の×3
+  const dayBonus = (day === 1 || (day >= 8 && day <= 12)) ? 2 : (day >= 13 && day <= 15) ? 3 : 1;
+  if (dayBonus > 1) { oddsE *= dayBonus; oddsW *= dayBonus; }
+  return { east: east.id, west: west.id, oddsE: round2(oddsE), oddsW: round2(oddsW), kachiE, kachiW, dayBonus, kensho: false, result: null };
 }
 
 function strengthDet(id, rikishi) {
@@ -1719,7 +1730,7 @@ function buildSimFromReal(uptoDay) {
     src.forEach(x => {
       const e = RIKISHI.find(r => r.name === x.e), w = RIKISHI.find(r => r.name === x.w);
       if (!e || !w) return;
-      const bout = makeBoutDet(e, w, rikishi);
+      const bout = makeBoutDet(e, w, rikishi, d);
       if (x.win) {
         const winner = x.win === "e" ? e.id : w.id;
         const loser = x.win === "e" ? w.id : e.id;
@@ -1963,7 +1974,7 @@ function ewCardHTML(day) {
     const sel = UI.ewSide && UI.ewSide.day === day ? UI.ewSide.side : null;
     body = `
     <div class="bet-panel">
-      <div class="bet-row">本日の幕内全${c.total}番、白星が多いのはどっち？（締切 ${fmtHM(boutLockHM(0, c.total))}）</div>
+      <div class="bet-row">本日の幕内全${c.total}番、白星が多いのはどっち？（締切 ${fmtHM(boutLockHM(0, c.total, day))}）</div>
       <div class="bet-row">
         <button class="btn ${sel === "east" ? "btn-primary" : "btn-ghost"}" onclick="UI.ewSide={day:${day},side:'east'};renderTorikumi()">東方</button>
         <button class="btn ${sel === "west" ? "btn-primary" : "btn-ghost"}" onclick="UI.ewSide={day:${day},side:'west'};renderTorikumi()">西方</button>
@@ -2008,6 +2019,7 @@ function fighterHTML(bout, i, side, day, state) {
   const winner = bout.result && bout.result.winner === id;
   const loser = bout.result && bout.result.winner !== id;
   let tags = "";
+  if (side === "east" ? bout.kachiE : bout.kachiW) tags += `<span class="f-tag" style="background:#e8f5e9;color:#2e7d32;border:1px solid #9ccc9c">☆勝ち越し王手×2</span> `;
   if (st.injured) tags += `<span class="f-tag tag-injured">🩹怪我明け×2</span> `;
   if (r.ichimon === G.profile.ichimon) tags += `<span class="f-tag tag-ichimon">一門+0.2</span> `;
   if (id === G.profile.oshiId) tags += `<span class="f-tag tag-oshi">⭐推し</span>`;
@@ -2029,6 +2041,8 @@ function boutCardHTML(bout, i, day) {
   const bet = G.bets.find(x => x.day === day && x.bout === i && !x.settled);
   const open = UI.openBet && UI.openBet.bout === i && UI.openBet.day === day && state === "open";
   let html = `<div class="bout-card ${bout.kensho ? "kensho" : ""}">`;
+  if (bout.dayBonus === 2) html += `<div class="kensho-banner" style="background:var(--gold);color:var(--maroon-d)">🎯 ${day === 1 ? "初日ボーナス" : "2週目ボーナス"} — 全取組オッズ×2</div>`;
+  if (bout.dayBonus === 3) html += `<div class="kensho-banner" style="background:#421111">🔥 終盤戦・鉄火場 — 全取組オッズ×3！</div>`;
   if (bout.kensho) html += `<div class="kensho-banner">🚩 懸賞一番 — オッズ×3！</div>`;
   html += `<div class="bout-main">${fighterHTML(bout, i, "east", day, state)}<div class="vs">対</div>${fighterHTML(bout, i, "west", day, state)}</div>`;
   // 状態行
@@ -2053,7 +2067,7 @@ function boutCardHTML(bout, i, day) {
   } else if (state === "locked") {
     html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">🔒 締切（取組中・結果待ち）</span></div>`;
   } else {
-    html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">⏳ 締切 ${fmtHM(boutLockHM(boutSlot(day, i), n))}頃</span></div>`;
+    html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">⏳ 締切 ${fmtHM(boutLockHM(boutSlot(day, i), n, day))}頃${day === 15 ? "（千秋楽は前倒し進行）" : ""}</span></div>`;
   }
   if (bet) {
     const r = rk(bet.side === "east" ? bout.east : bout.west);
