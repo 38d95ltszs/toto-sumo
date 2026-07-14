@@ -615,7 +615,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14h"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14i"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -873,8 +873,12 @@ function makeTorikumiDet(rikishi, rngD) {
 }
 function rk(id) { return RIKISHI.find(r => r.id === id); }
 
+// 調子係数: 実効ポイント = 番付ポイント + (勝ち星-負け星)×FORM_COEF
+// 星取が積み上がるほどオッズが動く（終盤ほど番付より「今の調子」が効く）
+const FORM_COEF = 0.7;
 function makeBoutDet(east, west, rikishi) {
-  const pe = rankPoint(east.rank), pw = rankPoint(west.rank);
+  const eff = r => rankPoint(r.rank) + (rikishi[r.id].wins - rikishi[r.id].losses) * FORM_COEF;
+  const pe = eff(east), pw = eff(west);
   const diff = Math.abs(pe - pw);
   let oddsE, oddsW;
   if (pe >= pw) { oddsE = 1.2 + diff * 0.05; oddsW = 1.2 + diff * 0.15; }
