@@ -600,6 +600,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
+const BUILD_VERSION = "2026-07-14e"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -745,6 +746,54 @@ function boutState(day, i) {
 }
 
 // ============================================================
+// 東西対抗（1日の幕内全取組で東方・西方どちらの白星が多いか / オッズ3倍）
+// ============================================================
+const EW_ODDS = 3;
+function ewCounts(day) {
+  const dd = SIM && SIM.days[day];
+  const c = { e: 0, w: 0, done: 0, total: dd ? dd.torikumi.length : 0 };
+  if (!dd) return c;
+  dd.torikumi.forEach(bt => {
+    if (!bt.result) return;
+    c.done++;
+    if (bt.result.winner === bt.east) c.e++; else c.w++;
+  });
+  return c;
+}
+function ewState(day) {
+  const dd = SIM && SIM.days[day];
+  if (!dd || !dd.torikumi.length) return "locked";
+  if (dd.torikumi.every(bt => bt.result)) return "done";
+  const info = bashoInfo();
+  if (!info.current || info.current.key !== SIM.key) return "locked";
+  const cur = info.current.day;
+  if (day === cur) return info.now.hm < boutLockHM(0, dd.torikumi.length) ? "open" : "locked";
+  if (day === cur + 1) return info.now.hm >= NEXT_OPEN_HM ? "open" : "locked";
+  return "locked";
+}
+function placeEwBet(day, side, amount) {
+  if (ewState(day) !== "open") return { ok: false, msg: "東西対抗の受付は締め切られました（最初の取組前まで）" };
+  amount = Math.floor(amount / 100) * 100;
+  if (amount < 100) return { ok: false, msg: "100合以上を100合単位で入力してください" };
+  G.ewBets = G.ewBets || [];
+  const old = G.ewBets.findIndex(b => b.day === day && !b.settled);
+  if (old >= 0) { G.points += G.ewBets[old].amount; G.ewBets.splice(old, 1); }
+  if (amount > G.points) return { ok: false, msg: "持ち米が足りません" };
+  G.points -= amount;
+  G.ewBets.push({ day, side, amount, settled: false });
+  save();
+  return { ok: true };
+}
+function cancelEwBet(day) {
+  G.ewBets = G.ewBets || [];
+  const i = G.ewBets.findIndex(b => b.day === day && !b.settled);
+  if (i < 0 || ewState(day) !== "open") return;
+  G.points += G.ewBets[i].amount;
+  G.ewBets.splice(i, 1);
+  save();
+}
+
+// ============================================================
 // 共通シミュレーション（決定論的・全員同一）
 // ============================================================
 // buildSim(key, uptoDay): 1..uptoDay の取組を構築、resultsReady(d)の日は結果も確定
@@ -838,12 +887,12 @@ function simulateBoutDet(bout, rikishi, rngD) {
   if ((lr.rank === "Y" || lr.rank === "O") && rankPoint(wr.rank) <= 10) rikishi[winner].kinboshi++;
 }
 
-// プレイヤー個別最終オッズ（一門+0.2 → 懸賞×1.2）
+// プレイヤー個別最終オッズ（一門+0.2 → 懸賞×3）
 function finalOdds(bout, side) {
   let o = side === "east" ? bout.oddsE : bout.oddsW;
   const r = rk(side === "east" ? bout.east : bout.west);
   if (r.ichimon === G.profile.ichimon) o += 0.2;
-  if (bout.kensho) o *= 1.2;
+  if (bout.kensho) o *= 3; // 懸賞一番はライトユーザー向けの大盤振る舞い
   return round2(o);
 }
 function round2(x) { return Math.round(x * 100) / 100; }
@@ -864,6 +913,7 @@ function load() {
     G = JSON.parse(raw);
     G.stats = Object.assign(DEFAULT_STATS(), G.stats || {});
     G.bets = G.bets || [];
+    G.ewBets = G.ewBets || [];
     G.dayAgg = G.dayAgg || {};
     // 旧セーブデータ移行: 推し力士をIDから名前に
     if (!G.profile.oshiName) {
@@ -883,7 +933,7 @@ function newGame(shikona, ichimon, oshiName) {
     bashoCount: 1,
     banzukeLevel: 3,
     bashoKey: null,
-    bets: [], dayAgg: {},
+    bets: [], ewBets: [], dayAgg: {},
     yushoBet: null, sanshoBet: null,
     pointsHistory: [], dayLog: [], betDays: [],
     hitsThisBasho: 0, betsThisBasho: 0,
@@ -927,7 +977,7 @@ async function ensureBashoState() {
   if (info.current && G.bashoKey !== info.current.key) {
     if (G.bashoKey) { G.bashoCount++; G.stats.bashoPlayed = G.bashoCount; }
     G.bashoKey = info.current.key;
-    G.bets = []; G.dayAgg = {}; G.yushoBet = null; G.sanshoBet = null;
+    G.bets = []; G.ewBets = []; G.dayAgg = {}; G.yushoBet = null; G.sanshoBet = null;
     G.pointsHistory = [{ day: 0, points: G.points }];
     G.dayLog = []; G.betDays = [];
     G.hitsThisBasho = 0; G.betsThisBasho = 0;
@@ -1068,6 +1118,34 @@ function settlePending() {
     agg.bets++; if (hit) agg.hits++; agg.net += net;
     if (pickOdds > otherOdds) agg.dog++; else agg.fav++;
     batch.push({ day: bet.day, detail: { bet, bout, hit, gain, oshiBonus, kGain, kHit, net } });
+  });
+
+  // 東西対抗の精算（その日の全取組が確定したら）
+  (G.ewBets = G.ewBets || []).forEach(b => {
+    if (b.settled) return;
+    const dd = SIM.days[b.day];
+    const complete = dd && dd.torikumi.length && dd.torikumi.every(bt => bt.result);
+    if (!complete) {
+      if (dayLongPast(b.day)) { b.settled = true; b.tie = true; b.net = 0; G.points += b.amount; }
+      return;
+    }
+    const c = ewCounts(b.day);
+    b.settled = true;
+    if (c.e === c.w) {
+      b.tie = true; b.net = 0;
+      G.points += b.amount; // 引き分けは返還
+      batch.push({ day: b.day, detail: { ewBet: b, counts: c, net: 0 } });
+    } else {
+      const winSide = c.e > c.w ? "east" : "west";
+      b.hit = b.side === winSide;
+      const gain = b.hit ? b.amount * EW_ODDS : 0;
+      if (gain) { G.points += gain; s.totalEarned += gain; }
+      else s.totalLost += b.amount;
+      b.net = b.hit ? gain - b.amount : -b.amount;
+      const agg = G.dayAgg[b.day] = G.dayAgg[b.day] || { bets: 0, hits: 0, net: 0, fav: 0, dog: 0 };
+      agg.net += b.net;
+      batch.push({ day: b.day, detail: { ewBet: b, counts: c, net: b.net } });
+    }
   });
 
   s.maxPoints = Math.max(s.maxPoints, G.points);
@@ -1706,9 +1784,24 @@ function renderTorikumi() {
     const n = dd.torikumi.length;
     const done = dd.torikumi.filter(bt => bt.result).length;
     const openCount = dd.torikumi.filter((bt, i) => boutState(day, i) === "open").length;
+
+    // 当日のリザルト（全取組終了後に表示）
+    if (n > 0 && done === n) {
+      const log = G.dayLog.find(l => l.day === day);
+      if (log && log.bets > 0) {
+        html += `
+        <div class="day-summary" style="margin-bottom:12px">
+          🏁 ${day}日目 リザルト<br>
+          的中 <b style="font-size:22px;color:var(--maroon)">${log.hits}</b><span class="muted"> / ${log.bets} 番</span><br>
+          <span class="${log.net >= 0 ? "net-plus" : "net-minus"}">${log.net >= 0 ? "+" : ""}${fmt(log.net)} 合</span>
+        </div>`;
+      } else {
+        html += `<div class="day-summary" style="margin-bottom:12px">🏁 ${day}日目 リザルト<br><span class="muted">本日の張りはありませんでした（見の一日）</span></div>`;
+      }
+    }
     // デフォルト: 受付中の取組が残っていれば開、全取組終了なら閉
     const openToday = UI.accToday !== undefined ? UI.accToday : openCount > 0;
-    let cards = "";
+    let cards = ewCardHTML(day);
     displayOrder(day).forEach(i => { cards += boutCardHTML(dd.torikumi[i], i, day); });
     html += `
     <details class="acc" ${openToday ? "open" : ""} ontoggle="UI.accToday=this.open">
@@ -1726,7 +1819,7 @@ function renderTorikumi() {
   if (hm >= NEXT_OPEN_HM && day < 15 && !G.finishedProcessed) {
     if (SIM.days[day + 1]) {
       const openTmr = UI.accTomorrow !== undefined ? UI.accTomorrow : true;
-      let cards = "";
+      let cards = ewCardHTML(day + 1);
       displayOrder(day + 1).forEach(i => { cards += boutCardHTML(SIM.days[day + 1].torikumi[i], i, day + 1); });
       const nTmr = G.bets.filter(x => x.day === day + 1 && !x.settled).length;
       html += `
@@ -1745,6 +1838,54 @@ function renderTorikumi() {
     html += `<div class="offseason-note">千秋楽の結果が出揃いました。場所締めの処理をお待ちください。</div>`;
   }
   el.innerHTML = html;
+}
+
+// 東西対抗カード（オッズ3倍・最初の取組前まで受付）
+function ewCardHTML(day) {
+  const dd = SIM.days[day];
+  if (!dd || !dd.torikumi.length) return "";
+  const st = ewState(day);
+  const c = ewCounts(day);
+  const bet = (G.ewBets || []).find(b => b.day === day);
+  let body;
+  if (st === "done") {
+    const winner = c.e === c.w ? "引き分け" : (c.e > c.w ? "東方の勝ち！" : "西方の勝ち！");
+    let mine = "";
+    if (bet && bet.settled) {
+      mine = bet.tie
+        ? `<div class="bet-status" style="justify-content:center"><span>△ ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合 → 引き分け・返還 ±0</span></div>`
+        : `<div class="bet-status" style="justify-content:center;background:${bet.hit ? "#eef7ec" : "#fbeeec"}"><span class="${bet.hit ? "hit" : "miss"}">${bet.hit ? "○" : "●"} ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合 → ${bet.net >= 0 ? "+" : ""}${fmt(bet.net)}合</span></div>`;
+    }
+    body = `<div class="bet-status" style="justify-content:center;font-size:15px"><span><b style="color:var(--east)">東 ${c.e}</b> － <b style="color:var(--west)">${c.w} 西</b>　${winner}</span></div>${mine}`;
+  } else if (st === "locked") {
+    body = `<div class="bet-status" style="justify-content:center"><span class="muted">🔒 締切　途中経過: 東 ${c.e} － ${c.w} 西（${c.done}/${c.total}番）</span></div>
+      ${bet && !bet.settled ? `<div class="bet-status" style="justify-content:center"><span>あなた: ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合</span></div>` : ""}`;
+  } else {
+    const sel = UI.ewSide && UI.ewSide.day === day ? UI.ewSide.side : null;
+    body = `
+    <div class="bet-panel">
+      <div class="bet-row">本日の幕内全${c.total}番、白星が多いのはどっち？（締切 ${fmtHM(boutLockHM(0, c.total))}）</div>
+      <div class="bet-row">
+        <button class="btn ${sel === "east" ? "btn-primary" : "btn-ghost"}" onclick="UI.ewSide={day:${day},side:'east'};renderTorikumi()">東方</button>
+        <button class="btn ${sel === "west" ? "btn-primary" : "btn-ghost"}" onclick="UI.ewSide={day:${day},side:'west'};renderTorikumi()">西方</button>
+        <input type="number" id="ew-amount-${day}" value="500" step="100" min="100" max="${G.points}" style="width:90px"> 合
+        <button class="btn btn-gold" onclick="onEwConfirm(${day})" ${sel ? "" : "disabled"}>確定</button>
+      </div>
+      ${bet && !bet.settled ? `<div class="bet-row"><span style="font-size:13px">賭け済み: <b>${bet.side === "east" ? "東方" : "西方"}</b> ${fmt(bet.amount)}合（3倍）</span>
+        <button class="btn btn-ghost btn-sm" onclick="cancelEwBet(${day});renderHeader();renderTorikumi()">取消</button></div>` : ""}
+    </div>`;
+  }
+  return `<div class="bout-card" style="border:2px solid var(--west)">
+    <div class="kensho-banner" style="background:var(--west)">⚖ 東西対抗 — オッズ×3</div>${body}</div>`;
+}
+function onEwConfirm(day) {
+  const sel = UI.ewSide && UI.ewSide.day === day ? UI.ewSide.side : null;
+  if (!sel) return;
+  const amount = parseInt(($("#ew-amount-" + day) || {}).value || "0", 10);
+  const res = placeEwBet(day, sel, amount);
+  if (!res.ok) { alert(res.msg); return; }
+  UI.ewSide = null;
+  renderHeader(); renderTorikumi(); drainToasts();
 }
 
 // 表示順: 番付順=結びの一番が先頭 / 時系列順=序盤の取組が先頭
@@ -1789,7 +1930,7 @@ function boutCardHTML(bout, i, day) {
   const bet = G.bets.find(x => x.day === day && x.bout === i && !x.settled);
   const open = UI.openBet && UI.openBet.bout === i && UI.openBet.day === day && state === "open";
   let html = `<div class="bout-card ${bout.kensho ? "kensho" : ""}">`;
-  if (bout.kensho) html += `<div class="kensho-banner">🚩 懸賞一番 — オッズ×1.2</div>`;
+  if (bout.kensho) html += `<div class="kensho-banner">🚩 懸賞一番 — オッズ×3！</div>`;
   html += `<div class="bout-main">${fighterHTML(bout, i, "east", day, state)}<div class="vs">対</div>${fighterHTML(bout, i, "west", day, state)}</div>`;
   // 状態行
   if (state === "done") {
@@ -1875,6 +2016,12 @@ function showSettleModal(summaries) {
   summaries.forEach(sm => {
     html += `<p style="font-weight:bold;color:var(--maroon);margin-top:8px">${sm.day}日目（${sm.betCount}ベット ${sm.dayHits}的中）</p>`;
     sm.details.forEach(d => {
+      if (d.ewBet) {
+        const b = d.ewBet, c = d.counts;
+        html += `<div class="result-line"><span>⚖ 東西対抗（東${c.e}－${c.w}西） ${b.side === "east" ? "東方" : "西方"}に${fmt(b.amount)}合</span>
+          <span class="${b.tie ? "" : b.hit ? "hit" : "miss"}">${b.tie ? "引き分け・返還" : (b.net >= 0 ? "+" : "") + fmt(b.net)}</span></div>`;
+        return;
+      }
       if (d.refund !== undefined) {
         const pickName = rk(d.bet.side === "east" ? d.bout.east : d.bout.west).name;
         html += `<div class="result-line"><span>△ <b>${esc(pickName)}</b> — 取組不成立</span><span>返還 +${fmt(d.refund)}</span></div>`;
@@ -2011,7 +2158,7 @@ function showBanzukeModal(bz) {
     <p style="font-size:12px;font-weight:bold;color:var(--maroon)">上位番付</p>
     ${top}
     ${conv}
-    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">承知つかまつった</button>
+    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">謹んでお受けします</button>
   `);
   oyakataSay(bz.level >= 5 ? "win" : "lose");
 }
@@ -2095,7 +2242,7 @@ async function renderKometori() {
     <div class="section-title">📈 収支グラフ（今場所）</div>
     <canvas id="chart" width="640" height="300"></canvas>
 
-    <div class="section-title">🗒 トト番付ランキング
+    <div class="section-title">🗒 トト番付
       <button class="btn btn-ghost btn-sm" onclick="renderKometori()" style="float:right">↻ 更新</button>
     </div>
     <div id="ranking-area"><p class="muted center">読み込み中…</p></div>
@@ -2108,9 +2255,13 @@ async function renderKometori() {
       <div>優勝予想的中 <b>${s.yushoHits}</b>回</div><div>クイズ正解 <b>${s.quizCorrect}</b>問</div>
     </div>
 
-    <div class="section-title">🏅 称号（${G.achievements.length} / ${TITLES.length}）</div>
-    <p class="muted">獲得した称号をタップすると四股名の前に表示されます。</p>
-    <div id="title-area">${titleGalleryHTML()}</div>
+    <details class="acc">
+      <summary class="section-title" style="margin-bottom:0">🏅 称号（${G.achievements.length} / ${TITLES.length}）<span class="acc-arrow" style="right:30px">▼</span></summary>
+      <div class="acc-body">
+        <p class="muted">獲得した称号をタップすると四股名の前に表示されます。</p>
+        <div id="title-area">${titleGalleryHTML()}</div>
+      </div>
+    </details>
 
     <div class="section-title">⚙ プロフィール（入門の儀の変更）</div>
     <div class="card">
@@ -2119,7 +2270,8 @@ async function renderKometori() {
       <div class="form-row"><label>推し力士</label><select id="pf-oshi">${rikishiByBanzuke().map(r2 => `<option value="${esc(r2.name)}" ${r2.name === G.profile.oshiName ? "selected" : ""}>${esc(r2.name)}（${rankLabel(r2.rank)}）</option>`).join("")}</select></div>
       <button class="btn btn-primary" onclick="onSaveProfile()">変更を保存</button>
     </div>
-    <button class="btn btn-ghost btn-wide" onclick="onReset()" style="margin-top:6px;color:var(--red);border-color:var(--red)">⚠ 全データをリセット（廃業）</button>`;
+    <button class="btn btn-ghost btn-wide" onclick="onReset()" style="margin-top:6px;color:var(--red);border-color:var(--red)">⚠ 全データをリセット（廃業）</button>
+    <p class="muted center" style="margin-top:10px">build ${BUILD_VERSION}</p>`;
   drawChart();
   renderRanking();
 }
@@ -2129,13 +2281,23 @@ async function renderRanking() {
   if (!area) return;
   let list = null;
   if (SB && G.bashoKey) list = await fetchLeaderboard(G.bashoKey);
+  UI.lastRankList = list;
+  area.innerHTML = rankingHTML(list);
+}
+function refreshRankArea() {
+  const area = $("#ranking-area");
+  if (area) area.innerHTML = rankingHTML(UI.lastRankList);
+}
+function rankingHTML(list) {
   const bz = computeBanzuke(list, G.finishedProcessed);
   // 本物の番付と同じく東西交互（1位=東、2位=西、3位=東…）
   const east = bz.table.filter((_, i) => i % 2 === 0);
   const west = bz.table.filter((_, i) => i % 2 === 1);
   const rows = [];
+  let meRow = 0;
   for (let i = 0; i < east.length; i++) {
     const e = east[i], w = west[i];
+    if ((e && e.me) || (w && w.me)) meRow = i;
     const cell = u => u ? `<span class="rank-chip l${u.level}">${u.levelName}</span><br>
       <span style="color:#a8861a;font-size:10px;line-height:1.4">${esc(u.title || "") || "&nbsp;"}</span><br>
       <b style="font-size:13px">${esc(u.name)}</b>${u.me ? " ★" : ""}` : "";
@@ -2143,12 +2305,26 @@ async function renderRanking() {
       <td>${e ? e.pos : ""}</td><td style="text-align:center">${cell(e)}</td><td>${e ? fmt(e.points) : ""}</td>
       <td>${w ? fmt(w.points) : ""}</td><td style="text-align:center">${cell(w)}</td><td>${w ? w.pos : ""}</td></tr>`);
   }
+  // 5行超は自分の前後だけ表示（展開で全員）
+  let body, toggle = "";
+  const gap = `<tr><td colspan="6" style="color:#b5ada0">・・・</td></tr>`;
+  if (rows.length > 5 && !UI.rankFull) {
+    const start = Math.max(0, Math.min(meRow - 2, rows.length - 5));
+    body = rows.slice(start, start + 5).join("");
+    if (start > 0) body = gap + body;
+    if (start + 5 < rows.length) body += gap;
+    toggle = `<button class="btn btn-ghost btn-sm btn-wide" style="margin-top:6px" onclick="UI.rankFull=true;refreshRankArea()">▼ 全${bz.total}名の番付を表示</button>`;
+  } else {
+    body = rows.join("");
+    if (rows.length > 5) toggle = `<button class="btn btn-ghost btn-sm btn-wide" style="margin-top:6px" onclick="UI.rankFull=false;refreshRankArea()">▲ 自分の周りだけ表示</button>`;
+  }
   const info = bashoInfo();
-  area.innerHTML = `
+  return `
     <table class="banzuke">
       <tr><th>位</th><th>東</th><th>合</th><th>合</th><th>西</th><th>位</th></tr>
-      ${rows.join("")}
+      ${body}
     </table>
+    ${toggle}
     <p class="muted" style="margin-top:4px">
       ${SB ? `🟢 オンライン：${bz.total}名参加${info.current && !G.finishedProcessed ? "（場所中は速報値）" : scoreFrozen() ? "（速報値・確定は水曜10:00の番付編成会議）" : "（確定番付）"}` : "⚪ オフライン：自分のみ表示"}
       ${bz.pos ? `／あなた：${bz.pos}位` : ""}
