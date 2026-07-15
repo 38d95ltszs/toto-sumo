@@ -709,7 +709,11 @@ function secondSunday(y, m) {
   return 1 + ((7 - wd) % 7) + 7;
 }
 function bashoKeyOf(y, m) { return y + "-" + String(m).padStart(2, "0"); }
-function bashoNameOf(y, m) { return "令和" + (y - 2018) + "年" + m + "月場所"; }
+// 本場所の月は漢数字表記（一月・三月・五月・七月・九月・十一月場所）
+const KANJI_MONTH = { 1: "一", 3: "三", 5: "五", 7: "七", 9: "九", 11: "十一" };
+function bashoNameOf(y, m) { return "令和" + (y - 2018) + "年" + (KANJI_MONTH[m] || m) + "月場所"; }
+// 場所の日程表示: 初日(1日目)・中日(8日目)・千秋楽(15日目)は漢字、他は算用数字
+function dayKanji(day) { return day === 1 ? "初日" : day === 8 ? "中日" : day === 15 ? "千秋楽" : day + "日目"; }
 
 // 現在の場所と次の場所を返す
 function bashoInfo() {
@@ -1439,6 +1443,25 @@ async function announceBanzuke() {
   pendingModals.push({ type: "banzuke", data: bz });
   checkAchievements();
   save();
+
+  // 過去のトト番付アーカイブ: 自分の行だけを書き込む（各自のタイミングでOK・競合しない）
+  if (SB && MYID) {
+    const { error } = await SB.from("basho_results").upsert({
+      basho_key: G.bashoKey,
+      player_id: MYID,
+      shikona: G.profile.shikona,
+      ichimon: G.profile.ichimon,
+      title: currentTitleName(),
+      final_points: G.finalPoints,
+      hits: G.hitsThisBasho,
+      bets: G.betsThisBasho,
+      banzuke_level: bz.level,
+      banzuke_pos: bz.pos,
+      banzuke_total: bz.total,
+      updated_at: new Date().toISOString()
+    });
+    if (error) console.warn("番付アーカイブ保存失敗（basho_resultsテーブル未作成の可能性）:", error.message);
+  }
 }
 
 // 場所の振り返り記事（テンプレート生成・約300字）
@@ -1471,7 +1494,7 @@ function buildBashoArticle(bz, leaders) {
     let lastNonChamp = null;
     days.forEach(d => { const l = leaderAt(d); if (l && l.name !== champ.name) lastNonChamp = d; });
     if (lastNonChamp !== null && eLead.name !== champ.name) {
-      sent.push(`${champ.name}が首位を奪ったのは${Math.min(15, lastNonChamp + 1)}日目。そのまま最後まで譲らなかった`);
+      sent.push(`${champ.name}が首位を奪ったのは${dayKanji(Math.min(15, lastNonChamp + 1))}。そのまま最後まで譲らなかった`);
     } else if (eLead.name === champ.name) {
       sent.push(`${champ.name}はその後も一度も首位を明け渡さない完勝劇だった`);
     }
@@ -1484,7 +1507,7 @@ function buildBashoArticle(bz, leaders) {
       if (a !== undefined && b !== undefined && b - a > 0 && (!big || b - a > big.delta)) big = { name: p.name, day: d, delta: b - a };
     });
   });
-  if (big && big.delta >= 1000) sent.push(`圧巻は${big.day}日目の${big.name}。一日で${fmt(big.delta)}合を積み上げる大勝負が番付を大きく動かした`);
+  if (big && big.delta >= 1000) sent.push(`圧巻は${dayKanji(big.day)}の${big.name}。一日で${fmt(big.delta)}合を積み上げる大勝負が番付を大きく動かした`);
   // 新弟子の健闘
   const rookie = table.find(u => u.isNew && u.pos <= Math.max(3, Math.ceil(table.length / 3)));
   if (rookie && rookie.name !== champ.name) sent.push(`初土俵の${rookie.name}は${rookie.pos}位と大健闘`);
@@ -1523,7 +1546,7 @@ function doneDaysNow() {
 }
 function placeSanshoBet(shukun, kanto, gino) {
   const dd = doneDaysNow();
-  if (dd < 8) return { ok: false, msg: "三賞予想は8日目終了後(18時以降)に解放されます" };
+  if (dd < 8) return { ok: false, msg: "三賞予想は中日終了後(18時以降)に解放されます" };
   if (dd > 14) return { ok: false, msg: "受付は14日目終了までです" };
   if (G.sanshoBet) return { ok: false, msg: "確定済みです（変更不可）" };
   G.sanshoBet = { shukun, kanto, gino, day: dd, mult: SANSHO_ODDS[dd] || 1.2 };
@@ -1650,6 +1673,30 @@ async function fetchLeaderboard(bashoKey) {
   if (error) { console.warn("ランキング取得失敗:", error.message); return null; }
   LEADER = data;
   return data;
+}
+
+// ============================================================
+// 過去のトト番付アーカイブ（basho_resultsテーブル）
+// ============================================================
+// 記録済みの場所キー一覧（新しい順）
+async function fetchPastBashoKeys() {
+  if (!SB) return [];
+  const { data, error } = await SB.from("basho_results").select("basho_key");
+  if (error) { console.warn("過去場所一覧の取得失敗（basho_resultsテーブル未作成の可能性）:", error.message); return []; }
+  const keys = [...new Set((data || []).map(r => r.basho_key))];
+  keys.sort().reverse();
+  return keys;
+}
+// 指定した場所の最終順位表（final_points降順）
+async function fetchPastBashoResults(bashoKey) {
+  if (!SB) return [];
+  const { data, error } = await SB.from("basho_results")
+    .select("*")
+    .eq("basho_key", bashoKey)
+    .order("final_points", { ascending: false })
+    .limit(300);
+  if (error) { console.warn("過去場所の結果取得失敗:", error.message); return []; }
+  return data || [];
 }
 
 // 番付算定（仕様6）: list=players行 or null（ローカルのみ）
@@ -1955,7 +2002,7 @@ function renderHeader() {
   let dayLabel;
   if (!info.current) dayLabel = "オフシーズン";
   else if (G.finishedProcessed) dayLabel = "千秋楽 打ち止め";
-  else dayLabel = `${info.current.day}日目`;
+  else dayLabel = dayKanji(info.current.day);
   const bashoName = info.current ? info.current.name : (info.next ? info.next.name + "待ち" : "");
   const online = SB ? "🟢" : "⚪";
   $("#header").innerHTML = `
@@ -2039,12 +2086,12 @@ function renderTorikumi() {
       if (log && log.bets > 0) {
         html += `
         <div class="day-summary" style="margin-bottom:12px">
-          🏁 ${day}日目 リザルト<br>
+          🏁 ${dayKanji(day)} リザルト<br>
           的中 <b style="font-size:22px;color:var(--maroon)">${log.hits}</b><span class="muted"> / ${log.bets} 番</span><br>
           <span class="${log.net >= 0 ? "net-plus" : "net-minus"}">${log.net >= 0 ? "+" : ""}${fmt(log.net)} 合</span>
         </div>`;
       } else {
-        html += `<div class="day-summary" style="margin-bottom:12px">🏁 ${day}日目 リザルト<br><span class="muted">本日の張りはありませんでした（見の一日）</span></div>`;
+        html += `<div class="day-summary" style="margin-bottom:12px">🏁 ${dayKanji(day)} リザルト<br><span class="muted">本日の張りはありませんでした（見の一日）</span></div>`;
       }
     }
     // デフォルト: 受付中の取組が残っていれば開、全取組終了なら閉
@@ -2053,14 +2100,14 @@ function renderTorikumi() {
     displayOrder(day).forEach(i => { cards += boutCardHTML(dd.torikumi[i], i, day); });
     html += `
     <details class="acc" ${openToday ? "open" : ""} ontoggle="UI.accToday=this.open">
-      <summary class="day-banner">⚔ ${day}日目 ${day === 8 ? "中日" : day === 15 ? "千秋楽" : ""} 取組・結果
+      <summary class="day-banner">⚔ ${dayKanji(day)} 取組・結果
         <br><span style="font-size:11px">確定 ${done}/${n}番 ${openCount ? `・受付中 ${openCount}番` : "・全取組終了"}</span>
         <span class="acc-arrow">▼</span>
       </summary>
       <div class="acc-body">${cards}</div>
     </details>`;
   } else {
-    html += `<div class="offseason-note">📋 ${day}日目の取組は発表待ちです。<br>データが更新されると予想できるようになります。</div>`;
+    html += `<div class="offseason-note">📋 ${dayKanji(day)}の取組は発表待ちです。<br>データが更新されると予想できるようになります。</div>`;
   }
 
   // 翌日の前売り（18:00以降）— アコーディオン（デフォルト開）
@@ -2072,14 +2119,14 @@ function renderTorikumi() {
       const nTmr = G.bets.filter(x => x.day === day + 1 && !x.settled).length;
       html += `
       <details class="acc" ${openTmr ? "open" : ""} ontoggle="UI.accTomorrow=this.open">
-        <summary class="day-banner">🌅 ${day + 1}日目 前売り受付中
+        <summary class="day-banner">🌅 ${dayKanji(day + 1)} 前売り受付中
           <br><span style="font-size:11px">明日の各取組直前まで変更可能 ${nTmr ? `・${nTmr}件ベット済` : ""}</span>
           <span class="acc-arrow">▼</span>
         </summary>
         <div class="acc-body">${cards}</div>
       </details>`;
     } else {
-      html += `<div class="offseason-note">🌅 ${day + 1}日目の取組は発表待ちです。<br>発表され次第、前売り予想ができます。</div>`;
+      html += `<div class="offseason-note">🌅 ${dayKanji(day + 1)}の取組は発表待ちです。<br>発表され次第、前売り予想ができます。</div>`;
     }
   }
   if (day === 15 && dd && dd.torikumi.every(bt => bt.result)) {
@@ -2292,7 +2339,7 @@ function onChanko() {
 function showSettleModal(summaries) {
   let html = `<h2 class="banner">🥁 結果精算</h2>`;
   summaries.forEach(sm => {
-    html += `<p style="font-weight:bold;color:var(--maroon);margin-top:8px">${sm.day}日目（${sm.betCount}ベット ${sm.dayHits}的中）</p>`;
+    html += `<p style="font-weight:bold;color:var(--maroon);margin-top:8px">${dayKanji(sm.day)}（${sm.betCount}ベット ${sm.dayHits}的中）</p>`;
     sm.details.forEach(d => {
       if (d.ewBet) {
         const b = d.ewBet, c = d.counts;
@@ -2455,7 +2502,7 @@ function renderBashoTab() {
     const yb = G.yushoBet;
     const mult = yb.mult || 2;
     yusho = `<div class="locked-box"><span class="seal">確定</span> 優勝予想：<b>${esc(rk(yb.rikishiId).name)}</b>
-      <br>的中すれば千秋楽終了時の持ち米が <b style="font-size:16px">${mult}倍</b>！（${yb.day || "?"}日目予想）</div>`;
+      <br>的中すれば千秋楽終了時の持ち米が <b style="font-size:16px">${mult}倍</b>！（${yb.day ? dayKanji(yb.day) : "?"}予想）</div>`;
   } else {
     const mult = yushoMult(info.current.day);
     const standings = rikishiByBanzuke().filter(r2 => r2.rank[0] !== "J"); // 横綱→幕尻（十両は除外）
@@ -2472,10 +2519,10 @@ function renderBashoTab() {
   if (G.sanshoBet) {
     const sb = G.sanshoBet;
     const m = sb.mult || SANSHO_ODDS[sb.day] || 1.2;
-    sansho = `<div class="locked-box"><span class="seal">確定</span> 三賞予想（${sb.day}日目終了時・的中1賞ごとに持ち米×<b>${m}</b>）<br>
+    sansho = `<div class="locked-box"><span class="seal">確定</span> 三賞予想（${dayKanji(sb.day)}終了時・的中1賞ごとに持ち米×<b>${m}</b>）<br>
       殊勲賞：<b>${esc(sb.shukun)}</b>／敢闘賞：<b>${esc(sb.kanto)}</b>／技能賞：<b>${esc(sb.gino)}</b></div>`;
   } else if (dd < 8) {
-    sansho = `<div class="note">🔒 三賞予想は <b>8日目終了後(18:00)</b> に解放されます（現在 ${dd}日目終了）。早いほど高倍率（8日目終了2.5倍→14日目終了1.2倍）。</div>`;
+    sansho = `<div class="note">🔒 三賞予想は <b>中日終了後(18:00)</b> に解放されます（現在 ${dayKanji(dd)}終了）。早いほど高倍率（中日終了2.5倍→14日目終了1.2倍）。</div>`;
   } else if (dd > 14) {
     sansho = `<div class="note">受付は14日目終了までです。</div>`;
   } else {
@@ -2484,7 +2531,7 @@ function renderBashoTab() {
     const sel = id => `<select id="${id}">${opts.map(n => `<option>${esc(n)}</option>`).join("")}</select>`;
     sansho = `
       <div class="note">的中した賞1つにつき、<b>千秋楽終了時の持ち米が×${mult}</b>（3つ当てれば×${mult}×${mult}×${mult}の重ね掛け！）。
-      早く予想するほど高倍率（8日目終了2.5倍→14日目終了1.2倍）。同じ力士を複数選択可。確定後は変更不可。</div>
+      早く予想するほど高倍率（中日終了2.5倍→14日目終了1.2倍）。同じ力士を複数選択可。確定後は変更不可。</div>
       <div class="form-row"><label>殊勲賞</label>${sel("sansho-shukun")}</div>
       <div class="form-row"><label>敢闘賞</label>${sel("sansho-kanto")}</div>
       <div class="form-row"><label>技能賞</label>${sel("sansho-gino")}</div>
@@ -2509,7 +2556,7 @@ function renderBashoTab() {
     <div class="card"><h3>🏆 優勝予想</h3>${yusho}</div>
     <div class="card"><h3>🎖 三賞予想（殊勲・敢闘・技能）</h3>${sansho}</div>
     ${newsCard}
-    <div class="card"><h3>⭐ 優勝争い（上位10名・${dd}日目終了時点）</h3>
+    <div class="card"><h3>⭐ 優勝争い（上位10名・${dayKanji(dd)}終了時点）</h3>
       <table class="banzuke"><tr><th>順</th><th>力士</th><th>成績</th></tr>${starRows}</table>
     </div>`;
 }
@@ -2572,6 +2619,33 @@ async function renderKometori() {
     </div>
     <div id="ranking-area"><p class="muted center">読み込み中…</p></div>
 
+    ${sbConfigured() ? `<details class="acc" ontoggle="if(this.open) loadPastBashoList()">
+      <summary class="section-title" style="margin-bottom:0">🗂 過去のトト番付<span class="acc-arrow" style="right:30px">▼</span></summary>
+      <div class="acc-body">
+        <div id="past-basho-picker"><p class="muted center">開くと読み込みます…</p></div>
+        <div id="past-basho-area"></div>
+      </div>
+    </details>` : ""}
+
+    <div class="section-title">📅 この場所の実績</div>
+    <div class="card">
+      <div class="stats-grid">
+        <div>🎫 今場所ベット <b>${fmt(G.betsThisBasho)}</b>回</div><div>🎯 今場所的中 <b>${fmt(G.hitsThisBasho)}</b>回</div>
+        <div>📊 今場所的中率 <b>${G.betsThisBasho ? Math.round(G.hitsThisBasho / G.betsThisBasho * 100) : 0}</b>％</div><div>📆 ベットした日数 <b>${G.betDays.length}</b>日</div>
+        <div>💰 現在の持ち米 <b>${fmt(G.points)}</b>合</div><div>${(() => {
+          const start = G.pointsHistory && G.pointsHistory[0] ? G.pointsHistory[0].points : G.points;
+          const diff = G.points - start;
+          return `📈 場所開始比 <b class="${diff >= 0 ? "net-plus" : "net-minus"}">${diff >= 0 ? "+" : ""}${fmt(diff)}</b>合`;
+        })()}</div>
+      </div>
+      ${G.dayLog && G.dayLog.length ? `<details class="acc" style="margin-top:8px">
+        <summary style="font-size:12px;color:var(--maroon);font-weight:bold">日別の成績（${G.dayLog.length}日分）<span class="acc-arrow" style="right:14px">▼</span></summary>
+        <div class="acc-body">
+          ${G.dayLog.slice().sort((a, b) => a.day - b.day).map(l => `<div class="result-line"><span>${dayKanji(l.day)}</span><span>的中 ${l.hits}/${l.bets}　<span class="${l.net >= 0 ? "net-plus" : "net-minus"}">${l.net >= 0 ? "+" : ""}${fmt(l.net)}合</span></span></div>`).join("")}
+        </div>
+      </details>` : `<p class="muted" style="margin-top:6px">今場所はまだベットがありません。</p>`}
+    </div>
+
     <div class="section-title">📜 通算実績</div>
     <div class="card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center">
       <div style="text-align:center">
@@ -2603,7 +2677,7 @@ async function renderKometori() {
       <div class="form-row"><label>所属一門</label><select id="pf-ichimon" ${profileLocked() ? "disabled" : ""}>${ICHIMON.map(x => `<option ${x === G.profile.ichimon ? "selected" : ""}>${x}</option>`).join("")}</select></div>
       <div class="form-row"><label>推し力士</label><select id="pf-oshi" ${profileLocked() ? "disabled" : ""}>${rikishiByBanzuke().map(r2 => `<option value="${esc(r2.name)}" ${r2.name === G.profile.oshiName ? "selected" : ""}>${esc(r2.name)}（${rankLabel(r2.rank)}）</option>`).join("")}</select></div>
       <div class="form-row"><label>ひとこと</label><input id="pf-comment" maxlength="20" value="${esc(G.profile.comment || "")}" placeholder="例：ごっつぁんです！（20文字まで）"></div>
-      ${profileLocked() ? `<div class="note">🔒 一門・推し力士の変更は<b>8日目まで</b>。9日目以降は場所が終わるまで変更できません（四股名は変更可）。</div>` : ""}
+      ${profileLocked() ? `<div class="note">🔒 一門・推し力士の変更は<b>中日まで</b>。9日目以降は場所が終わるまで変更できません（四股名は変更可）。</div>` : ""}
       <div class="center" style="margin-top:8px"><button class="btn btn-primary" onclick="onSaveProfile()">変更を保存</button></div>
     </div>
 
@@ -2681,6 +2755,58 @@ function rankingHTML(list) {
     </p>`;
 }
 
+// ---------------- 過去のトト番付（アーカイブ） ----------------
+function bashoNameFromKey(key) {
+  const [y, m] = key.split("-").map(Number);
+  return bashoNameOf(y, m);
+}
+async function loadPastBashoList() {
+  const picker = $("#past-basho-picker");
+  if (!picker) return;
+  picker.innerHTML = `<p class="muted center">読み込み中…</p>`;
+  const keys = await fetchPastBashoKeys();
+  if (!keys.length) {
+    picker.innerHTML = `<p class="muted center">まだ記録がありません（場所が締まって番付編成会議を迎えると記録されます）。</p>`;
+    const area = $("#past-basho-area"); if (area) area.innerHTML = "";
+    return;
+  }
+  picker.innerHTML = `
+    <div class="form-row"><label>場所を選択</label>
+      <select id="past-basho-select" onchange="onPastBashoChange()">
+        ${keys.map(k => `<option value="${esc(k)}">${esc(bashoNameFromKey(k))}</option>`).join("")}
+      </select>
+    </div>`;
+  onPastBashoChange();
+}
+async function onPastBashoChange() {
+  const sel = $("#past-basho-select");
+  const area = $("#past-basho-area");
+  if (!sel || !area) return;
+  area.innerHTML = `<p class="muted center">読み込み中…</p>`;
+  const rows = await fetchPastBashoResults(sel.value);
+  area.innerHTML = pastBashoHTML(rows);
+}
+function pastBashoHTML(rows) {
+  if (!rows.length) return `<p class="muted center">この場所の記録はまだありません（参加者がまだ番付編成会議を迎えていない可能性があります）。</p>`;
+  rows = rows.slice().sort((a, b) => (b.final_points || 0) - (a.final_points || 0));
+  const east = rows.filter((_, i) => i % 2 === 0);
+  const west = rows.filter((_, i) => i % 2 === 1);
+  const cell = u => u ? `<span class="rank-chip l${u.banzuke_level}">${esc(BANZUKE_NAMES[u.banzuke_level] || "-")}</span><br>
+    <span style="color:#a8861a;font-size:10px;line-height:1.4">${esc(u.title || "") || "&nbsp;"}</span><br>
+    <b style="font-size:13px">${esc(u.shikona)}</b>${u.player_id === MYID ? " ★" : ""}<br>
+    <span class="muted" style="font-size:10px">的中 ${u.hits || 0}/${u.bets || 0}</span>` : "";
+  const rowsHtml = [];
+  for (let i = 0; i < east.length; i++) {
+    const e = east[i], w = west[i];
+    const isMe = (e && e.player_id === MYID) || (w && w.player_id === MYID);
+    rowsHtml.push(`<tr class="${isMe ? "me" : ""}">
+      <td>${e ? (e.banzuke_pos ?? "") : ""}</td><td style="text-align:center">${cell(e)}</td><td>${e ? fmt(e.final_points || 0) : ""}</td>
+      <td>${w ? fmt(w.final_points || 0) : ""}</td><td style="text-align:center">${cell(w)}</td><td>${w ? (w.banzuke_pos ?? "") : ""}</td></tr>`);
+  }
+  return `<table class="banzuke"><tr><th>位</th><th>東</th><th>合</th><th>合</th><th>西</th><th>位</th></tr>${rowsHtml.join("")}</table>
+    <p class="muted" style="margin-top:4px">${rows.length}名参加</p>`;
+}
+
 function titleGalleryHTML() {
   let html = "";
   for (let c = 1; c <= 9; c++) {
@@ -2723,7 +2849,7 @@ async function onSaveProfile() {
   if (profileLocked()) {
     const newIchimon = $("#pf-ichimon").value, newOshi = $("#pf-oshi").value;
     if (newIchimon !== G.profile.ichimon || newOshi !== G.profile.oshiName) {
-      alert("一門・推し力士の変更は8日目まで。今場所はこのままで土俵を務めてください。");
+      alert("一門・推し力士の変更は中日まで。今場所はこのままで土俵を務めてください。");
     }
   } else {
     G.profile.ichimon = $("#pf-ichimon").value;
