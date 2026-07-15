@@ -197,6 +197,17 @@ table.banzuke tr.me td { background: #fdf3d8; font-weight: bold; }
 body.shake { animation: tShake .55s; }
 @keyframes tShake { 0%, 100% { transform: none; } 15% { transform: translate(-7px, 4px); } 30% { transform: translate(6px, -5px); } 45% { transform: translate(-5px, 3px); } 60% { transform: translate(4px, -2px); } 80% { transform: translate(-2px, 1px); } }
 
+/* ---------- ひとこと吹き出し ---------- */
+.comment-pop {
+  position: fixed; z-index: 400; background: #fff; border: 2px solid var(--maroon);
+  border-radius: 12px; padding: 7px 12px; font-size: 13px; line-height: 1.5;
+  box-shadow: 0 3px 12px rgba(0,0,0,.25); animation: pop .2s ease; max-width: 240px;
+}
+.comment-pop:after {
+  content: ""; position: absolute; bottom: -9px; left: 50%; margin-left: -6px;
+  border: 6px solid transparent; border-top-color: var(--maroon);
+}
+
 /* ---------- トースト ---------- */
 #toast-area { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 420px; }
 .toast {
@@ -622,7 +633,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14w"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14x"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -967,10 +978,10 @@ function load() {
     return true;
   } catch (e) { return false; }
 }
-function newGame(shikona, ichimon, oshiName) {
+function newGame(shikona, ichimon, oshiName, comment) {
   const oshi = RIKISHI.find(r => r.name === oshiName) || RIKISHI[0];
   G = {
-    profile: { shikona, ichimon, oshiName: oshi.name, oshiId: oshi.id, title: "t1_01" },
+    profile: { shikona, ichimon, oshiName: oshi.name, oshiId: oshi.id, title: "t1_01", comment: (comment || "").slice(0, 20) },
     points: START_POINTS,
     achievements: ["t1_01"],
     stats: DEFAULT_STATS(),
@@ -1503,13 +1514,15 @@ async function pushProfile() {
     basho_count: G.bashoCount,
     final_points: (typeof G.finalPoints === "number") ? G.finalPoints : null,
     history: Object.fromEntries((G.pointsHistory || []).map(h => [String(h.day), h.points])),
+    comment: G.profile.comment || "",
     updated_at: new Date().toISOString()
   };
   let { error } = await SB.from("players").upsert(row);
-  if (error && /final_points|history/.test(error.message)) {
+  if (error && /final_points|history|comment/.test(error.message)) {
     // 列が未作成の環境向けフォールバック
     delete row.final_points;
     delete row.history;
+    delete row.comment;
     ({ error } = await SB.from("players").upsert(row));
   }
   if (error) console.warn("同期失敗:", error.message);
@@ -1523,11 +1536,11 @@ function syncCloud() {
 async function fetchLeaderboard(bashoKey) {
   if (!SB) return null;
   let { data, error } = await SB.from("players")
-    .select("id, shikona, ichimon, title, points, hits, bets, basho_count, final_points, history")
+    .select("id, shikona, ichimon, title, points, hits, bets, basho_count, final_points, history, comment")
     .eq("basho_key", bashoKey)
     .order("points", { ascending: false })
     .limit(200);
-  if (error && /final_points|history/.test(error.message)) {
+  if (error && /final_points|history|comment/.test(error.message)) {
     ({ data, error } = await SB.from("players")
       .select("id, shikona, ichimon, title, points, hits, bets, basho_count")
       .eq("basho_key", bashoKey)
@@ -1549,14 +1562,14 @@ function computeBanzuke(list, useFinal) {
     list.forEach(p => rows.push({
       id: p.id, name: p.shikona, title: p.title, ichimon: p.ichimon,
       points: pts(p), rate: p.bets ? p.hits / p.bets : 0,
-      hits: p.hits || 0, bets: p.bets || 0,
+      hits: p.hits || 0, bets: p.bets || 0, comment: p.comment || "",
       isNew: (p.basho_count || 1) === 1, me: p.id === MYID
     }));
     if (MYID && !rows.some(r => r.me) && G.betsThisBasho > 0) {
-      rows.push({ id: MYID, name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, isNew: G.bashoCount === 1, me: true });
+      rows.push({ id: MYID, name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, comment: G.profile.comment || "", isNew: G.bashoCount === 1, me: true });
     }
   } else {
-    rows.push({ id: "me", name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, isNew: G.bashoCount === 1, me: true });
+    rows.push({ id: "me", name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, comment: G.profile.comment || "", isNew: G.bashoCount === 1, me: true });
   }
   rows.sort((x, y2) => y2.points - x.points || y2.rate - x.rate);
   const N = rows.length;
@@ -2426,11 +2439,19 @@ async function renderKometori() {
     <div id="ranking-area"><p class="muted center">読み込み中…</p></div>
 
     <div class="section-title">📜 通算実績</div>
-    <div class="stats-grid">
-      <div>通算ベット <b>${fmt(s.totalBets)}</b>回</div><div>的中率 <b>${rate}%</b>（${fmt(s.totalHits)}勝）</div>
-      <div>最高連続的中 <b>${s.bestStreak}</b></div><div>最高所持米 <b>${fmt(s.maxPoints)}</b>合</div>
-      <div>参加場所数 <b>${G.bashoCount}</b></div><div>破産回数 <b>${s.bankruptcies}</b>回</div>
-      <div>優勝予想的中 <b>${s.yushoHits}</b>回</div><div>クイズ正解 <b>${s.quizCorrect}</b>問</div>
+    <div class="card" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center">
+      <div style="text-align:center">
+        <canvas id="hitchart" width="160" height="160" style="width:160px;height:160px"></canvas>
+        <div class="muted" style="font-size:11px;margin-top:2px">
+          <span style="color:#2e7d32">■</span> 的中 ${fmt(s.totalHits)}　<span style="color:#b3261e">■</span> 外れ ${fmt(s.totalMisses)}
+        </div>
+      </div>
+      <div class="stats-grid" style="flex:1;min-width:210px">
+        <div>🎫 通算ベット <b>${fmt(s.totalBets)}</b>回</div><div>🔥 最高連続的中 <b>${s.bestStreak}</b></div>
+        <div>💰 最高所持米 <b>${fmt(s.maxPoints)}</b>合</div><div>📅 参加場所数 <b>${G.bashoCount}</b></div>
+        <div>🏆 優勝予想的中 <b>${s.yushoHits}</b>回</div><div>📖 クイズ正解 <b>${s.quizCorrect}</b>問</div>
+        <div>🚩 懸賞一番的中 <b>${s.kenshoHits}</b>回</div><div>💸 破産回数 <b>${s.bankruptcies}</b>回</div>
+      </div>
     </div>
 
     <details class="acc">
@@ -2446,12 +2467,14 @@ async function renderKometori() {
       <div class="form-row"><label>四股名</label><input id="pf-name" maxlength="10" value="${esc(G.profile.shikona)}"></div>
       <div class="form-row"><label>所属一門</label><select id="pf-ichimon" ${profileLocked() ? "disabled" : ""}>${ICHIMON.map(x => `<option ${x === G.profile.ichimon ? "selected" : ""}>${x}</option>`).join("")}</select></div>
       <div class="form-row"><label>推し力士</label><select id="pf-oshi" ${profileLocked() ? "disabled" : ""}>${rikishiByBanzuke().map(r2 => `<option value="${esc(r2.name)}" ${r2.name === G.profile.oshiName ? "selected" : ""}>${esc(r2.name)}（${rankLabel(r2.rank)}）</option>`).join("")}</select></div>
+      <div class="form-row"><label>ひとこと</label><input id="pf-comment" maxlength="20" value="${esc(G.profile.comment || "")}" placeholder="例：ごっつぁんです！（20文字まで）"></div>
       ${profileLocked() ? `<div class="note">🔒 一門・推し力士の変更は<b>8日目まで</b>。9日目以降は場所が終わるまで変更できません（四股名は変更可）。</div>` : ""}
       <button class="btn btn-primary" onclick="onSaveProfile()">変更を保存</button>
     </div>
     <button class="btn btn-ghost btn-wide" onclick="onReset()" style="margin-top:6px;color:var(--red);border-color:var(--red)">⚠ 全データをリセット（廃業）</button>
     <p class="muted center" style="margin-top:10px">build ${BUILD_VERSION}</p>`;
   drawChart();
+  drawHitChart();
   renderRanking();
 }
 
@@ -2479,7 +2502,7 @@ function rankingHTML(list) {
     if ((e && e.me) || (w && w.me)) meRow = i;
     const cell = u => u ? `<span class="rank-chip l${u.level}">${u.levelName}</span><br>
       <span style="color:#a8861a;font-size:10px;line-height:1.4">${esc(u.title || "") || "&nbsp;"}</span><br>
-      <b style="font-size:13px">${esc(u.name)}</b>${u.me ? " ★" : ""}<br>
+      <b style="font-size:13px;cursor:pointer" data-comment="${esc(u.comment || "")}" onclick="showComment(this)">${esc(u.name)}${u.comment ? " 💬" : ""}</b>${u.me ? " ★" : ""}<br>
       <span class="muted" style="font-size:10px">的中 ${u.hits || 0}/${u.bets || 0}</span>` : "";
     rows.push(`<tr class="${(e && e.me) || (w && w.me) ? "me" : ""}">
       <td>${e ? e.pos : ""}</td><td style="text-align:center">${cell(e)}</td><td>${e ? fmt(e.points) : ""}</td>
@@ -2532,6 +2555,7 @@ function onSaveProfile() {
   const name = $("#pf-name").value.trim().slice(0, 10);
   if (!name) { alert("四股名を入力してください"); return; }
   G.profile.shikona = name;
+  G.profile.comment = ($("#pf-comment") ? $("#pf-comment").value : "").trim().slice(0, 20);
   if (profileLocked()) {
     const newIchimon = $("#pf-ichimon").value, newOshi = $("#pf-oshi").value;
     if (newIchimon !== G.profile.ichimon || newOshi !== G.profile.oshiName) {
@@ -2551,6 +2575,57 @@ function onReset() {
   if (!confirm("称号・実績もすべて失われます。最終確認です。")) return;
   ["gameState", "bets", "achievements", "quizHistory", "dailyBonus"].forEach(k => localStorage.removeItem(k));
   location.reload();
+}
+
+// ひとこと吹き出し（番付の四股名タップで表示）
+function showComment(el) {
+  document.querySelectorAll(".comment-pop").forEach(x => x.remove());
+  const c = el.dataset.comment;
+  if (!c) return;
+  const r = el.getBoundingClientRect();
+  const d = document.createElement("div");
+  d.className = "comment-pop";
+  d.textContent = "💬 " + c;
+  document.body.appendChild(d);
+  const w = d.offsetWidth, h = d.offsetHeight;
+  d.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + "px";
+  d.style.top = Math.max(8, r.top - h - 12) + "px";
+  setTimeout(() => d.remove(), 3500);
+}
+
+// 的中率ドーナツグラフ
+function drawHitChart() {
+  const cv = $("#hitchart");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const s = G.stats;
+  const total = s.totalHits + s.totalMisses;
+  const cx = 80, cy = 80, R = 66, r = 44;
+  ctx.clearRect(0, 0, 160, 160);
+  const arc = (from, to, color) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, from, to);
+    ctx.arc(cx, cy, r, to, from, true);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  };
+  if (total === 0) {
+    arc(0, Math.PI * 2, "#e3dac0");
+    ctx.fillStyle = "#8a7a60"; ctx.font = "12px serif"; ctx.textAlign = "center";
+    ctx.fillText("まだ土俵に", cx, cy - 4);
+    ctx.fillText("上がっていません", cx, cy + 14);
+    return;
+  }
+  const start = -Math.PI / 2;
+  const hitAngle = (s.totalHits / total) * Math.PI * 2;
+  arc(start, start + hitAngle, "#2e7d32");
+  arc(start + hitAngle, start + Math.PI * 2, "#d9564f");
+  ctx.fillStyle = "#5c1a1a"; ctx.textAlign = "center";
+  ctx.font = "bold 26px serif";
+  ctx.fillText(Math.round(s.totalHits / total * 100) + "%", cx, cy + 2);
+  ctx.font = "11px serif"; ctx.fillStyle = "#8a7a60";
+  ctx.fillText("的中率", cx, cy + 20);
 }
 
 // ---------------- 収支グラフ ----------------
@@ -2677,6 +2752,8 @@ function renderOnboarding() {
     </div>
     <p style="font-size:13px;font-weight:bold;margin:10px 0 6px">推し力士を選ぶ</p>
     <div class="form-row"><select id="onb-oshi">${oshiOpts}</select></div>
+    <p style="font-size:13px;font-weight:bold;margin:10px 0 6px">ひとこと（番付表で表示・任意）</p>
+    <div class="form-row"><input id="onb-comment" maxlength="20" placeholder="例：ごっつぁんです！（20文字まで）"></div>
     <p class="muted center" style="margin:8px 0">持ち米 15,000合 からのスタート！<br>全プレイヤー共通の取組・各取組の直前まで受付</p>
     <button class="btn btn-gold btn-wide" onclick="onbStart()">🥁 入門する</button>
   `);
@@ -2689,7 +2766,7 @@ async function onbStart() {
   const name = $("#onb-name").value.trim().slice(0, 10);
   if (!name) { alert("四股名を入力してください"); return; }
   if (!UI.onb.ichimon) { alert("所属一門を選んでください"); return; }
-  newGame(name, UI.onb.ichimon, $("#onb-oshi").value);
+  newGame(name, UI.onb.ichimon, $("#onb-oshi").value, ($("#onb-comment") ? $("#onb-comment").value : "").trim());
   closeModal();
   await sbInit();
   await ensureBashoState();
