@@ -2693,8 +2693,8 @@ async function renderKometori() {
       ${IS_ANON ? `
         <p class="note">ログインID・パスワードを設定すると、別の端末からも同じ持ち米・称号で続けられます（設定するまでは、このブラウザのデータを消すとランキング上の記録に再アクセスできなくなります）。</p>
         <div class="form-row"><label>ログインID</label><input id="acct-loginid" maxlength="20" placeholder="半角英数字4〜20文字"></div>
-        <div class="form-row"><label>パスワード</label><input id="acct-password" type="password" maxlength="50" placeholder="6文字以上"></div>
-        <div class="form-row"><label>パスワード(確認)</label><input id="acct-password2" type="password" maxlength="50"></div>
+        <div class="form-row"><label>パスワード</label><input id="acct-password" type="text" maxlength="50" placeholder="6文字以上" autocomplete="new-password"></div>
+        <div class="form-row"><label>パスワード(確認)</label><input id="acct-password2" type="text" maxlength="50" autocomplete="new-password"></div>
         <p class="muted" style="font-size:11px;line-height:1.6">※実在するメールアドレスは一切収集しません。パスワードはハッシュ化されて保存され、運営者を含め誰も元のパスワードを見ることはできません。</p>
         <div class="center" style="margin-top:8px"><button class="btn btn-primary" onclick="onSetupAccount()">設定する</button></div>
       ` : `<p class="note">✅ ログインID「<b>${esc(G.profile.loginId || "")}</b>」設定済み。別の端末からもこのIDでログインできます。</p>`}
@@ -3045,8 +3045,8 @@ function renderOnboarding() {
   const acctFields = sbConfigured() ? `
     <p style="font-size:13px;font-weight:bold;margin:10px 0 6px">ログインID・パスワードを設定（他の端末からもログインできます）</p>
     <div class="form-row"><label>ログインID</label><input id="onb-loginid" maxlength="20" placeholder="半角英数字4〜20文字"></div>
-    <div class="form-row"><label>パスワード</label><input id="onb-password" type="password" maxlength="50" placeholder="6文字以上"></div>
-    <div class="form-row"><label>パスワード(確認)</label><input id="onb-password2" type="password" maxlength="50"></div>
+    <div class="form-row"><label>パスワード</label><input id="onb-password" type="text" maxlength="50" placeholder="6文字以上" autocomplete="new-password"></div>
+    <div class="form-row"><label>パスワード(確認)</label><input id="onb-password2" type="text" maxlength="50" autocomplete="new-password"></div>
     <p class="muted" style="font-size:11px;line-height:1.6">※実在するメールアドレスは一切収集しません。パスワードはハッシュ化されて保存され、運営者を含め誰も元のパスワードを見ることはできません。</p>
   ` : "";
   openModal(`
@@ -3075,7 +3075,7 @@ function renderSignIn() {
     <div class="onb-logo">トト相撲</div>
     <div class="onb-sub">— ログイン —</div>
     <div class="form-row"><label>ログインID</label><input id="si-loginid" maxlength="20"></div>
-    <div class="form-row"><label>パスワード</label><input id="si-password" type="password" maxlength="50"></div>
+    <div class="form-row"><label>パスワード</label><input id="si-password" type="text" maxlength="50" autocomplete="current-password"></div>
     <p class="muted" style="font-size:11px;line-height:1.6">※持ち米・称号・推し力士・的中履歴・実績・現在の未精算ベットなど、これまでのデータがすべて復元されます。</p>
     <div class="center" style="margin-top:10px"><button class="btn btn-primary btn-wide" onclick="onbSignIn()">ログイン</button></div>
     <button class="btn btn-ghost btn-wide" style="margin-top:6px" onclick="renderOnboarding()">戻る</button>
