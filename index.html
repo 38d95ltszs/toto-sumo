@@ -633,7 +633,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14z"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-15a"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -786,6 +786,12 @@ function boutState(day, i) {
 // 東西対抗（1日の幕内全取組で東方・西方どちらの白星が多いか / オッズ3倍）
 // ============================================================
 const EW_ODDS = 3;
+// 日程ボーナス（初日・8〜12日目=×2、13日目〜千秋楽=×3の鉄火場）
+function dayBonusOf(day) {
+  return (day === 1 || (day >= 8 && day <= 12)) ? 2 : (day >= 13 && day <= 15) ? 3 : 1;
+}
+// 東西対抗のオッズは日程連動（通常3倍・ボーナス日6倍・鉄火場9倍）
+function ewOddsOf(day) { return EW_ODDS * dayBonusOf(day); }
 function ewCounts(day) {
   const dd = SIM && SIM.days[day];
   const c = { e: 0, w: 0, done: 0, total: dd ? dd.torikumi.length : 0 };
@@ -817,7 +823,7 @@ function placeEwBet(day, side, amount) {
   if (old >= 0) { G.points += G.ewBets[old].amount; G.ewBets.splice(old, 1); }
   if (amount > G.points) return { ok: false, msg: "持ち米が足りません" };
   G.points -= amount;
-  G.ewBets.push({ day, side, amount, settled: false });
+  G.ewBets.push({ day, side, amount, odds: ewOddsOf(day), settled: false });
   save();
   return { ok: true };
 }
@@ -912,7 +918,7 @@ function makeBoutDet(east, west, rikishi, day) {
   if (kachiE) oddsE *= 2;
   if (kachiW) oddsW *= 2;
   // 日程ボーナス: 初日と2週目(8〜12日目)は全取組×2、終盤3日間(13日目〜千秋楽)は鉄火場の×3
-  const dayBonus = (day === 1 || (day >= 8 && day <= 12)) ? 2 : (day >= 13 && day <= 15) ? 3 : 1;
+  const dayBonus = dayBonusOf(day);
   if (dayBonus > 1) { oddsE *= dayBonus; oddsW *= dayBonus; }
   return { east: east.id, west: west.id, oddsE: round2(oddsE), oddsW: round2(oddsW), kachiE, kachiW, dayBonus, kensho: false, result: null };
 }
@@ -1197,7 +1203,7 @@ function settlePending() {
     } else {
       const winSide = c.e > c.w ? "east" : "west";
       b.hit = b.side === winSide;
-      const gain = b.hit ? b.amount * EW_ODDS : 0;
+      const gain = b.hit ? Math.round(b.amount * (b.odds || EW_ODDS)) : 0;
       if (gain) { G.points += gain; s.totalEarned += gain; }
       else s.totalLost += b.amount;
       b.net = b.hit ? gain - b.amount : -b.amount;
@@ -2003,12 +2009,12 @@ function ewCardHTML(day) {
       <div class="f-name">${winner ? "🏅 " : ""}${jp}</div>
       <div class="f-rank">幕内全${c.total}番の白星数</div>
       <div class="f-record">${st === "open" ? "&nbsp;" : myCount + "勝"}</div>
-      <div class="f-odds">3.00倍</div>
+      <div class="f-odds">${ewOddsOf(day).toFixed(2)}倍</div>
     </button>`;
   };
 
   let html = `<div class="bout-card" style="border:2px solid var(--west)">
-    <div class="kensho-banner" style="background:var(--west)">⚖ 東西対抗 — 白星が多いのはどっち？ オッズ×3</div>
+    <div class="kensho-banner" style="background:var(--west)">⚖ 東西対抗 — 白星が多いのはどっち？ オッズ×${ewOddsOf(day)}</div>
     <div class="bout-main">${fBtn("east", "東方")}<div class="vs">対</div>${fBtn("west", "西方")}</div>`;
 
   // 状態行（取組カードと同じ体裁）
@@ -2018,7 +2024,7 @@ function ewCardHTML(day) {
     if (bet && bet.settled) {
       html += bet.tie
         ? `<div class="bet-status" style="justify-content:center"><span>△ ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合 → 引き分け・返還 ±0</span></div>`
-        : `<div class="bet-status" style="justify-content:center;background:${bet.hit ? "#eef7ec" : "#fbeeec"}"><span class="${bet.hit ? "hit" : "miss"}">${bet.hit ? "○" : "●"} ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合（3.00倍） ${bet.net >= 0 ? "+" : ""}${fmt(bet.net)}合</span></div>`;
+        : `<div class="bet-status" style="justify-content:center;background:${bet.hit ? "#eef7ec" : "#fbeeec"}"><span class="${bet.hit ? "hit" : "miss"}">${bet.hit ? "○" : "●"} ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合（${(bet.odds || 3).toFixed(2)}倍） ${bet.net >= 0 ? "+" : ""}${fmt(bet.net)}合</span></div>`;
     }
   } else if (st === "locked") {
     html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">🔒 締切　途中経過: 東 ${c.e} － ${c.w} 西（${c.done}/${c.total}番）</span></div>`;
@@ -2028,7 +2034,7 @@ function ewCardHTML(day) {
 
   // 賭け済み表示（取組カードと同じ体裁）
   if (bet && !bet.settled) {
-    html += `<div class="bet-status"><span><b>${bet.side === "east" ? "東方" : "西方"}</b> に ${fmt(bet.amount)}合（3.00倍）</span>
+    html += `<div class="bet-status"><span><b>${bet.side === "east" ? "東方" : "西方"}</b> に ${fmt(bet.amount)}合（${(bet.odds || 3).toFixed(2)}倍）</span>
       ${st === "open" ? `<button class="btn btn-ghost btn-sm" onclick="cancelEwBet(${day});renderHeader();renderTorikumi()">取消</button>` : ""}</div>`;
   }
 
@@ -2037,7 +2043,7 @@ function ewCardHTML(day) {
     const sel = UI.ewOpen.side;
     html += `
     <div class="bet-panel">
-      <div class="bet-row"><b>${sel === "east" ? "東方" : "西方"}</b>（3.00倍）に賭ける</div>
+      <div class="bet-row"><b>${sel === "east" ? "東方" : "西方"}</b>（${ewOddsOf(day).toFixed(2)}倍）に賭ける</div>
       <div class="bet-row"><label>賭け米</label><input type="number" id="ew-amount-${day}" value="500" step="100" min="100" max="${G.points}"> 合</div>
       <div class="bet-row">
         <button class="btn btn-primary" onclick="onEwConfirm(${day})">この予想で確定</button>
