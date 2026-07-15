@@ -633,7 +633,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14x"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14y"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -2448,6 +2448,7 @@ async function renderKometori() {
       </div>
       <div class="stats-grid" style="flex:1;min-width:210px">
         <div>🎫 通算ベット <b>${fmt(s.totalBets)}</b>回</div><div>🔥 最高連続的中 <b>${s.bestStreak}</b></div>
+        <div>⚡ 最高ベット額 <b>${fmt(s.maxBet)}</b>合</div><div>🎆 最高リターン <b>${fmt(s.maxSingleWin)}</b>合</div>
         <div>💰 最高所持米 <b>${fmt(s.maxPoints)}</b>合</div><div>📅 参加場所数 <b>${G.bashoCount}</b></div>
         <div>🏆 優勝予想的中 <b>${s.yushoHits}</b>回</div><div>📖 クイズ正解 <b>${s.quizCorrect}</b>問</div>
         <div>🚩 懸賞一番的中 <b>${s.kenshoHits}</b>回</div><div>💸 破産回数 <b>${s.bankruptcies}</b>回</div>
