@@ -633,7 +633,7 @@ const CONFIG = {
 };
 // ★★★ 未設定でもローカル1人プレイとして動作します ★★★
 
-const BUILD_VERSION = "2026-07-14y"; // 更新確認用（配布のたびに更新）
+const BUILD_VERSION = "2026-07-14z"; // 更新確認用（配布のたびに更新）
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
@@ -1982,51 +1982,78 @@ function renderTorikumi() {
   el.innerHTML = html;
 }
 
-// 東西対抗カード（オッズ3倍・最初の取組前まで受付）
+// 東西対抗カード（オッズ3倍・最初の取組前まで受付・取組カードと同デザイン）
 function ewCardHTML(day) {
   const dd = SIM.days[day];
   if (!dd || !dd.torikumi.length) return "";
   const st = ewState(day);
   const c = ewCounts(day);
   const bet = (G.ewBets || []).find(b => b.day === day);
-  let body;
+  const open = UI.ewOpen && UI.ewOpen.day === day && st === "open";
+  const clickable = st === "open";
+
+  const fBtn = (key, jp) => {
+    const picked = bet && !bet.settled && bet.side === key;
+    const myCount = key === "east" ? c.e : c.w;
+    const winner = st === "done" && c.e !== c.w && ((key === "east") === (c.e > c.w));
+    const loser = st === "done" && c.e !== c.w && !winner;
+    return `
+    <button class="fighter ${picked ? "picked-" + key : ""}" ${clickable ? `onclick="UI.ewOpen={day:${day},side:'${key}'};renderTorikumi()"` : `style="cursor:default;${loser ? "opacity:.55" : ""}"`}>
+      <span class="f-side ${key}">${key === "east" ? "東" : "西"}</span>
+      <div class="f-name">${winner ? "🏅 " : ""}${jp}</div>
+      <div class="f-rank">幕内全${c.total}番の白星数</div>
+      <div class="f-record">${st === "open" ? "&nbsp;" : myCount + "勝"}</div>
+      <div class="f-odds">3.00倍</div>
+    </button>`;
+  };
+
+  let html = `<div class="bout-card" style="border:2px solid var(--west)">
+    <div class="kensho-banner" style="background:var(--west)">⚖ 東西対抗 — 白星が多いのはどっち？ オッズ×3</div>
+    <div class="bout-main">${fBtn("east", "東方")}<div class="vs">対</div>${fBtn("west", "西方")}</div>`;
+
+  // 状態行（取組カードと同じ体裁）
   if (st === "done") {
-    const winner = c.e === c.w ? "引き分け" : (c.e > c.w ? "東方の勝ち！" : "西方の勝ち！");
-    let mine = "";
+    const winner = c.e === c.w ? "引き分け" : (c.e > c.w ? "東方の勝ち" : "西方の勝ち");
+    html += `<div class="bet-status" style="justify-content:center;text-align:center"><span>🥁 <b style="color:var(--east)">東 ${c.e}</b> － <b style="color:var(--west)">${c.w} 西</b>　<b>${winner}</b></span></div>`;
     if (bet && bet.settled) {
-      mine = bet.tie
+      html += bet.tie
         ? `<div class="bet-status" style="justify-content:center"><span>△ ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合 → 引き分け・返還 ±0</span></div>`
-        : `<div class="bet-status" style="justify-content:center;background:${bet.hit ? "#eef7ec" : "#fbeeec"}"><span class="${bet.hit ? "hit" : "miss"}">${bet.hit ? "○" : "●"} ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合 → ${bet.net >= 0 ? "+" : ""}${fmt(bet.net)}合</span></div>`;
+        : `<div class="bet-status" style="justify-content:center;background:${bet.hit ? "#eef7ec" : "#fbeeec"}"><span class="${bet.hit ? "hit" : "miss"}">${bet.hit ? "○" : "●"} ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合（3.00倍） ${bet.net >= 0 ? "+" : ""}${fmt(bet.net)}合</span></div>`;
     }
-    body = `<div class="bet-status" style="justify-content:center;font-size:15px"><span><b style="color:var(--east)">東 ${c.e}</b> － <b style="color:var(--west)">${c.w} 西</b>　${winner}</span></div>${mine}`;
   } else if (st === "locked") {
-    body = `<div class="bet-status" style="justify-content:center"><span class="muted">🔒 締切　途中経過: 東 ${c.e} － ${c.w} 西（${c.done}/${c.total}番）</span></div>
-      ${bet && !bet.settled ? `<div class="bet-status" style="justify-content:center"><span>あなた: ${bet.side === "east" ? "東方" : "西方"}に${fmt(bet.amount)}合</span></div>` : ""}`;
+    html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">🔒 締切　途中経過: 東 ${c.e} － ${c.w} 西（${c.done}/${c.total}番）</span></div>`;
   } else {
-    const sel = UI.ewSide && UI.ewSide.day === day ? UI.ewSide.side : null;
-    body = `
+    html += `<div class="bet-status" style="justify-content:center;text-align:center"><span class="muted">⏳ 締切 ${fmtHM(boutLockHM(0, c.total, day))}頃（最初の取組前まで）</span></div>`;
+  }
+
+  // 賭け済み表示（取組カードと同じ体裁）
+  if (bet && !bet.settled) {
+    html += `<div class="bet-status"><span><b>${bet.side === "east" ? "東方" : "西方"}</b> に ${fmt(bet.amount)}合（3.00倍）</span>
+      ${st === "open" ? `<button class="btn btn-ghost btn-sm" onclick="cancelEwBet(${day});renderHeader();renderTorikumi()">取消</button>` : ""}</div>`;
+  }
+
+  // ベットパネル（取組カードと同じ体裁）
+  if (open) {
+    const sel = UI.ewOpen.side;
+    html += `
     <div class="bet-panel">
-      <div class="bet-row">本日の幕内全${c.total}番、白星が多いのはどっち？（締切 ${fmtHM(boutLockHM(0, c.total, day))}）</div>
+      <div class="bet-row"><b>${sel === "east" ? "東方" : "西方"}</b>（3.00倍）に賭ける</div>
+      <div class="bet-row"><label>賭け米</label><input type="number" id="ew-amount-${day}" value="500" step="100" min="100" max="${G.points}"> 合</div>
       <div class="bet-row">
-        <button class="btn ${sel === "east" ? "btn-primary" : "btn-ghost"}" onclick="UI.ewSide={day:${day},side:'east'};renderTorikumi()">東方</button>
-        <button class="btn ${sel === "west" ? "btn-primary" : "btn-ghost"}" onclick="UI.ewSide={day:${day},side:'west'};renderTorikumi()">西方</button>
-        <input type="number" id="ew-amount-${day}" value="500" step="100" min="100" max="${G.points}" style="width:90px"> 合
-        <button class="btn btn-gold" onclick="onEwConfirm(${day})" ${sel ? "" : "disabled"}>確定</button>
+        <button class="btn btn-primary" onclick="onEwConfirm(${day})">この予想で確定</button>
+        <button class="btn btn-ghost" onclick="UI.ewOpen=null;renderTorikumi()">やめる</button>
       </div>
-      ${bet && !bet.settled ? `<div class="bet-row"><span style="font-size:13px">賭け済み: <b>${bet.side === "east" ? "東方" : "西方"}</b> ${fmt(bet.amount)}合（3倍）</span>
-        <button class="btn btn-ghost btn-sm" onclick="cancelEwBet(${day});renderHeader();renderTorikumi()">取消</button></div>` : ""}
     </div>`;
   }
-  return `<div class="bout-card" style="border:2px solid var(--west)">
-    <div class="kensho-banner" style="background:var(--west)">⚖ 東西対抗 — オッズ×3</div>${body}</div>`;
+  return html + `</div>`;
 }
 function onEwConfirm(day) {
-  const sel = UI.ewSide && UI.ewSide.day === day ? UI.ewSide.side : null;
+  const sel = UI.ewOpen && UI.ewOpen.day === day ? UI.ewOpen.side : null;
   if (!sel) return;
   const amount = parseInt(($("#ew-amount-" + day) || {}).value || "0", 10);
   const res = placeEwBet(day, sel, amount);
   if (!res.ok) { alert(res.msg); return; }
-  UI.ewSide = null;
+  UI.ewOpen = null;
   renderHeader(); renderTorikumi(); drainToasts();
 }
 
