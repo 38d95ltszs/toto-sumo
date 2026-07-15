@@ -971,6 +971,11 @@ function round2(x) { return Math.round(x * 100) / 100; }
 // 保存・読込・新規
 // ============================================================
 function save() {
+  // クラウド同期の新旧判定用カウンタ。ネットワーク通信を待たずに毎回同期的に
+  // 進めることで、「デバウンス中にリロードされて記録が更新されない」を防ぐ
+  // （時刻ベースの比較だけだと、この取りこぼしにより古いクラウド状態が
+  // 「新しい」と誤判定され、既に精算済みの記録が再処理される不具合があった）
+  G.rev = (G.rev || 0) + 1;
   localStorage.setItem("gameState", JSON.stringify(G));
   localStorage.setItem("bets", JSON.stringify(G.bets));
   localStorage.setItem("achievements", JSON.stringify(G.achievements));
@@ -987,6 +992,13 @@ function hydrateG(obj) {
   if (!G.profile.oshiName) {
     const r = RIKISHI.find(x => x.id === G.profile.oshiId);
     G.profile.oshiName = r ? r.name : RIKISHI[0].name;
+  }
+  // 日次ログの重複除去（クラウド同期の不具合により同じ日の記録が複数残っている
+  // 場合、最もベット数が多い＝最も完全な記録だけを残して自動修復する）
+  if (Array.isArray(G.dayLog) && G.dayLog.length) {
+    const byDay = {};
+    G.dayLog.forEach(l => { if (!byDay[l.day] || l.bets > byDay[l.day].bets) byDay[l.day] = l; });
+    G.dayLog = Object.keys(byDay).map(Number).sort((a, b) => a - b).map(d => byDay[d]);
   }
 }
 function load() {
@@ -1656,27 +1668,26 @@ async function pushProfile() {
   // playersテーブルは「誰でも閲覧可」ポリシーのランキング表示用なので、
   // 個人の詳細データはRLSで本人しか読めない別テーブルに分けている。
   const { error: e2 } = await SB.from("player_saves").upsert({ id: MYID, full_state: G, updated_at: nowIso });
-  if (e2) { console.warn("フルセーブ同期失敗（player_savesテーブル未作成の可能性）:", e2.message); return; }
-  // このタイムスタンプを「この端末が最後に確認したクラウドの状態」として記録しておく。
-  // 次回起動時、クラウド側がこれより新しければ（＝別端末が後から更新していれば）
-  // ローカルキャッシュより新しいクラウドの内容を優先する（reconcileCloud参照）
-  G.cloudSyncedAt = nowIso;
-  localStorage.setItem("gameState", JSON.stringify(G));
+  if (e2) console.warn("フルセーブ同期失敗（player_savesテーブル未作成の可能性）:", e2.message);
 }
 
 // ローカルキャッシュとクラウド(player_saves)のどちらが新しいかを起動時に確認し、
 // クラウドの方が新しければローカルより優先して復元する。
 // 「別端末で進めた後、古いキャッシュが残った端末を開くと巻き戻る」問題への対策。
+// 判定には時刻ではなく単調増加のrevカウンタ(save()のたびに同期的に+1)を使う。
+// 時刻同期(updated_at)は「デバウンス中の同期がリロードで取りこぼされる」と
+// ローカルの記録が更新されないまま古いクラウドの方が新しく見えてしまい、
+// 精算済みの記録を延々と再処理してしまう不具合があったため（revは通信を
+// 待たずローカルで即座に進むので、この取りこぼしが起きない）。
 async function reconcileCloud() {
   if (!SB || !MYID || !G) return;
   try {
     const { data: rows, error } = await SB.from("player_saves").select("full_state, updated_at").eq("id", MYID).limit(1);
     if (error || !rows || !rows[0] || !rows[0].full_state) return;
-    const cloudTime = new Date(rows[0].updated_at).getTime();
-    const localTime = G.cloudSyncedAt ? new Date(G.cloudSyncedAt).getTime() : 0;
-    if (cloudTime > localTime) {
+    const cloudRev = rows[0].full_state.rev || 0;
+    const localRev = G.rev || 0;
+    if (cloudRev > localRev) {
       hydrateG(rows[0].full_state);
-      G.cloudSyncedAt = rows[0].updated_at;
       localStorage.setItem("gameState", JSON.stringify(G));
       showToast("☁ 最新データを復元", "別の端末での更新内容を読み込みました");
     }
@@ -3224,14 +3235,3 @@ function showBeginnerGuide() {
       「よう来たな、新弟子。トト相撲の稽古をつけてやろう。<br><br>
       一、初日は<b>🚩懸賞のかかった一番</b>と、<b>⚖東西対抗戦</b>に賭けるのがオススメじゃ。どちらも<b>オッズ3倍</b>、覚えやすくて実入りも良い。<br><br>
       一、取組は<b>各組の直前まで</b>受付。オッズは力士の調子で毎日動く生き物じゃ。<br><br>
-      一、<b>🍲ちゃんこ</b>と<b>📖相撲クイズ</b>は毎日タダで米が増える。忘れるでない。<br><br>
-      一、腕に覚えが出てきたら「場所予想」の<b>優勝予想</b>じゃ。早く当てるほど、千秋楽の持ち米が<b>丸ごと倍</b>になる大勝負よ。<br><br>
-      米が尽きたら……まあ、その時はわしに任せい。」
-    </div>
-    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll();setTimeout(()=>oyakataSay('beginner'),800)">🥁 稽古開始！</button>
-  `);
-}
-
-init();
-</script>
-</body></html>
