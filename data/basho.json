@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-16T05:42:20.794Z",
+ "updatedAt": "2026-07-16T07:38:38.512Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -259,24 +259,24 @@
  "injuredCarry": [],
  "news": [
   {
-   "t": "幕下・火雷、２３歳の誕生日を飾れず「悔しい誕生日になってしまった」 スポーツ報知 2026/7/16 14:28",
-   "u": "https://news.yahoo.co.jp/articles/e03ca45d5c5fce7869c34544f0527b329bd95e4f"
+   "t": "幕下のイケメン注目力士・大森 圧力負けで今場所初黒星「修正して頑張りたい」 スポーツ報知 2026/7/16 16:36",
+   "u": "https://news.yahoo.co.jp/articles/0596c7721e113dcc5610dfa809923d609f3003b3"
   },
   {
-   "t": "幕下・木竜皇が休場 師匠の立浪親方「足の筋肉を痛めた」 再出場は厳しい見通し スポーツ報知 2026/7/16 13:53",
-   "u": "https://news.yahoo.co.jp/articles/b209cf91d83b4a50701c519b2dfb68a4ec9d815c"
+   "t": "“技巧派”小兵力士が8連続の珍手封印で「勝った」 予想外の展開に「いつ以来？」「機敏」相撲ファン熱視線 ABEMA TIMES 2026/7/16 16:36",
+   "u": "https://news.yahoo.co.jp/articles/b47b4c3eb1f9bc5a80cfd23c71db8f63c9706bd6"
   },
   {
-   "t": "【５日目見所】大関復帰、カド番脱出に向けて大一番、５日目に早くも安青錦―琴桜の好取組 ファンからは「早すぎる」「もったいない」の声も挙がる スポーツ報知 2026/7/16 13:35",
-   "u": "https://news.yahoo.co.jp/articles/6ff0358b0fcbbfba3fe261a028db0cee8e21f367"
+   "t": "幕下・生田目が無傷の３連勝 昨年の名古屋場所は全休 初めてＩＧアリーナとなった初日は入り口がわからず「近くの人に教えてもらった」 スポーツ報知 2026/7/16 16:35",
+   "u": "https://news.yahoo.co.jp/articles/322b2abaa0a5f310267a8951fe89a26a17436c7a"
   },
   {
-   "t": "「まだまだまだ！」行司が取組を強制中断…一度ならず二度の立ち合い不成立に館内騒然 両力士も反省しきり ABEMA TIMES 2026/7/16 12:42",
-   "u": "https://news.yahoo.co.jp/articles/ce5ed8ffdf0fa22736dee510a6b954a92f9e3989"
+   "t": "【大相撲】十両・白熊が５連勝 「今場所は全部前に出られている」取組後はハンバーグやラーメンで気分転換 スポーツ報知 2026/7/16 16:27",
+   "u": "https://news.yahoo.co.jp/articles/21245772650ca44261a58bc042cf747de17fca17"
   },
   {
-   "t": "元幕内で十両・欧勝海、腓骨骨幹部骨折で休場 再出場しなければ秋場所の幕下転落が確実 スポニチアネックス 2026/7/16 12:22",
-   "u": "https://news.yahoo.co.jp/articles/c40ef30a6d8dfc360dabbd8a1b38d3505d57a35a"
+   "t": "ウクライナ出身、平幕の獅司が初日から5連勝！高田川親方「馬力使えばもっと…。残り10番楽しみ」 スポニチアネックス 2026/7/16 16:21",
+   "u": "https://news.yahoo.co.jp/articles/a109c31970baf1a31670ac0ffee8d4b0580a6544"
   }
  ],
  "awards": null,
@@ -986,43 +986,43 @@
    {
     "e": "錦富士",
     "w": "御嶽海",
-    "k": null,
-    "win": null,
+    "k": "上手出し投げ",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "朝白龍",
     "w": "阿炎",
-    "k": null,
-    "win": null,
+    "k": "下手出し投げ",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "一意",
     "w": "尊富士",
-    "k": null,
-    "win": null,
+    "k": "すくい投げ",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "金峰山",
     "w": "朝紅龍",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "竜電",
     "w": "獅司",
-    "k": null,
-    "win": null,
+    "k": "すくい投げ",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "阿武剋",
     "w": "大青山",
-    "k": null,
-    "win": null,
+    "k": "寄り倒し",
+    "win": "w",
     "fusen": false
    }
   ]
