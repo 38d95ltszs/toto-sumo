@@ -1657,6 +1657,21 @@ async function signInWithLoginId(loginId, password) {
 }
 async function pushProfile() {
   if (!SB || !MYID || !G) return;
+  // 他端末が同じアカウントで先に新しい状態を書き込んでいないか確認する。
+  // 複数端末を同時に開いていた場合、この端末側の（相対的に）古い状態で
+  // クラウドを上書きしてしまうと、他端末で確定した優勝予想などが消えてしまう。
+  // そのため、クラウドの方がこの端末より新しければ、上書きせずクラウドの内容を
+  // 取り込んでから今回の同期は見送る（直前の操作はもう一度お試しいただく）。
+  try {
+    const { data: existing } = await SB.from("player_saves").select("full_state").eq("id", MYID).limit(1);
+    const cloudState = existing && existing[0] && existing[0].full_state;
+    if (cloudState && (cloudState.rev || 0) > (G.rev || 0)) {
+      hydrateG(cloudState);
+      localStorage.setItem("gameState", JSON.stringify(G));
+      showToast("⚠ 別端末の更新を検知", "最新の内容に更新しました。直前の操作はお手数ですがもう一度お試しください");
+      return;
+    }
+  } catch (e) { console.warn("競合チェック失敗:", e); }
   const nowIso = new Date().toISOString();
   const row = {
     id: MYID,
