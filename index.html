@@ -1263,6 +1263,10 @@ function settlePending() {
       if (gain) { G.points += gain; s.totalEarned += gain; }
       else s.totalLost += b.amount;
       b.net = b.hit ? gain - b.amount : -b.amount;
+      // 今場所の的中数（ヘッダー・番付・ランキングに表示される集計値）にも加算する。
+      // これまで日別集計(dayAgg/dayLog)にしか反映しておらず、本体のG.hitsThisBashoが
+      // 更新されていなかった（東西対抗が的中率・ランキングに一切反映されないバグ）
+      if (b.hit) G.hitsThisBasho++;
       const agg = G.dayAgg[b.day] = G.dayAgg[b.day] || { bets: 0, hits: 0, net: 0, fav: 0, dog: 0 };
       agg.bets++; if (b.hit) agg.hits++;
       agg.net += b.net;
