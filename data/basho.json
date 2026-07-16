@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-16T07:48:49.816Z",
+ "updatedAt": "2026-07-16T07:59:00.903Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -259,6 +259,14 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "平幕の若ノ勝 高校の先輩・翔猿をパワーで圧倒し5連勝！獅司に続いて全勝守る スポニチアネックス 2026/7/16 16:53",
+   "u": "https://news.yahoo.co.jp/articles/e6ed3f94a7aaf42e01d6e96d105a4361bfae22e9"
+  },
+  {
+   "t": "大相撲で騒然「前代未聞だ」館内緊迫の30秒 超異例の出来事「暑さ？」「すごいハプニング」 THE ANSWER 2026/7/16 16:47",
+   "u": "https://news.yahoo.co.jp/articles/cdf4303fbb0fa7249e1a849168b9625dbc221fdf"
+  },
+  {
    "t": "最年長関取の41歳玉鷲が史上９人目の通算900勝「喜んでいる場合じゃない」表情緩めず 日刊スポーツ 2026/7/16 16:41",
    "u": "https://news.yahoo.co.jp/articles/f89eb99badddf08d6b41c68b65042193f08f209e"
   },
@@ -269,14 +277,6 @@
   {
    "t": "幕下のイケメン注目力士・大森 圧力負けで今場所初黒星「修正して頑張りたい」 スポーツ報知 2026/7/16 16:36",
    "u": "https://news.yahoo.co.jp/articles/0596c7721e113dcc5610dfa809923d609f3003b3"
-  },
-  {
-   "t": "“技巧派”小兵力士が8連続の珍手封印で「勝った」 予想外の展開に「いつ以来？」「機敏」相撲ファン熱視線 ABEMA TIMES 2026/7/16 16:36",
-   "u": "https://news.yahoo.co.jp/articles/b47b4c3eb1f9bc5a80cfd23c71db8f63c9706bd6"
-  },
-  {
-   "t": "幕下・生田目が無傷の３連勝 昨年の名古屋場所は全休 初めてＩＧアリーナとなった初日は入り口がわからず「近くの人に教えてもらった」 スポーツ報知 2026/7/16 16:35",
-   "u": "https://news.yahoo.co.jp/articles/322b2abaa0a5f310267a8951fe89a26a17436c7a"
   }
  ],
  "awards": null,
@@ -951,22 +951,22 @@
    {
     "e": "正代",
     "w": "藤青雲",
-    "k": null,
-    "win": null,
+    "k": "引き落とし",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "藤凌駕",
     "w": "高安",
-    "k": null,
-    "win": null,
+    "k": "はたき込み",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "若元春",
     "w": "狼雅",
-    "k": null,
-    "win": null,
+    "k": "寄り倒し",
+    "win": "w",
     "fusen": false
    },
    {
