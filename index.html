@@ -2937,6 +2937,12 @@ async function onLogout() {
   } else {
     if (!confirm(`ログアウトします。ログインID「${G.profile.loginId || ""}」で、この端末からいつでも同じデータに戻れます。よろしいですか？`)) return;
   }
+  // 保留中のデバウンス同期(最大1.5秒待ち)をキャンセルし、直前の操作(優勝予想の確定など)が
+  // クラウドに反映される前にログアウトしてしまわないよう、ここで確実に一度同期しておく。
+  // これをしないと、確定直後にログアウトした場合、その変更がクラウドに一度も届かないまま
+  // ローカルデータだけ消去され、次回ログイン時に「確定が解除された」ように見えてしまう。
+  clearTimeout(pushTimer);
+  if (SB) { try { await pushProfile(); } catch (e) { console.warn("最終同期失敗:", e); } }
   if (SB) { try { await SB.auth.signOut(); } catch (e) { console.warn("サインアウト失敗:", e); } }
   ["gameState", "bets", "achievements", "quizHistory", "dailyBonus"].forEach(k => localStorage.removeItem(k));
   location.reload();
@@ -3265,6 +3271,15 @@ function showBeginnerGuide() {
     <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll();setTimeout(()=>oyakataSay('beginner'),800)">🥁 稽古開始！</button>
   `);
 }
+
+// タブを閉じる/バックグラウンドに回す直前に、デバウンス待ち中の同期があれば
+// 即座にフラッシュしておく（優勝予想の確定などの直後にタブを閉じた場合に、
+// クラウドへ一度も届かず消えてしまうのを防ぐための保険）
+function flushPendingSync() {
+  if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; if (SB) pushProfile(); }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushPendingSync(); });
+window.addEventListener("pagehide", flushPendingSync);
 
 init();
 </script>
