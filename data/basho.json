@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-16T08:29:35.079Z",
+ "updatedAt": "2026-07-16T08:39:46.351Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -902,8 +902,8 @@
    {
     "e": "安青錦",
     "w": "琴櫻",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
