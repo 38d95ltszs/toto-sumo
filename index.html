@@ -27,10 +27,10 @@ header {
   color: var(--washi); padding: 12px 14px 10px; position: sticky; top: 0; z-index: 50;
   border-bottom: 3px solid var(--gold); box-shadow: 0 2px 8px rgba(0,0,0,.3);
 }
-.hdr-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.hdr-name { font-weight: bold; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hdr-name { font-weight: bold; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
 .hdr-name .title-part { color: var(--gold-l); font-size: 13px; }
-.hdr-basho { font-size: 12px; color: var(--gold-l); white-space: nowrap; margin-right: 52px; }
+.hdr-basho { font-size: 12px; color: var(--gold-l); white-space: nowrap; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; }
 .hdr-mid { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
 .hdr-points { font-size: 22px; font-weight: bold; color: var(--gold-l); letter-spacing: 1px; }
 .hdr-points small { font-size: 12px; color: var(--washi); }
@@ -234,9 +234,12 @@ details.acc > .acc-body { padding-top: 10px; }
 .center { text-align: center; }
 hr.wave { border: none; border-top: 2px dashed #d8cdb4; margin: 14px 0; }
 
-/* ---------- アクセシビリティ配慮モード切替ボタン ---------- */
+/* ---------- アクセシビリティ配慮モード切替ボタン ----------
+   以前はheader右上への絶対配置だったが、四股名や開催日程の文字と重なるため、
+   hdr-topの中の通常のflex要素として配置し直す（幅を確保して他の要素と
+   物理的にぶつからないようにする） */
 .a11y-toggle-btn {
-  position: absolute; top: 6px; right: 8px; z-index: 60;
+  flex: 0 0 auto; z-index: 60;
   background: rgba(255,255,255,.15); color: var(--washi);
   border: 1px solid var(--gold-l); border-radius: 6px;
   font-size: 13px; font-weight: bold; padding: 3px 9px; line-height: 1.4;
@@ -2157,11 +2160,11 @@ function renderHeader() {
   const bashoName = info.current ? info.current.name : (info.next ? info.next.name + "待ち" : "");
   const online = SB ? "🟢" : "⚪";
   $("#header").innerHTML = `
-    <button class="a11y-toggle-btn" onclick="toggleA11yMode()" title="見やすさ切替（明朝体をやめ、文字色を抑え、文字サイズを大きくします）">Aa</button>
     <div class="hdr-top">
       <div class="hdr-name"><span class="title-part">${esc(currentTitleName())}</span> ${esc(G.profile.shikona)}</div>
-      <div class="hdr-basho">${online} ${esc(bashoName)}・${dayLabel}</div>
+      <button class="a11y-toggle-btn" onclick="toggleA11yMode()" title="見やすさ切替（明朝体をやめ、文字色を抑え、文字サイズを大きくします）">Aa</button>
     </div>
+    <div class="hdr-basho">${online} ${esc(bashoName)}・${dayLabel}</div>
     <div class="hdr-mid">
       <div class="hdr-points">${fmt(G.points)} <small>合</small></div>
       <div class="hdr-rank">番付：<b>${BANZUKE_NAMES[G.banzukeLevel]}</b><br><span style="font-size:10px;color:#cdb9a5">${G.bashoCount}場所目</span></div>
