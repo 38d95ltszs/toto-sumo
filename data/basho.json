@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-16T08:09:12.073Z",
+ "updatedAt": "2026-07-16T08:19:23.401Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -930,8 +930,8 @@
    {
     "e": "宇良",
     "w": "伯乃富士",
-    "k": null,
-    "win": null,
+    "k": "すくい投げ",
+    "win": "w",
     "fusen": false
    },
    {
