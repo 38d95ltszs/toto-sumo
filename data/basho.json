@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-17T08:37:16.712Z",
+ "updatedAt": "2026-07-17T08:47:30.584Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -268,6 +268,10 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "大関復帰を目指す安青錦が５勝目 過去３勝３敗の王鵬に勝つ スポーツ報知 2026/7/17 17:38",
+   "u": "https://news.yahoo.co.jp/articles/8e6c522008167c7dbe856c0f4d775b29c8bcf9d7"
+  },
+  {
    "t": "綱取りの霧島が５勝目 義ノ富士に勝ち、前日の敗戦引きずらず スポーツ報知 2026/7/17 17:34",
    "u": "https://news.yahoo.co.jp/articles/2bbe4b4c6d4ad709420a7208a0dfb305cdead082"
   },
@@ -282,10 +286,6 @@
   {
    "t": "５連勝中の22歳若ノ勝が右ひざ負傷か 車いす退場にファン悲鳴「大きいケガだけはやめて」 日刊スポーツ 2026/7/17 17:09",
    "u": "https://news.yahoo.co.jp/articles/30507a460382b4eae7dde9449ff8bd79beede8f6"
-  },
-  {
-   "t": "若ノ勝が右足を負傷か 土俵上で四つんばいで動けず、車いすで退場 湊川親方「右ひざだと思う」 前日まで５連勝 スポーツ報知 2026/7/17 16:55",
-   "u": "https://news.yahoo.co.jp/articles/07e40a86d160088f73e65874cb09e3b84303a529"
   }
  ],
  "awards": null,
@@ -1053,8 +1053,8 @@
    {
     "e": "豪ノ山",
     "w": "琴櫻",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
