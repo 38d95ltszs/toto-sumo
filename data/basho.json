@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-17T08:16:48.571Z",
+ "updatedAt": "2026-07-17T08:27:02.123Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -276,7 +276,7 @@
    "u": "https://news.yahoo.co.jp/articles/30507a460382b4eae7dde9449ff8bd79beede8f6"
   },
   {
-   "t": "若ノ勝が右足を負傷か 土俵上で四つんばいで動けず 車いすで退場 「音がした」 前日まで５連勝 スポーツ報知 2026/7/17 16:55",
+   "t": "若ノ勝が右足を負傷か 土俵上で四つんばいで動けず、車いすで退場 湊川親方「右ひざだと思う」 前日まで５連勝 スポーツ報知 2026/7/17 16:55",
    "u": "https://news.yahoo.co.jp/articles/07e40a86d160088f73e65874cb09e3b84303a529"
   },
   {
@@ -1074,15 +1074,15 @@
    {
     "e": "熱海富士",
     "w": "藤ノ川",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "隆の勝",
     "w": "琴勝峰",
-    "k": null,
-    "win": null,
+    "k": "引き落とし",
+    "win": "e",
     "fusen": false
    },
    {
