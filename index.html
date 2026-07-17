@@ -2335,6 +2335,9 @@ function ewCardHTML(day) {
   const oddsLabel = st === "open"
     ? (dayBonus > 1 ? `日程ボーナス×${dayBonus}` : "差がそのまま倍率に")
     : (margin > 0 ? `${st === "done" ? "確定" : "現在"}${round2(margin * dayBonus)}倍` : "同数（現在）");
+  // バナー見出し自体に既に「差がそのまま倍率に」を含むため、開催前かつボーナス無しの場合は
+  // 重ねて表示しない（bannerTagは見出しに追記する分のみ）
+  const bannerTag = st === "open" ? (dayBonus > 1 ? `　日程ボーナス×${dayBonus}` : "") : `　${oddsLabel}`;
 
   const fBtn = (key, jp) => {
     const picked = bet && !bet.settled && bet.side === key;
@@ -2351,7 +2354,7 @@ function ewCardHTML(day) {
   };
 
   let html = `<div class="bout-card" style="border:2px solid var(--west)">
-    <div class="kensho-banner" style="background:var(--west)">⚖ 東西対抗 — 勝ち数の差がそのまま倍率に！ ${oddsLabel}</div>
+    <div class="kensho-banner" style="background:var(--west)">⚖ 東西対抗 — 東西の星の差が、そのまま倍率に！${bannerTag}</div>
     <div class="bout-main">${fBtn("east", "東方")}<div class="vs">対</div>${fBtn("west", "西方")}</div>`;
 
   // 状態行（取組カードと同じ体裁）
