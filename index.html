@@ -278,14 +278,14 @@ body.a11y-mode :is(
 <body>
 <div id="app">
   <header id="header"></header>
-  <nav id="nav">
-    <button data-tab="torikumi" class="active">取組予想</button>
-    <button data-tab="basho">場所予想</button>
-    <button data-tab="kometori">米取表</button>
-  </nav>
+  <!-- タブは場所中/オフシーズンで構成が変わるためJS(renderNav)で描画する
+       本場所: 取組予想｜場所予想｜米取表 / オフ: 総合発表｜番付予想｜米取表 -->
+  <nav id="nav"></nav>
   <main>
     <div id="tab-torikumi"></div>
     <div id="tab-basho" style="display:none"></div>
+    <div id="tab-sougou" style="display:none"></div>
+    <div id="tab-yosou" style="display:none"></div>
     <div id="tab-kometori" style="display:none"></div>
   </main>
 </div>
@@ -661,6 +661,12 @@ const QUIZ_CATS = ["歴史", "決まり手", "番付・制度", "ルール・作
 
 // 番付システム レベル: 9=トト綱 8=トー関 7=トト脇 6=ト結（各2名まで） 5=関取 4=幕下 3=新弟子
 const BANZUKE_NAMES = { 9: "トト綱", 8: "トー関", 7: "トト脇", 6: "ト結", 5: "関取", 4: "幕下", 3: "新弟子" };
+// 番付編成会議ボーナス: 来場所の初期持ち米(固定15,000合)に、新番付に応じて加算される
+// 関取未満(幕下・新弟子)は加算なし
+const KAIGI_BONUS = { 9: 15000, 8: 10000, 7: 7000, 6: 5000, 5: 3000 };
+function kaigiBonusOf(level) { return KAIGI_BONUS[level] || 0; }
+// 番付予想モードの配点: 全16問正解で+30,000 / 1ミスで+15,000 / 以降1ミスごとに-1,000
+function yosouBonusOf(miss) { return miss === 0 ? 30000 : Math.max(0, 15000 - (miss - 1) * 1000); }
 // ============================================================
 // トト相撲 ONLINE — コアロジック
 // 全プレイヤー共通の取組・結果（シード乱数）+ Supabase共有ランキング
@@ -771,6 +777,42 @@ function bashoInfo() {
   }
   const next = cands.find(c => c.startMs > t.dateMs);
   return { current, next, now: t };
+}
+
+// ============================================================
+// オフシーズンの日程（総合発表・番付予想の受付期間・大相撲の番付発表）
+// ・総合発表（トト番付編成会議）: 千秋楽3日後の水曜 10:00
+// ・大相撲の番付発表: 次の本場所初日(第2日曜)の13日前の月曜 午前
+// ・番付予想の受付: 総合発表後 〜 番付発表の前日23:59（発表日0:00で締切）
+// ============================================================
+function offseasonSchedule() {
+  const t = jstNow();
+  const cands = [];
+  [t.y - 1, t.y, t.y + 1].forEach(y => [1, 3, 5, 7, 9, 11].forEach(m => {
+    const startMs = Date.UTC(y, m - 1, secondSunday(y, m));
+    cands.push({ y, m, startMs, key: bashoKeyOf(y, m), name: bashoNameOf(y, m) });
+  }));
+  cands.sort((a, b) => a.startMs - b.startMs);
+  const prev = cands.filter(c => c.startMs <= t.dateMs).pop() || null; // 直近に始まった場所（開催中含む）
+  const next = cands.find(c => c.startMs > t.dateMs) || null;
+  const sougouMs = prev ? prev.startMs + 17 * 86400e3 : null;   // 千秋楽3日後の水曜
+  const sougouDone = sougouMs !== null &&
+    (t.dateMs > sougouMs || (t.dateMs === sougouMs && t.hm >= 10 * 60));
+  const announceMs = next ? next.startMs - 13 * 86400e3 : null; // 番付発表の月曜
+  const announceDone = announceMs !== null && t.dateMs >= announceMs; // 発表日0:00で受付終了
+  const yosouOpen = sougouDone && announceMs !== null && t.dateMs < announceMs;
+  return { prev, next, sougouMs, sougouDone, announceMs, announceDone, yosouOpen, now: t };
+}
+// オフシーズンモード判定（場所が開催されていない、または自分の場所が打ち止め済み）
+function isOffseason() {
+  const info = bashoInfo();
+  return !info.current || !!(G && G.finishedProcessed);
+}
+// 日付ms → 「8月30日(日)」形式
+const DOW_JA = ["日", "月", "火", "水", "木", "金", "土"];
+function fmtDateJa(ms) {
+  const d = new Date(ms);
+  return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日(${DOW_JA[d.getUTCDay()]})`;
 }
 
 // 締切・発表時刻（ハイブリッド方式）
@@ -1139,6 +1181,8 @@ async function ensureBashoState() {
     settlePending();
     if (resultsReady(15) && !G.finishedProcessed && (DATA_MODE !== "real" || realDayResolved(15))) await processFinish();
   }
+  // 番付予想の答え合わせ（締切後、番付発表データが届いていれば採点しボーナス加算）
+  maybeGradeYosou();
   checkAchievements();
   save();
 }
@@ -1518,6 +1562,10 @@ async function announceBanzuke() {
   const s = G.stats;
   const leaders = await fetchLeaderboard(G.bashoKey);
   const bz = computeBanzuke(leaders, true);
+  // 新弟子は1場所目限り: 編成会議では最低でも幕下（二度と新弟子には戻らない）
+  bz.level = Math.max(4, bz.level);
+  bz.levelName = BANZUKE_NAMES[bz.level];
+  const prevLevel = G.banzukeLevel;
   G.banzukeLevel = bz.level;
   s.bestBanzuke = Math.max(s.bestBanzuke, bz.level);
   if (bz.level === 9) s.totoTsunaCount++;
@@ -1525,6 +1573,11 @@ async function announceBanzuke() {
     G.lastResult.banzuke = { level: bz.level, levelName: bz.levelName, pos: bz.pos, total: bz.total };
     G.lastResult.article = buildBashoArticle(bz, leaders);
   }
+  // 来場所の初期持ち米を確定: 固定15,000合＋編成会議ボーナス（新番付に応じて加算）
+  // オフシーズン中のちゃんこ・クイズ・番付予想ボーナスはこの上に積み上がる
+  const kaigiBonus = kaigiBonusOf(bz.level);
+  G.lastKaigi = { prevLevel, newLevel: bz.level, bonus: kaigiBonus, bashoKey: G.bashoKey };
+  G.points = START_POINTS + kaigiBonus;
   G.banzukeAnnounced = true;
   pendingModals.push({ type: "banzuke", data: bz });
   checkAchievements();
@@ -2144,6 +2197,7 @@ async function init() {
 }
 
 function renderAll() {
+  renderNav();
   renderHeader();
   renderTab();
   drainToasts();
@@ -2157,6 +2211,7 @@ function playPendingModals() {
   else if (ev.type === "rescue") showRescue();
   else if (ev.type === "bashoResult") showBashoResult();
   else if (ev.type === "banzuke") showBanzukeModal(ev.data);
+  else if (ev.type === "yosou") showYosouResultModal(ev.data);
   else playPendingModals();
 }
 
@@ -2185,6 +2240,25 @@ function renderHeader() {
 }
 
 // ---------------- タブ ----------------
+// 場所中とオフシーズンでタブ構成を切り替える
+// 本場所: 取組予想｜場所予想｜米取表 / オフ: 総合発表｜番付予想｜米取表
+const ALL_TABS = ["torikumi", "basho", "sougou", "yosou", "kometori"];
+function navTabs() {
+  return isOffseason()
+    ? [["sougou", "総合発表"], ["yosou", "番付予想"], ["kometori", "米取表"]]
+    : [["torikumi", "取組予想"], ["basho", "場所予想"], ["kometori", "米取表"]];
+}
+// 現モードに存在しないタブを開いていたら先頭タブへ寄せる
+function normalizeTab() {
+  const valid = navTabs().map(x => x[0]);
+  if (!valid.includes(UI.tab)) UI.tab = valid[0];
+}
+function renderNav() {
+  normalizeTab();
+  $("#nav").innerHTML = navTabs().map(([t, label]) =>
+    `<button data-tab="${t}" class="${UI.tab === t ? "active" : ""}">${label}</button>`).join("");
+}
+function gotoTab(t) { UI.tab = t; renderNav(); renderTab(); }
 document.addEventListener("click", e => {
   const t = e.target.closest("nav button");
   if (!t) return;
@@ -2193,9 +2267,11 @@ document.addEventListener("click", e => {
   renderTab();
 });
 function renderTab() {
-  ["torikumi", "basho", "kometori"].forEach(t => { $("#tab-" + t).style.display = t === UI.tab ? "" : "none"; });
+  ALL_TABS.forEach(t => { $("#tab-" + t).style.display = t === UI.tab ? "" : "none"; });
   if (UI.tab === "torikumi") renderTorikumi();
   if (UI.tab === "basho") renderBashoTab();
+  if (UI.tab === "sougou") renderSougou();
+  if (UI.tab === "yosou") renderYosou();
   if (UI.tab === "kometori") renderKometori();
 }
 
@@ -2664,11 +2740,17 @@ function showBanzukeModal(bz) {
     </div>`;
   }
   openModal(`
-    <h2 class="banner">📜 番付編成会議 — トト番付発表</h2>
+    <h2 class="banner">📜 トト番付編成会議の結果</h2>
     <div class="center" style="line-height:2.2;margin:10px 0">
       <span class="muted">${esc(r ? r.bashoName : "")} 確定番付</span><br>
       <span class="rank-chip l${bz.level}" style="font-size:18px;padding:4px 16px">${bz.levelName}</span><br>
       ${bz.pos ? `<b>${bz.total}人中 ${bz.pos}位</b>` : "<span class='muted'>今場所は番付対象外（ベットなし）</span>"}
+    </div>
+    <div class="day-summary" style="font-size:13px;line-height:2">
+      🌾 来場所の初期持ち米<br>
+      基本 15,000合${G.lastKaigi && G.lastKaigi.bonus ? ` ＋ 編成会議ボーナス <b style="color:var(--maroon)">${fmt(G.lastKaigi.bonus)}合</b>` : ""}
+      ＝ <b style="font-size:17px;color:var(--maroon)">${fmt(START_POINTS + (G.lastKaigi ? G.lastKaigi.bonus : 0))}合</b>
+      ${G.lastKaigi && !G.lastKaigi.bonus ? `<br><span class="muted">編成会議ボーナスは関取以上の番付で加算されます</span>` : ""}
     </div>
     <p style="font-size:12px;font-weight:bold;color:var(--maroon)">上位番付</p>
     ${top}
@@ -2681,6 +2763,400 @@ function showBanzukeModal(bz) {
     <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">謹んでお受けします</button>
   `);
   oyakataSay(bz.level >= 5 ? "win" : "lose");
+}
+
+// ---------------- 総合発表タブ（オフシーズン） ----------------
+function renderSougou() {
+  const el = $("#tab-sougou");
+  const info = bashoInfo();
+  const sched = offseasonSchedule();
+  let html = configWarning();
+  let count = "";
+  if (info.next) {
+    const days = Math.ceil((info.next.startMs - jstNow().dateMs) / 86400e3);
+    count = `次の <b>${esc(info.next.name)}</b> 初日まで <b style="font-size:18px;color:var(--maroon)">あと${days}日</b><br><span class="muted" style="font-size:11px">（初日 ${fmtDateJa(info.next.startMs)}）</span>`;
+  }
+
+  if (!G.lastResult) {
+    // オフシーズンに入門した新弟子: まだ場所の成績がない
+    html += `
+      <div class="card"><h3>📢 総合発表</h3>
+        <div class="center" style="line-height:2.3;padding:8px 0">
+          <b style="font-size:18px;color:var(--maroon)">🌅 来場所が初土俵！</b><br>
+          <span class="muted">まだ場所の成績がないため、編成会議の発表はありません。</span><br>
+          番付 <b>${BANZUKE_NAMES[G.banzukeLevel]}</b>・持ち米 <b>${fmt(G.points)}合</b> で初日を待ちます<br>
+          ${count}
+        </div>
+      </div>`;
+  } else if (!G.banzukeAnnounced) {
+    // 千秋楽打ち止め〜水曜10:00の編成会議まで
+    const r = G.lastResult;
+    html += `
+      <div class="card"><h3>📢 総合発表</h3>
+        <div class="center" style="line-height:2.3;padding:8px 0">
+          ${esc(r.bashoName)} 優勝：<b>${esc(r.champion)}</b><br>
+          あなたの成績：${r.bets}ベット ${r.hits}的中・最終持ち米 <b>${fmt(r.finalPoints)}合</b><br>
+          📜 <b>トト番付編成会議</b>は ${sched.sougouMs ? fmtDateJa(sched.sougouMs) : "千秋楽3日後の水曜"} 10:00<br>
+          <span class="muted">発表までスコアは凍結・ちゃんこ/クイズもお休みです</span>
+        </div>
+      </div>`;
+  } else {
+    // 編成会議 発表済み: 番付の変動と来場所の初期持ち米
+    const k = G.lastKaigi || { prevLevel: null, newLevel: G.banzukeLevel, bonus: 0 };
+    const move = k.prevLevel === null ? 0 : k.newLevel - k.prevLevel;
+    const moveTag = k.prevLevel === 3
+      ? `<span class="muted">初めての番付編成（新弟子は卒業、二度と戻りません）</span>`
+      : move > 0 ? `<span class="hit">🎉 昇進！</span>`
+      : move < 0 ? `<span class="miss">陥落</span>`
+      : `<span class="muted">番付変動なし</span>`;
+    html += `
+      <div class="card"><h3>📢 総合発表 — トト番付編成会議の結果</h3>
+        <div class="center" style="padding:6px 0 2px">
+          <span class="muted" style="font-size:11px">大相撲の正式な番付発表は本場所の2週間前の月曜日です</span>
+        </div>
+        <div class="center" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:10px 0 4px">
+          <span style="text-align:center"><span class="muted" style="font-size:10px">今場所</span><br>
+            <span class="rank-chip l${k.prevLevel || G.banzukeLevel}" style="font-size:14px;padding:3px 12px">${BANZUKE_NAMES[k.prevLevel] || "－"}</span></span>
+          <span style="font-size:18px;color:var(--gold)">→</span>
+          <span style="text-align:center"><span class="muted" style="font-size:10px">来場所</span><br>
+            <span class="rank-chip l${k.newLevel}" style="font-size:14px;padding:3px 12px">${BANZUKE_NAMES[k.newLevel]}</span></span>
+        </div>
+        <div class="center" style="margin-bottom:8px">${moveTag}</div>
+        <div class="day-summary" style="font-size:13px;line-height:2">
+          🌾 来場所の初期持ち米<br>
+          基本 ${fmt(START_POINTS)}合${k.bonus ? ` ＋ 編成会議ボーナス <b style="color:var(--maroon)">${fmt(k.bonus)}合</b>` : `<span class="muted">（編成会議ボーナスは関取以上で加算）</span>`}<br>
+          現在の持ち米 <b style="font-size:17px;color:var(--maroon)">${fmt(G.points)}合</b>
+          <span class="muted" style="font-size:11px">（ちゃんこ・クイズ・番付予想ボーナスで上積みできます）</span>
+        </div>
+        <div class="center" style="margin-top:8px">${count}</div>
+      </div>`;
+  }
+
+  // 番付予想モードの案内バナー
+  if (sched.yosouOpen) {
+    const p = G.banzukePrediction;
+    const done = p && p.confirmed && p.forBashoKey === (sched.next && sched.next.key);
+    html += `
+      <div class="card" style="background:linear-gradient(135deg,var(--maroon),#4a141c);border-color:var(--gold)">
+        <b style="color:var(--gold-l);font-size:15px">🏆 番付予想モード ${done ? "予想確定済み（締切まで修正可）" : "受付中！"}</b>
+        <div style="font-size:12.5px;line-height:1.8;margin:6px 0;color:#f0e4cd">
+          来場所の大相撲の新番付・上位16人を予想。全問的中で持ち米+30,000合！<br>
+          締切：${sched.announceMs ? fmtDateJa(sched.announceMs - 86400e3) : "番付発表の前日"}まで
+        </div>
+        <button class="btn btn-gold btn-wide" onclick="gotoTab('yosou')">${done ? "予想を確認・修正する" : "番付予想をする"} →</button>
+      </div>`;
+  } else if (G.banzukePrediction && G.banzukePrediction.graded && G.banzukePrediction.result
+    && sched.next && G.banzukePrediction.forBashoKey === sched.next.key) {
+    const r = G.banzukePrediction.result;
+    html += `
+      <div class="card">
+        <b style="color:var(--maroon)">🏆 番付予想 答え合わせ済み</b>
+        <div class="note">${r.correct}/${r.total}問的中・ボーナス +${fmt(r.bonus)}合。詳細は「番付予想」タブへ。</div>
+      </div>`;
+  }
+
+  // ちゃんこ・クイズ（凍結中はオフ）
+  if (!scoreFrozen()) {
+    const bonus = bonusRowHTML();
+    if (bonus) html += bonus + `<p class="muted center">オフシーズン中もちゃんことクイズで米を蓄えられます</p>`;
+  }
+  el.innerHTML = html;
+}
+
+// ---------------- 番付予想タブ（オフシーズン） ----------------
+// 来場所の大相撲の新番付・上位16人（横綱〜前頭上位）の完全一致を狙う。
+// 三役（横綱〜小結）は人数を1〜4人で増減でき、常に合計16人になるよう
+// 前頭側の対象範囲（何枚目まで含むか）が自動的に伸縮する。
+const YOSOU_TOTAL = 16;
+const YOSOU_SANYAKU = [
+  { key: "yokozuna", rk: "Y", label: "横綱", min: 1, max: 4 },
+  { key: "ozeki",    rk: "O", label: "大関", min: 1, max: 4 },
+  { key: "sekiwake", rk: "S", label: "関脇", min: 2, max: 4 },
+  { key: "komusubi", rk: "K", label: "小結", min: 2, max: 4 },
+];
+function bashoStartMsOf(key) {
+  const [y, m] = key.split("-").map(Number);
+  return Date.UTC(y, m - 1, secondSunday(y, m));
+}
+// 予想候補: 前場所の幕内力士全員（上位16人は幕内からしか生まれない）
+function yosouCandidates() {
+  return RIKISHI.filter(r => /^([YOSK]|M\d+)$/.test(r.rank)).map(r => r.name);
+}
+// 三役スロットのラベル: 1人→側なし / 2人→東・西 / 3人→東・西・② / 4人→東・西・東②・西②
+function yosouSlotLabel(tier, count, idx) {
+  if (count <= 1) return tier.label;
+  if (idx === 0) return "東" + tier.label;
+  if (idx === 1) return "西" + tier.label;
+  if (idx === 2) return count === 3 ? tier.label + "②" : "東" + tier.label + "②";
+  return "西" + tier.label + "②";
+}
+function maegashiraLabelOf(n) { return n === 1 ? "前頭筆頭" : `前頭${n}枚目`; }
+// 現在の三役人数から、全16スロットを {key,label} の配列で返す
+function yosouAllSlots(counts) {
+  const list = [];
+  YOSOU_SANYAKU.forEach(t => {
+    const c = counts[t.key] || 2;
+    for (let i = 0; i < c; i++) list.push({ key: `${t.key}-slot${i}`, label: yosouSlotLabel(t, c, i) });
+  });
+  let n = 1;
+  while (list.length < YOSOU_TOTAL && n <= 8) {
+    for (const side of ["東", "西"]) {
+      if (list.length >= YOSOU_TOTAL) break;
+      list.push({ key: `maegashira${n}-${side}`, label: side + maegashiraLabelOf(n) });
+    }
+    n++;
+  }
+  return list.slice(0, YOSOU_TOTAL);
+}
+// 三役人数の初期値: 前場所の実際の在位人数（データがなければ2人ずつ）
+function yosouDefaultCounts() {
+  const c = {};
+  YOSOU_SANYAKU.forEach(t => {
+    const n = RIKISHI.filter(r => r.rank === t.rk).length;
+    c[t.key] = Math.max(t.min, Math.min(t.max, n || 2));
+  });
+  return c;
+}
+// 受付期間に入っていれば、来場所向けの予想の入れ物を用意する
+function ensureYosouState(sched) {
+  if (!sched.yosouOpen || !sched.next) return;
+  if (!G.banzukePrediction || G.banzukePrediction.forBashoKey !== sched.next.key) {
+    G.banzukePrediction = {
+      forBashoKey: sched.next.key,
+      counts: yosouDefaultCounts(),
+      slots: {},
+      confirmed: false, graded: false, result: null, detail: null
+    };
+    save();
+  }
+}
+// 答え合わせ用の正解データ（スクレイパーが番付発表後に取得）
+// 優先: nextBanzuke（オフシーズン中に配布） / 代替: 予想対象の場所が始まった後はその場所のbanzuke
+function yosouAnswerList() {
+  const p = G.banzukePrediction;
+  if (!p || !REAL) return null;
+  if (REAL.nextBanzuke && REAL.nextBanzuke.bashoKey === p.forBashoKey && Array.isArray(REAL.nextBanzuke.list) && REAL.nextBanzuke.list.length) {
+    return REAL.nextBanzuke.list;
+  }
+  if (REAL.bashoKey === p.forBashoKey && Array.isArray(REAL.banzuke) && REAL.banzuke.length) {
+    return REAL.banzuke;
+  }
+  return null;
+}
+// 正解リストを予想と同じスロット割りに変換
+function yosouAnswerSlots(list) {
+  const isEast = s => s === "東" || s === "E";
+  const slots = {};
+  let total = 0;
+  YOSOU_SANYAKU.forEach(t => {
+    const members = list.filter(x => x.rank === t.rk);
+    const e = members.filter(x => isEast(x.side)), w = members.filter(x => !isEast(x.side));
+    const ordered = [];
+    for (let i = 0; i < Math.max(e.length, w.length); i++) {
+      if (e[i]) ordered.push(e[i]);
+      if (w[i]) ordered.push(w[i]);
+    }
+    ordered.slice(0, 4).forEach((x, i) => {
+      if (total < YOSOU_TOTAL) { slots[`${t.key}-slot${i}`] = x.name; total++; }
+    });
+  });
+  let n = 1;
+  while (total < YOSOU_TOTAL && n <= 8) {
+    for (const side of ["東", "西"]) {
+      if (total >= YOSOU_TOTAL) break;
+      const x = list.find(v => v.rank === "M" + n && (isEast(v.side) ? side === "東" : side === "西"));
+      if (x) slots[`maegashira${n}-${side}`] = x.name;
+      total++;
+    }
+    n++;
+  }
+  return slots;
+}
+// 締切後に正解データが届いていれば採点し、ボーナスを持ち米に加算する
+function maybeGradeYosou() {
+  const p = G.banzukePrediction;
+  if (!p || p.graded || !p.forBashoKey) return false;
+  const deadline = bashoStartMsOf(p.forBashoKey) - 13 * 86400e3; // 番付発表の月曜0:00
+  if (jstNow().dateMs < deadline) return false;
+  if (!p.confirmed) { p.graded = true; p.result = null; save(); return false; } // 未確定は不参加扱い
+  const list = yosouAnswerList();
+  if (!list) return false; // 番付発表データ待ち（次回起動時に再チェック）
+  const answer = yosouAnswerSlots(list);
+  const slots = yosouAllSlots(p.counts);
+  let correct = 0;
+  const detail = slots.map(({ key, label }) => {
+    const guess = p.slots[key] || null;
+    const ans = answer[key] || null;
+    const hit = !!guess && guess === ans;
+    if (hit) correct++;
+    return { label, guess, answer: ans, hit };
+  });
+  const miss = YOSOU_TOTAL - correct;
+  const bonus = yosouBonusOf(miss);
+  p.graded = true;
+  p.result = { correct, total: YOSOU_TOTAL, miss, bonus };
+  p.detail = detail;
+  G.points += bonus;
+  pendingModals.push({ type: "yosou", data: p.result });
+  save();
+  return true;
+}
+function showYosouResultModal(r) {
+  openModal(`
+    <h2 class="banner">🏆 番付予想 答え合わせ</h2>
+    <div class="center" style="line-height:2.4;margin:12px 0">
+      <b style="font-size:22px;color:var(--maroon)">${r.correct} / ${r.total} 問的中</b><br>
+      ${r.miss === 0 ? `<span class="hit" style="font-size:15px">完全的中！おぬしは番付編成会議入りできる！</span><br>` : `${r.miss}ミス<br>`}
+      ボーナス <b style="font-size:18px;color:var(--maroon)">+${fmt(r.bonus)}合</b>
+    </div>
+    <div class="note">詳しい答え合わせは「番付予想」タブでいつでも見られます。</div>
+    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll()">ありがたく頂戴する</button>
+  `);
+}
+
+function renderYosou() {
+  const el = $("#tab-yosou");
+  if (!isOffseason()) { el.innerHTML = ""; return; }
+  const sched = offseasonSchedule();
+  maybeGradeYosou();
+  const p = G.banzukePrediction;
+
+  const headerCard = `
+    <div class="card"><h3>🏆 番付予想モード</h3>
+      <div class="note">来場所の大相撲の新番付・<b>上位16人</b>（横綱〜前頭上位）を予想。番付と力士名の<b>完全一致のみ</b>的中。
+      全問正解 <b>+30,000合</b>／1ミス +15,000合／以降1ミスごとに-1,000合。</div>
+      <div class="result-line"><span>受付期間</span><span>${sched.sougouMs ? fmtDateJa(sched.sougouMs) : "-"} 総合発表後 〜 ${sched.announceMs ? fmtDateJa(sched.announceMs - 86400e3) : "-"}</span></div>
+      <div class="result-line"><span>答え合わせ</span><span>${sched.announceMs ? fmtDateJa(sched.announceMs) : "-"} の番付発表後</span></div>
+    </div>`;
+  let body = "";
+
+  if (p && p.graded && p.result && p.detail) {
+    // 採点済み: 結果表示
+    const r = p.result;
+    const rows = p.detail.map(d => `
+      <div class="result-line">
+        <span><span class="${d.hit ? "hit" : "miss"}">${d.hit ? "✓" : "✗"}</span> ${esc(d.label)}：${esc(d.guess || "（未選択）")}</span>
+        <span class="${d.hit ? "hit" : "muted"}">${d.hit ? "的中" : `正解 ${esc(d.answer || "－")}`}</span>
+      </div>`).join("");
+    body = `
+      <div class="card">
+        <div class="center" style="line-height:2.2;margin-bottom:8px">
+          <b style="font-size:20px;color:var(--maroon)">${r.correct} / ${r.total} 問的中</b><br>
+          ボーナス <b style="color:var(--maroon)">+${fmt(r.bonus)}合</b>（獲得済み）
+        </div>
+        ${rows}
+      </div>`;
+  } else if (!sched.sougouDone) {
+    body = `<div class="card"><div class="note">🔒 受付は<b>総合発表（${sched.sougouMs ? fmtDateJa(sched.sougouMs) : "千秋楽3日後の水曜"} 10:00）</b>の後に始まります。今しばらくお待ちください。</div></div>`;
+  } else if (sched.yosouOpen) {
+    ensureYosouState(sched);
+    body = yosouFormHTML(sched);
+  } else if (p && p.confirmed && !p.graded) {
+    // 締切済み・番付発表データ待ち
+    const rows = yosouAllSlots(p.counts).map(({ key, label }) =>
+      `<div class="result-line"><span>${esc(label)}</span><span><b>${esc(p.slots[key] || "（未選択）")}</b></span></div>`).join("");
+    body = `
+      <div class="card">
+        <div class="locked-box"><span class="seal">確定</span> 予想は締め切りました。<b>${sched.announceMs ? fmtDateJa(sched.announceMs) : "月曜"}の番付発表</b>後に答え合わせ！</div>
+        ${rows}
+      </div>`;
+  } else {
+    body = `<div class="card"><div class="note">今回の番付予想は受付を終了しました。${sched.next ? `次回は${esc(sched.next.name)}後の総合発表から受付開始です。` : ""}</div></div>`;
+  }
+  el.innerHTML = configWarning() + headerCard + body;
+}
+
+// 予想入力フォーム（受付期間中）
+function yosouFormHTML(sched) {
+  const p = G.banzukePrediction;
+  if (!p) return "";
+  const cands = yosouCandidates();
+  const locked = !!p.confirmed;
+  const opt = sel => `<option value="">－ 未選択 －</option>` + cands.map(n =>
+    `<option value="${esc(n)}" ${sel === n ? "selected" : ""}>${esc(n)}</option>`).join("");
+  let rows = "";
+  let no = 1;
+  YOSOU_SANYAKU.forEach(t => {
+    const c = p.counts[t.key] || 2;
+    for (let i = 0; i < c; i++) {
+      const key = `${t.key}-slot${i}`;
+      rows += `
+        <tr${i === 0 ? ' style="border-top:2px solid var(--gold)"' : ""}>
+          <td style="text-align:center;color:#9a8b74;font-size:12px">${no++}</td>
+          <td style="white-space:nowrap"><b>${yosouSlotLabel(t, c, i)}</b></td>
+          <td><select ${locked ? "disabled" : ""} onchange="onYosouSelect('${key}', this.value)" style="width:100%">${opt(p.slots[key])}</select></td>
+        </tr>`;
+    }
+    if (!locked) {
+      rows += `
+        <tr><td colspan="3" style="text-align:right;padding:4px 6px 8px">
+          ${c < t.max ? `<button class="btn btn-ghost btn-sm" onclick="onYosouCount('${t.key}', 1)">＋ ${t.label}を1人増やす</button>` : ""}
+          ${c > t.min ? `<button class="btn btn-ghost btn-sm" onclick="onYosouCount('${t.key}', -1)">－ ${t.label}を1人減らす</button>` : ""}
+        </td></tr>`;
+    }
+  });
+  const sanyakuSum = YOSOU_SANYAKU.reduce((s, t) => s + (p.counts[t.key] || 2), 0);
+  const mSlots = yosouAllSlots(p.counts).filter(s => s.key.startsWith("maegashira"));
+  mSlots.forEach((s, i) => {
+    rows += `
+      <tr${i === 0 ? ' style="border-top:2px solid var(--gold)"' : ""}>
+        <td style="text-align:center;color:#9a8b74;font-size:12px">${no++}</td>
+        <td style="white-space:nowrap"><b>${esc(s.label)}</b></td>
+        <td><select ${locked ? "disabled" : ""} onchange="onYosouSelect('${s.key}', this.value)" style="width:100%">${opt(p.slots[s.key])}</select></td>
+      </tr>`;
+  });
+  const filled = yosouAllSlots(p.counts).filter(s => p.slots[s.key]).length;
+  const lastLabel = mSlots.length ? mSlots[mSlots.length - 1].label.slice(1) : "";
+  return `
+    <div class="card">
+      <div class="note">三役${sanyakuSum}人＋前頭＝合計16人。三役の人数を増減すると、前頭は「${esc(lastLabel)}」まで自動で伸縮します。
+      横綱・大関が1人だけの場合は「減らす」で調整を。<b>締切（${sched.announceMs ? fmtDateJa(sched.announceMs - 86400e3) : ""}）までは確定後も何度でも修正できます。</b></div>
+      <table class="banzuke"><tr><th style="width:34px">No.</th><th style="width:110px">番付</th><th>予想する力士</th></tr>${rows}</table>
+      ${locked
+        ? `<div class="locked-box" style="margin-top:10px"><span class="seal">確定</span> 予想を確定しました（${filled}/16枠 入力済み）。締切までは修正できます。</div>
+           <button class="btn btn-ghost btn-wide" style="margin-top:8px" onclick="onYosouEdit()">✏ 編集に戻る</button>`
+        : `<div class="center" style="margin:8px 0 4px"><span class="muted">入力済み ${filled}/16枠</span></div>
+           <button class="btn btn-primary btn-wide" onclick="onYosouConfirm()">この内容で確定する</button>`}
+    </div>`;
+}
+function onYosouSelect(key, value) {
+  const p = G.banzukePrediction;
+  if (!p || p.confirmed) return;
+  if (value) p.slots[key] = value; else delete p.slots[key];
+  save();
+}
+function onYosouCount(tierKey, delta) {
+  const p = G.banzukePrediction;
+  if (!p || p.confirmed) return;
+  const t = YOSOU_SANYAKU.find(x => x.key === tierKey);
+  const next = (p.counts[tierKey] || 2) + delta;
+  if (next < t.min || next > t.max) return;
+  p.counts[tierKey] = next;
+  // 対象外になったスロットの選択は破棄する
+  const validKeys = new Set(yosouAllSlots(p.counts).map(s => s.key));
+  Object.keys(p.slots).forEach(k => { if (!validKeys.has(k)) delete p.slots[k]; });
+  save();
+  renderYosou();
+}
+function onYosouConfirm() {
+  const p = G.banzukePrediction;
+  if (!p) return;
+  const total = yosouAllSlots(p.counts).length;
+  const filled = yosouAllSlots(p.counts).filter(s => p.slots[s.key]).length;
+  if (filled < total && !confirm(`まだ${total - filled}枠が未選択です。未選択の枠は不的中扱いになります。このまま確定しますか？`)) return;
+  p.confirmed = true;
+  save();
+  showToast("🏆 番付予想を確定", "締切までは「編集に戻る」で何度でも修正できます");
+  renderYosou();
+}
+function onYosouEdit() {
+  const p = G.banzukePrediction;
+  if (!p) return;
+  const sched = offseasonSchedule();
+  if (!sched.yosouOpen) { showToast("⏰ 締切済み", "番付予想の受付は終了しています"); return; }
+  p.confirmed = false;
+  save();
+  renderYosou();
 }
 
 // ---------------- 場所予想タブ ----------------
