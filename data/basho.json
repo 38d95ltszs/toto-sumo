@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-17T07:35:53.130Z",
+ "updatedAt": "2026-07-17T07:46:07.043Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -1130,15 +1130,15 @@
    {
     "e": "御嶽海",
     "w": "翔猿",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "藤凌駕",
     "w": "若ノ勝",
-    "k": null,
-    "win": null,
+    "k": "押し倒し",
+    "win": "e",
     "fusen": false
    },
    {
