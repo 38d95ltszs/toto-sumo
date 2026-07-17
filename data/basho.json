@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-17T05:43:56.679Z",
+ "updatedAt": "2026-07-17T07:35:53.130Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -268,24 +268,24 @@
  "injuredCarry": [],
  "news": [
   {
-   "t": "【６日目の見所】綱取りの大関・霧島は実力者の義ノ富士が相手でも連敗は許されない 鋭い立ち合いで出足を止めろ スポーツ報知 2026/7/17 14:36",
-   "u": "https://news.yahoo.co.jp/articles/2d5de7c9686fff6cc81b068f32fa3adc5b51b20f"
+   "t": "友風が４敗目 得意のはたき込みが不発で、連日の「言うことなしです」 スポーツ報知 2026/7/17 16:26",
+   "u": "https://news.yahoo.co.jp/articles/945a1f2f8a0bf9e291b7492cbf4c4cf1b5625dc9"
   },
   {
-   "t": "休場中の二子山親方に「勝っていい報告をしたいです」高原に続いて三田も白星、勝ち越し王手 日刊スポーツ 2026/7/17 14:22",
-   "u": "https://news.yahoo.co.jp/articles/7d4c0ea7ab7a7406041c2dc0309c2780a36fd7ae"
+   "t": "獅司が無傷の6連勝 朝紅龍を力強く押し出してトップをキープ スポニチアネックス 2026/7/17 16:23",
+   "u": "https://news.yahoo.co.jp/articles/2aec41002d1a8a84dd0321085fab8b94b2a3ed9e"
   },
   {
-   "t": "許田１勝２敗と黒星先行も休場中の二子山親方へ「いい報告ができるように」巻き返し誓う 日刊スポーツ 2026/7/17 14:22",
-   "u": "https://news.yahoo.co.jp/articles/d578ab8978c6f24c0f67548fccdcc6b1bbac78ec"
+   "t": "旭富士が序ノ口デビューから24連勝、歴代３位タイ 常幸龍の歴代最多27連勝まであと３勝 日刊スポーツ 2026/7/17 15:14",
+   "u": "https://news.yahoo.co.jp/articles/070860377d9e118ab400ec027c26c352d9fa92fc"
   },
   {
-   "t": "横綱のしこ名を継ぐ旭富士、歴代３位タイの序ノ口デビューから２４連勝 佐久間山の最多記録まであと「３」 スポーツ報知 2026/7/17 14:17",
-   "u": "https://news.yahoo.co.jp/articles/5fbfdf53841374fe6da47e11b04746129446bc28"
+   "t": "元十両の三田が無傷の３連勝 体調不良の師匠の元大関・雅山に「勝っていい報告をしたい」 スポーツ報知 2026/7/17 15:03",
+   "u": "https://news.yahoo.co.jp/articles/7e4c92c4cf26bb22b4df4c658637eb4c6faddcc4"
   },
   {
-   "t": "「柔道家やないか」「ダンスやで」体重76キロ力士、160キロの巨漢を“片足ケンケン”で大逆転白星 “斬新”な攻めに何度もどよめき ABEMA TIMES 2026/7/17 14:09",
-   "u": "https://news.yahoo.co.jp/articles/404290abb4c7d77ea52c985f882ce0b7db0f4e5b"
+   "t": "矢後が１９歳の若手に敗れ１勝２敗 「足が出なかった」と反省 スポーツ報知 2026/7/17 14:57",
+   "u": "https://news.yahoo.co.jp/articles/c86ee9e9063ea5f4162eefba69b7cd231182b0c4"
   }
  ],
  "awards": null,
@@ -1144,43 +1144,43 @@
    {
     "e": "朝乃山",
     "w": "阿炎",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "朝白龍",
     "w": "尊富士",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "錦富士",
     "w": "大青山",
-    "k": null,
-    "win": null,
+    "k": "寄り倒し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "朝紅龍",
     "w": "獅司",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "金峰山",
     "w": "出羽ノ龍",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "阿武剋",
     "w": "一意",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    }
   ]
