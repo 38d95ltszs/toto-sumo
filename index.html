@@ -2176,6 +2176,82 @@ function startA11yObserver() {
     .observe(document.body, { childList: true, subtree: true });
 }
 
+// ---------------- 遊び方チュートリアル（本場所モード） ----------------
+// ・初めて本場所モードに入ったとき自動表示（既読は端末単位=localStorage、DBには保存しない）
+// ・「？」ボタン（並び替えの隣）でいつでも再表示
+// ・本当の初心者（ベット経験ゼロ）には、取組一覧を懸賞一番だけに絞って
+//   「まず1回賭けてみる」ところまで誘導する
+const TUT_SEEN_KEY = "toto-sumo-honbasho-tutorial-seen";
+const KENSHO_TUT_KEY = "toto-sumo-first-bet-done";
+let tutAutoShown = false;       // 同一セッションで自動表示を繰り返さない
+let kenshoTutWasActive = false; // このセッションで絞り込み表示を見たか（初ベット祝いの判定用）
+let tutSlide = 0;
+let tutTouchX = null;
+const TUT_SLIDES = [
+  { icon: "🌾", title: "米をたくさん集めよう！", body: "持ち米を取組に賭けて増やそう。千秋楽の持ち米で次の場所のトト番付が決まる。目指せ、関取ライン33,000合！" },
+  { icon: "💪", title: "勝ちそうな力士に賭けよう！", body: "勝つと思う力士を選んで、100合単位でベット。オッズは番付と調子で決まり、格下に張るほど高配当。締切は各取組の始まる直前だ。" },
+  { icon: "🥋", title: "決まり手も予想できるぞ！", body: "勝敗と一緒に「決まり手」も予想すると、的中でさらに上乗せの高配当。寄り切りか、上手投げか——通の見せどころ！" },
+  { icon: "❤️", title: "所属一門と推し力士は、オッズが倍になるぞ！", body: "入門時に選んだ一門の力士はオッズ×2、推し力士はさらに×2。🚩懸賞一番は誰でも×3。信じる者は米で救われる。" },
+];
+function openTutorial() { tutSlide = 0; renderTutorial(); }
+function renderTutorial() {
+  const s = TUT_SLIDES[tutSlide];
+  const last = tutSlide === TUT_SLIDES.length - 1;
+  const dots = TUT_SLIDES.map((_, i) =>
+    `<span style="font-size:11px;color:${i === tutSlide ? "var(--maroon)" : "#d8cdb4"}">●</span>`).join(" ");
+  openModal(`
+    <div ontouchstart="tutTouchStart(event)" ontouchend="tutTouchEnd(event)">
+      <h2 class="banner">📖 トト相撲の遊び方</h2>
+      <div class="center" style="padding:12px 4px 4px;min-height:170px">
+        <div style="font-size:44px;margin-bottom:6px">${s.icon}</div>
+        <b style="font-size:16px;color:var(--maroon)">${s.title}</b>
+        <p style="font-size:13px;line-height:2;margin-top:8px;text-align:left">${s.body}</p>
+      </div>
+      <div class="center" style="margin-bottom:10px">${dots}</div>
+      <div style="display:flex;gap:8px">
+        ${tutSlide > 0 ? `<button class="btn btn-ghost" style="flex:1" onclick="tutMove(-1)">← 戻る</button>` : ""}
+        ${last
+      ? `<button class="btn btn-gold" style="flex:2" onclick="closeTutorial()">土俵に上がる</button>`
+      : `<button class="btn btn-primary" style="flex:2" onclick="tutMove(1)">次へ →</button>`}
+      </div>
+      <p class="muted center" style="font-size:11px;margin-top:8px">スワイプでもめくれます。「？」ボタンでいつでも再表示できます</p>
+    </div>`);
+}
+function tutMove(d) {
+  tutSlide = Math.max(0, Math.min(TUT_SLIDES.length - 1, tutSlide + d));
+  renderTutorial();
+}
+function tutTouchStart(e) { tutTouchX = e.touches && e.touches[0] ? e.touches[0].clientX : null; }
+function tutTouchEnd(e) {
+  if (tutTouchX === null) return;
+  const t = e.changedTouches && e.changedTouches[0];
+  if (!t) { tutTouchX = null; return; }
+  const dx = t.clientX - tutTouchX;
+  tutTouchX = null;
+  if (Math.abs(dx) < 40) return; // タップと区別するしきい値
+  tutMove(dx < 0 ? 1 : -1);
+}
+function closeTutorial() {
+  localStorage.setItem(TUT_SEEN_KEY, "1");
+  closeModal();
+  renderTorikumi();
+}
+// 初心者向け「懸賞一番だけ表示」モードが有効か
+// ・この端末で初ベット済みなら無効 / ベット経験があれば無効（別端末のベテランを含む）
+// ・懸賞一番が受付中のときだけ有効（締切後に何も賭けられない事故を防ぐ）
+function kenshoTutorialActive(day) {
+  if (localStorage.getItem(KENSHO_TUT_KEY)) return false;
+  if ((G.stats.totalBets || 0) > 0 || (G.ewBets || []).length > 0) return false;
+  const dd = SIM && SIM.days[day];
+  if (!dd) return false;
+  const ki = dd.torikumi.findIndex(bt => bt.kensho);
+  return ki >= 0 && boutState(day, ki) === "open";
+}
+function skipKenshoTutorial() {
+  localStorage.setItem(KENSHO_TUT_KEY, "1");
+  renderTorikumi();
+}
+
 // ---------------- 起動 ----------------
 async function init() {
   if (localStorage.getItem("a11yMode") === "1") document.body.classList.add("a11y-mode");
@@ -2320,6 +2396,13 @@ function renderTorikumi() {
   if (G.finishedProcessed) { el.innerHTML = configWarning() + offseasonHTML(info); return; }
 
   const day = info.current.day, hm = info.now.hm;
+  // 初ベットの検知: 絞り込み表示を卒業させ、このセッションで見ていた場合は祝う
+  if (!localStorage.getItem(KENSHO_TUT_KEY) && ((G.stats.totalBets || 0) > 0 || (G.ewBets || []).length > 0)) {
+    localStorage.setItem(KENSHO_TUT_KEY, "1");
+    if (kenshoTutWasActive) showToast("🎉 初めての張り、あっぱれ！", "全取組が解放されました。千秋楽まで米を増やそう");
+  }
+  const kenshoTut = kenshoTutorialActive(day);
+  if (kenshoTut) kenshoTutWasActive = true;
   const modeBanner = `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
       <span class="muted" style="font-size:12px">${DATA_MODE === "real" ? "🛰 実データ連動中（場所中は約10分間隔で自動更新）" : "🎲 シミュレーションモード（実データ未取得）"}</span>
@@ -2334,6 +2417,7 @@ function renderTorikumi() {
     <span class="muted" style="font-size:11px">並び順：</span>
     <button class="btn btn-sm ${sm === "banzuke" ? "btn-primary" : "btn-ghost"}" onclick="setSortMode('banzuke')">番付順</button>
     <button class="btn btn-sm ${sm === "time" ? "btn-primary" : "btn-ghost"}" onclick="setSortMode('time')">時系列順</button>
+    <button class="btn btn-sm btn-ghost" onclick="openTutorial()" title="遊び方を表示" style="min-width:34px">？</button>
   </div>`;
 
   // 本日の取組（各取組の直前まで受付・結果は随時反映）— アコーディオン
@@ -2359,8 +2443,23 @@ function renderTorikumi() {
     }
     // デフォルト: 受付中の取組が残っていれば開、全取組終了なら閉
     const openToday = UI.accToday !== undefined ? UI.accToday : openCount > 0;
-    let cards = ewCardHTML(day);
-    displayOrder(day).forEach(i => { cards += boutCardHTML(dd.torikumi[i], i, day); });
+    let cards;
+    if (kenshoTut) {
+      // 初心者チュートリアル: 懸賞一番だけに絞り、最初の1ベットまで誘導する
+      const ki = dd.torikumi.findIndex(bt => bt.kensho);
+      cards = `
+        <div class="note" style="border:2px solid var(--gold);background:#fff8ea;margin-bottom:8px;line-height:1.9">
+          📖 <b>チュートリアル</b>：まずは<b>🚩懸賞一番</b>（オッズ×3の大盤振る舞い）に賭けてみよう！<br>
+          勝ちそうな力士の名前をタップ → 金額を入れて確定。これで入門完了だ。
+        </div>`
+        + boutCardHTML(dd.torikumi[ki], ki, day)
+        + `<div class="center" style="margin-top:6px">
+            <button class="btn btn-ghost btn-sm" onclick="skipKenshoTutorial()">チュートリアルを飛ばして全取組を表示</button>
+          </div>`;
+    } else {
+      cards = ewCardHTML(day);
+      displayOrder(day).forEach(i => { cards += boutCardHTML(dd.torikumi[i], i, day); });
+    }
     html += `
     <details class="acc" ${openToday ? "open" : ""} ontoggle="UI.accToday=this.open">
       <summary class="day-banner">💪 ${dayKanji(day)} 取組・結果
@@ -2374,7 +2473,8 @@ function renderTorikumi() {
   }
 
   // 翌日の前売り（18:00以降）— アコーディオン（デフォルト開）
-  if (hm >= NEXT_OPEN_HM && day < 15 && !G.finishedProcessed) {
+  // チュートリアル中（懸賞一番のみ表示）は情報量を絞るため前売りも非表示
+  if (!kenshoTut && hm >= NEXT_OPEN_HM && day < 15 && !G.finishedProcessed) {
     if (SIM.days[day + 1]) {
       const openTmr = UI.accTomorrow !== undefined ? UI.accTomorrow : true;
       let cards = ewCardHTML(day + 1);
@@ -2396,6 +2496,12 @@ function renderTorikumi() {
     html += `<div class="offseason-note">千秋楽の結果が出揃いました。場所締めの処理をお待ちください。</div>`;
   }
   el.innerHTML = html;
+  // 初めて本場所モードに入ったときだけ、遊び方チュートリアルを自動表示
+  // （既読は端末単位。他のモーダルが開いているときは邪魔しない）
+  if (!localStorage.getItem(TUT_SEEN_KEY) && !tutAutoShown && !$("#modal-area").innerHTML) {
+    tutAutoShown = true;
+    openTutorial();
+  }
 }
 
 // 東西対抗カード（オッズ＝結果確定後の勝ち数の差×日程ボーナス・最初の取組前まで受付）
@@ -4006,9 +4112,11 @@ function showBeginnerGuide() {
       一、腕に覚えが出てきたら「場所予想」の<b>優勝予想</b>じゃ。早く当てるほど、千秋楽の持ち米が<b>丸ごと倍</b>になる大勝負よ。<br><br>
       米が尽きたら……まあ、その時はわしに任せい。」
     </div>
-    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();playPendingModals();renderAll();setTimeout(()=>oyakataSay('beginner'),800)">🥁 稽古開始！</button>
+    <button class="btn btn-gold btn-wide" style="margin-top:12px" onclick="closeModal();tutAutoShown=false;playPendingModals();renderAll();setTimeout(()=>oyakataSay('beginner'),800)">🥁 稽古開始！</button>
   `);
 }
+// ※ tutAutoShown=false: 入門の儀の途中でチュートリアルの自動表示が一度発火して
+//   この心得モーダルに上書きされた場合でも、閉じた後に改めて自動表示されるようにする
 
 // タブを閉じる/バックグラウンドに回す直前に、デバウンス待ち中の同期があれば
 // 即座にフラッシュしておく（優勝予想の確定などの直後にタブを閉じた場合に、
