@@ -1935,7 +1935,9 @@ function scoreFrozen() { return !!(G && G.finishedProcessed && !G.banzukeAnnounc
 // 受け取り済み日はG(=同期・保存対象)側で管理する。以前はlocalStorageの
 // 別キー("dailyBonus")のみで管理しており、ログアウト・リセット時にそのキーが
 // 消えてしまうため、再ログインするたびにボーナスを再度受け取れてしまう不具合があった。
-function canChanko() { return !scoreFrozen() && G.lastChankoDate !== todayStr(); }
+// ちゃんこ・クイズは本場所中のみ（オフシーズンは休止。オフの日数×毎日2,000合が
+// 番付の関取ライン33,000合を軽く超えてしまい、経済が崩れるため）
+function canChanko() { return !isOffseason() && !scoreFrozen() && G.lastChankoDate !== todayStr(); }
 function takeChanko() {
   if (!canChanko()) return false;
   G.lastChankoDate = todayStr();
@@ -1948,11 +1950,11 @@ function takeChanko() {
   return true;
 }
 function canQuiz() {
-  if (scoreFrozen()) return false;
+  if (isOffseason() || scoreFrozen()) return false;
   return !(G.quizToday && G.quizToday.date === todayStr() && G.quizToday.count >= 1);
 }
 function getQuiz() {
-  if (scoreFrozen()) return null;
+  if (isOffseason() || scoreFrozen()) return null;
   if (G.quizToday.date !== todayStr()) G.quizToday = { date: todayStr(), count: 0 };
   if (G.quizToday.count >= 1) return null; // 1日1問まで
   const unanswered = QUIZ.map((q, i) => i).filter(i => !G.answeredQuiz.includes(i));
@@ -2707,9 +2709,10 @@ function offseasonHTML(info) {
       ? `あなたの番付：<b>${r.banzuke.levelName}</b><br>`
       : `📜 <b>番付編成会議</b>（千秋楽後の水曜10:00）にて番付発表！<br><span class="muted">それまでスコアは凍結・ちゃんこ/クイズもお休み</span><br>`)
     : "";
+  // ちゃんこ・クイズは本場所中のみ（オフシーズンは休止）
   const bonusArea = frozen
     ? `<div class="offseason-note" style="padding:10px">🧘 力士は番付発表まで謹慎中。ちゃんこ・クイズはお休みです。</div>`
-    : (bonusRowHTML() ? bonusRowHTML() + `<p class="muted center">オフシーズン中もちゃんことクイズで米を蓄えられます</p>` : "");
+    : "";
   return `
     <div class="offseason-note">
       <b style="font-size:17px">🌙 ${G.finishedProcessed && info.current ? "千秋楽 打ち止め" : "オフシーズン"}</b><br>
@@ -2826,7 +2829,7 @@ function renderSougou() {
           🌾 来場所の初期持ち米<br>
           基本 ${fmt(START_POINTS)}合${k.bonus ? ` ＋ 編成会議ボーナス <b style="color:var(--maroon)">${fmt(k.bonus)}合</b>` : `<span class="muted">（編成会議ボーナスは関取以上で加算）</span>`}<br>
           現在の持ち米 <b style="font-size:17px;color:var(--maroon)">${fmt(G.points)}合</b>
-          <span class="muted" style="font-size:11px">（ちゃんこ・クイズ・番付予想ボーナスで上積みできます）</span>
+          <span class="muted" style="font-size:11px">（番付予想の的中ボーナスで上積みできます。ちゃんこ・クイズは本場所中のみ）</span>
         </div>
         <div class="center" style="margin-top:8px">${count}</div>
       </div>`;
@@ -2855,11 +2858,7 @@ function renderSougou() {
       </div>`;
   }
 
-  // ちゃんこ・クイズ（凍結中はオフ）
-  if (!scoreFrozen()) {
-    const bonus = bonusRowHTML();
-    if (bonus) html += bonus + `<p class="muted center">オフシーズン中もちゃんことクイズで米を蓄えられます</p>`;
-  }
+  // ちゃんこ・クイズはオフシーズン中は休止（オフの稼ぎで番付経済が崩れるのを防ぐ）
   el.innerHTML = html;
 }
 
@@ -3074,8 +3073,12 @@ function yosouFormHTML(sched) {
   if (!p) return "";
   const cands = yosouCandidates();
   const locked = !!p.confirmed;
-  const opt = sel => `<option value="">－ 未選択 －</option>` + cands.map(n =>
-    `<option value="${esc(n)}" ${sel === n ? "selected" : ""}>${esc(n)}</option>`).join("");
+  // 同じ力士は2枠以上に置けない: 他の枠で選択済みの力士はグレーアウトする
+  const used = new Set(Object.values(p.slots).filter(Boolean));
+  const opt = sel => `<option value="">－ 未選択 －</option>` + cands.map(n => {
+    const taken = used.has(n) && n !== sel;
+    return `<option value="${esc(n)}" ${sel === n ? "selected" : ""} ${taken ? "disabled" : ""}>${esc(n)}${taken ? "（選択済み）" : ""}</option>`;
+  }).join("");
   let rows = "";
   let no = 1;
   YOSOU_SANYAKU.forEach(t => {
@@ -3125,8 +3128,15 @@ function yosouFormHTML(sched) {
 function onYosouSelect(key, value) {
   const p = G.banzukePrediction;
   if (!p || p.confirmed) return;
+  // 重複ガード（グレーアウトをすり抜けた場合の保険）
+  if (value && Object.entries(p.slots).some(([k, v]) => k !== key && v === value)) {
+    showToast("⚠ 重複しています", `${value}は別の枠で選択済みです`);
+    renderYosou();
+    return;
+  }
   if (value) p.slots[key] = value; else delete p.slots[key];
   save();
+  renderYosou(); // 他のプルダウンのグレーアウト状態を更新
 }
 function onYosouCount(tierKey, delta) {
   const p = G.banzukePrediction;
