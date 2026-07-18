@@ -1762,6 +1762,19 @@ async function signInWithLoginId(loginId, password) {
   const fullState = saveRows && saveRows[0] && saveRows[0].full_state;
   return { ok: true, row: rows && rows[0], fullState, loginId };
 }
+// 自分の「今場所どの力士に何回賭けたか」の集計（賭け動向の共有用・力士名がキー）
+function betTrendOf() {
+  const t = {};
+  (G.bets || []).forEach(b => {
+    const dd = SIM && SIM.days[b.day];
+    const bout = dd && dd.torikumi[b.bout];
+    if (!bout) return;
+    const r = rk(b.side === "east" ? bout.east : bout.west);
+    if (r) t[r.name] = (t[r.name] || 0) + 1;
+  });
+  return t;
+}
+
 async function pushProfile() {
   if (!SB || !MYID || !G) return;
   // 他端末が同じアカウントで先に新しい状態を書き込んでいないか確認する。
@@ -1796,12 +1809,16 @@ async function pushProfile() {
     comment: G.profile.comment || "",
     updated_at: nowIso
   };
+  // 賭け動向（力士名→今場所のベット件数）。SIMが今場所のものでない時は列ごと省略し、
+  // 既存のクラウド値を誤って空で上書きしない（upsertは省略した列を保持する）
+  if (SIM && SIM.key === G.bashoKey) row.bet_trend = betTrendOf();
   let { error } = await SB.from("players").upsert(row);
-  if (error && /final_points|history|comment/.test(error.message)) {
+  if (error && /final_points|history|comment|bet_trend/.test(error.message)) {
     // 列が未作成の環境向けフォールバック
     delete row.final_points;
     delete row.history;
     delete row.comment;
+    delete row.bet_trend;
     ({ error } = await SB.from("players").upsert(row));
   }
   if (error) console.warn("同期失敗:", error.message);
@@ -1844,11 +1861,11 @@ function syncCloud() {
 async function fetchLeaderboard(bashoKey) {
   if (!SB) return null;
   let { data, error } = await SB.from("players")
-    .select("id, shikona, ichimon, title, points, hits, bets, basho_count, final_points, history, comment")
+    .select("id, shikona, ichimon, title, points, hits, bets, basho_count, final_points, history, comment, bet_trend")
     .eq("basho_key", bashoKey)
     .order("points", { ascending: false })
     .limit(200);
-  if (error && /final_points|history|comment/.test(error.message)) {
+  if (error && /final_points|history|comment|bet_trend/.test(error.message)) {
     ({ data, error } = await SB.from("players")
       .select("id, shikona, ichimon, title, points, hits, bets, basho_count")
       .eq("basho_key", bashoKey)
@@ -3517,13 +3534,60 @@ function renderBashoTab() {
     </div>`;
   }
 
+  // みんなの賭け動向（取組予想でどの力士が人気か。オンライン時のみ）
+  const trendCard = SB ? `
+    <div class="card"><h3>📊 みんなの賭け動向（今場所）</h3>
+      <div id="trend-area"><p class="muted center">読み込み中…</p></div>
+    </div>` : "";
+
   el.innerHTML = `
     <div class="card"><h3>🏆 優勝予想</h3>${yusho}</div>
     <div class="card"><h3>🎖 三賞予想（殊勲・敢闘・技能）</h3>${sansho}</div>
+    ${trendCard}
     ${newsCard}
     <div class="card"><h3>⭐ 優勝争い（上位10名・${dayKanji(dd)}終了時点）</h3>
       <table class="banzuke"><tr><th>順</th><th>力士</th><th>成績</th></tr>${starRows}</table>
     </div>`;
+  if (SB) fillBetTrend(info.current.key);
+}
+
+// 賭け動向の集計と描画: 全プレイヤーのbet_trend（力士名→件数）を合算し、
+// 人気トップ10を横棒グラフで表示する
+async function fillBetTrend(bashoKey) {
+  const el = $("#trend-area");
+  if (!el) return;
+  const list = await fetchLeaderboard(bashoKey);
+  if (!list) { el.innerHTML = `<p class="muted center">取得できませんでした（通信状況をご確認ください）</p>`; return; }
+  const agg = {};
+  let voters = 0;
+  list.forEach(p => {
+    if (!p.bet_trend || typeof p.bet_trend !== "object") return;
+    const names = Object.keys(p.bet_trend);
+    if (!names.length) return;
+    voters++;
+    names.forEach(n => { agg[n] = (agg[n] || 0) + (Number(p.bet_trend[n]) || 0); });
+  });
+  const ranked = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (!ranked.length) {
+    el.innerHTML = `<p class="muted center">まだ賭けデータがありません。みんなが賭けると人気力士が見えてきます</p>`;
+    return;
+  }
+  const total = Object.values(agg).reduce((s, v) => s + v, 0);
+  const max = ranked[0][1];
+  el.innerHTML = `
+    <div class="note">今場所の取組予想を全員分集計（${voters}人・のべ${fmt(total)}件）。人気に乗るか、逆張りするか。</div>
+    ${ranked.map(([name, c], i) => {
+      const pct = Math.round(c / total * 100);
+      const w = Math.max(4, Math.round(c / max * 100));
+      const oshi = name === G.profile.oshiName ? "❤️" : "";
+      return `
+      <div style="display:flex;align-items:center;gap:8px;margin:5px 0">
+        <span class="muted" style="width:18px;text-align:right;font-size:11px">${i + 1}</span>
+        <span style="width:96px;font-weight:bold;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(name)}${oshi}</span>
+        <div style="flex:1;background:#eee3cd;border-radius:4px;height:14px;overflow:hidden"><div style="width:${w}%;height:100%;background:var(--maroon)"></div></div>
+        <span style="font-size:12px;width:74px;text-align:right">${c}件（${pct}%）</span>
+      </div>`;
+    }).join("")}`;
 }
 // ⚡ 電撃演出（全てを懸けた瞬間）
 function playThunder(done) {
