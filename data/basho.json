@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-18T09:20:04.188Z",
+ "updatedAt": "2026-07-18T09:30:20.040Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -279,6 +279,10 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "大の里、前日金星の伯乃富士を電車道で圧倒して３連勝「冬眠していた化け物が目覚めた」の声 日刊スポーツ 2026/7/18 18:26",
+   "u": "https://news.yahoo.co.jp/articles/eb4d92e775ffd9747762c94aec103de2ed076fee"
+  },
+  {
    "t": "平幕の獅司に土、無敗が消える…大関琴桜は関脇熱海富士に寄り切られ黒星先行 読売新聞オンライン 2026/7/18 18:08",
    "u": "https://news.yahoo.co.jp/articles/18e3e38a22689031aa87ed56c53d971f6e4671ff"
   },
@@ -293,10 +297,6 @@
   {
    "t": "豊昇龍が５勝目 平戸海に勝ち連敗回避 横綱初優勝にはもう負けられない スポーツ報知 2026/7/18 17:55",
    "u": "https://news.yahoo.co.jp/articles/39cc2a1cec2a368ec8c565eafd2f511b177f4c9c"
-  },
-  {
-   "t": "大の里 “横綱キラー”伯乃富士に完勝！3連勝で白星先行 霧島、安青錦ら1敗7人がV争いトップ スポニチアネックス 2026/7/18 17:54",
-   "u": "https://news.yahoo.co.jp/articles/ee54f48dd6060fe7da68d6537412522d4e009e74"
   }
  ],
  "awards": null,
