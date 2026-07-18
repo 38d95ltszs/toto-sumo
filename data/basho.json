@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-18T07:57:58.874Z",
+ "updatedAt": "2026-07-18T08:08:14.364Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -279,6 +279,10 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "獅司が初黒星 錦富士に敗れ、７日目で幕内全勝消える スポーツ報知 2026/7/18 16:58",
+   "u": "https://news.yahoo.co.jp/articles/d1f943b630d97782d054b9724b0dfee0854a25bf"
+  },
+  {
    "t": "41歳玉鷲 通算出場1800回を白星で飾るも「記録に関心ない」 関心があるのは… 日刊スポーツ 2026/7/18 16:54",
    "u": "https://news.yahoo.co.jp/articles/3c5a773b27ec70a9aca7c4f12a4dabae81945754"
   },
@@ -293,10 +297,6 @@
   {
    "t": "炎鵬、連敗「２」で止めて３勝４敗「自分を信じてやるだけ。まだまだこれから」後半戦へ意気込み 日刊スポーツ 2026/7/18 16:49",
    "u": "https://news.yahoo.co.jp/articles/6937691d47b2ac7983804c68759c605d6009dfcd"
-  },
-  {
-   "t": "平幕・獅司が初黒星 7日目で幕内全勝消える 錦富士に完敗「下から手が…対応できなかった」 スポニチアネックス 2026/7/18 16:32",
-   "u": "https://news.yahoo.co.jp/articles/10bee909b22be785c97482a25e7995cf6a5a641d"
   }
  ],
  "awards": null,
@@ -1262,15 +1262,15 @@
    {
     "e": "宇良",
     "w": "藤青雲",
-    "k": null,
-    "win": null,
+    "k": "寄り倒し",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "正代",
     "w": "高安",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "w",
     "fusen": false
    },
    {
