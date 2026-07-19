@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-19T08:40:12.115Z",
+ "updatedAt": "2026-07-19T08:50:28.561Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -284,6 +284,10 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "豊昇龍が６勝目 大栄翔に勝ち、優勝争いに食らいつく スポーツ報知 2026/7/19 17:45",
+   "u": "https://news.yahoo.co.jp/articles/1b41bbaa837e65a62b5161c384b92c4bdca89156"
+  },
+  {
    "t": "安青錦が１敗で首位を堅持 激しい相撲で、土俵下に落ちた際には、左足を気にする様子も 大関復帰にあと３勝 スポーツ報知 2026/7/19 17:36",
    "u": "https://news.yahoo.co.jp/articles/c2544cc3b22141b51da4a6b31a5ae3a0653aaf37"
   },
@@ -298,10 +302,6 @@
   {
    "t": "土俵際でジャンプした「大の里」は横綱として“姑息”か？ 改めて問いたい「死に体」の判断基準…大の里は「負け」でも、豪ノ山を「勝ち」とすることへの違和感 デイリー新潮 2026/7/19 17:00",
    "u": "https://news.yahoo.co.jp/articles/aff4ee046bee02671a98d119af3e5fd52dbabd84"
-  },
-  {
-   "t": "玉鷲が５勝目 好調要因は「ケアとストレッチ」猛暑の名古屋で報道陣にも体調気遣う 日刊スポーツ 2026/7/19 16:53",
-   "u": "https://news.yahoo.co.jp/articles/81d505af6a1202cdcbd116bd0124464d1f1d4872"
   }
  ],
  "awards": null,
@@ -1360,15 +1360,15 @@
    {
     "e": "豊昇龍",
     "w": "大栄翔",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "平戸海",
     "w": "琴櫻",
-    "k": null,
-    "win": null,
+    "k": "引き落とし",
+    "win": "w",
     "fusen": false
    },
    {
