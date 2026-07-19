@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-19T07:38:31.318Z",
+ "updatedAt": "2026-07-19T07:48:48.086Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -284,6 +284,10 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "嵐富士が勇み足で初黒星 新十両ストレート給金逃すも「内容は悪くない」連勝７で止まる 日刊スポーツ 2026/7/19 16:44",
+   "u": "https://news.yahoo.co.jp/articles/63b4ed58b00b5e7d4720159c02aeeccb19b67e27"
+  },
+  {
    "t": "相撲協会、中京大と連携協定締結 文化発展目的に 共同通信 2026/7/19 16:37",
    "u": "https://news.yahoo.co.jp/articles/9fa8e58a59130afb5627d4c0ad93ea123c2bdee8"
   },
@@ -298,10 +302,6 @@
   {
    "t": "西十両１１枚目の炎鵬が逆転のすくい投げで２連勝し４勝４敗に「必死だった。後半戦は辛抱。すべて我慢強く」 スポーツ報知 2026/7/19 16:09",
    "u": "https://news.yahoo.co.jp/articles/c495783582a891923710699ea6a1c14bb668a838"
-  },
-  {
-   "t": "炎鵬が逆転のすくい投げで大歓声を浴びる ４勝４敗から後半のカギは「辛抱ですね」 日刊スポーツ 2026/7/19 16:03",
-   "u": "https://news.yahoo.co.jp/articles/830205931ce1a08b2f17226fcbd0b1e4e2370a90"
   }
  ],
  "awards": null,
@@ -1430,22 +1430,22 @@
    {
     "e": "狼雅",
     "w": "藤青雲",
-    "k": null,
-    "win": null,
+    "k": "上手投げ",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "正代",
     "w": "藤凌駕",
-    "k": null,
-    "win": null,
+    "k": "上手投げ",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "朝白龍",
     "w": "翔猿",
-    "k": null,
-    "win": null,
+    "k": "け返し",
+    "win": "w",
     "fusen": false
    },
    {
