@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-19T06:47:08.391Z",
+ "updatedAt": "2026-07-19T06:57:24.436Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -284,6 +284,10 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "元十両の幕下・大花竜が勝ち越しに王手 「場所前は調子が良くなかったがいまのところは体が動いている」 スポーツ報知 2026/7/19 15:46",
+   "u": "https://news.yahoo.co.jp/articles/a200a1241266c177dc46da79126f18197181f5f3"
+  },
+  {
    "t": "東海大柔道部出身・岡田、勝ち越し王手 時健龍に１年前の雪辱 スポーツ報知 2026/7/19 15:45",
    "u": "https://news.yahoo.co.jp/articles/7ec497228a59ca27d219f19ba749d1cf709a6fbd"
   },
@@ -298,10 +302,6 @@
   {
    "t": "39歳“土俵の妖精”、24歳差190センチの巨漢を“電車道”！ 史上ワースト“41場所連続負け越し”記録に「待った」をかける激勝 ABEMA TIMES 2026/7/19 15:33",
    "u": "https://news.yahoo.co.jp/articles/1fcf90c4d4f1c9d7ffd233e2bb9269f75f681364"
-  },
-  {
-   "t": "元ラグビーＵ―２０日本代表・原口、「天岳富士」のしこ名で新序出世披露 スポーツ報知 2026/7/19 15:11",
-   "u": "https://news.yahoo.co.jp/articles/db4c4be87f5a85a5415a99dae0bc81b83c8e09b1"
   }
  ],
  "awards": null,
