@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-19T08:50:28.561Z",
+ "updatedAt": "2026-07-19T09:00:45.461Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -276,6 +276,7 @@
    "白鷹山"
   ],
   "8": [
+   "若ノ勝",
    "若隆景",
    "欧勝海",
    "白鷹山"
@@ -284,24 +285,24 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "綱とりの大関霧島が７勝目 大関復帰狙う安青錦も１敗キープも左足負傷か 横綱大の里が復調気配の４連勝 デイリースポーツ 2026/7/19 17:57",
+   "u": "https://news.yahoo.co.jp/articles/3950ced8baf9c86b584baba52030f32faccfbce6"
+  },
+  {
+   "t": "カド番の琴桜が４勝目 星を五分に 平戸海に勝つ スポーツ報知 2026/7/19 17:56",
+   "u": "https://news.yahoo.co.jp/articles/f295a9addae2b2260fb441a3f28172136a586d4c"
+  },
+  {
+   "t": "霧島、安青錦ら1敗でトップ並走 安青錦、大関復帰へあと3勝も…左足気にする表情も 横綱＆大関陣安泰 スポニチアネックス 2026/7/19 17:56",
+   "u": "https://news.yahoo.co.jp/articles/510df742df80a4403fa4eb18c41d5f8bb8d23afd"
+  },
+  {
+   "t": "大の里が４連勝で５勝目 王鵬に勝つ 本来の相撲が戻ってきた スポーツ報知 2026/7/19 17:53",
+   "u": "https://news.yahoo.co.jp/articles/7b0fc71fbbe0047be2bb3c8a7c8de5dca85be745"
+  },
+  {
    "t": "豊昇龍が６勝目 大栄翔に勝ち、優勝争いに食らいつく スポーツ報知 2026/7/19 17:45",
    "u": "https://news.yahoo.co.jp/articles/1b41bbaa837e65a62b5161c384b92c4bdca89156"
-  },
-  {
-   "t": "安青錦が１敗で首位を堅持 激しい相撲で、土俵下に落ちた際には、左足を気にする様子も 大関復帰にあと３勝 スポーツ報知 2026/7/19 17:36",
-   "u": "https://news.yahoo.co.jp/articles/c2544cc3b22141b51da4a6b31a5ae3a0653aaf37"
-  },
-  {
-   "t": "綱取りの霧島が１敗で首位を守る 熱海富士に勝利 スポーツ報知 2026/7/19 17:34",
-   "u": "https://news.yahoo.co.jp/articles/4b65c29acdc544fbfc017e8b8d20d1283ab695b8"
-  },
-  {
-   "t": "安青錦が７勝目も今後へ不安 転倒時に左足負傷か 足引きずり、土俵に手を付く場面も 大関復帰まであと３勝 デイリースポーツ 2026/7/19 17:33",
-   "u": "https://news.yahoo.co.jp/articles/e820599696fe5c6be0cc64cd366de2cfba340d1e"
-  },
-  {
-   "t": "土俵際でジャンプした「大の里」は横綱として“姑息”か？ 改めて問いたい「死に体」の判断基準…大の里は「負け」でも、豪ノ山を「勝ち」とすることへの違和感 デイリー新潮 2026/7/19 17:00",
-   "u": "https://news.yahoo.co.jp/articles/aff4ee046bee02671a98d119af3e5fd52dbabd84"
   }
  ],
  "awards": null,
@@ -1353,8 +1354,8 @@
    {
     "e": "王鵬",
     "w": "大の里",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "w",
     "fusen": false
    },
    {
