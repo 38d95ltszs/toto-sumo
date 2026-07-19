@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-19T09:31:38.278Z",
+ "updatedAt": "2026-07-19T09:41:55.413Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -285,24 +285,24 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "上位陣、初めて安泰 1敗は綱とり霧島ら4人―大相撲名古屋場所8日目 時事通信 2026/7/19 18:37",
+   "u": "https://news.yahoo.co.jp/articles/dede84a44eb05155a50252515be5169987b98f8c"
+  },
+  {
+   "t": "大の里5勝目、豊昇龍2敗守る 1敗に霧島、安青錦ら4人 共同通信 2026/7/19 18:37",
+   "u": "https://news.yahoo.co.jp/articles/b56cb822605a75ed834063ff14aa3f7b071a0a19"
+  },
+  {
+   "t": "「とにかく目立つ」特等席に姿を現した名物好角家「若々しく美しい」と話題に “３代目山の神”の素敵な孝行にも注目「揃ってお出ましの日だ」 THE DIGEST 2026/7/19 18:37",
+   "u": "https://news.yahoo.co.jp/articles/f852ff846bd9ce14db230d7525360fdb424ccb1e"
+  },
+  {
    "t": "大の里は王鵬を寄り切り５勝、豊昇龍は大栄翔を押し出し６勝…中日終え首位は１敗の４人 読売新聞オンライン 2026/7/19 18:10",
    "u": "https://news.yahoo.co.jp/articles/11bc14063e5a4be260c4fe5c314ca5bec56dfb0c"
   },
   {
    "t": "安青錦が１敗守るも左足負傷か 大関復帰まで残り３勝も「足大丈夫か」と心配の声 日刊スポーツ 2026/7/19 18:10",
    "u": "https://news.yahoo.co.jp/articles/4cf3dab20daba6ee3bec106fe21fd3f3cb0cf862"
-  },
-  {
-   "t": "２横綱２大関は今場所初めてそろって勝つ 綱取りの霧島、安青錦はともに１敗を守る カド番の琴桜は４勝目 １敗で首位は霧島ら４人 スポーツ報知 2026/7/19 17:59",
-   "u": "https://news.yahoo.co.jp/articles/b6cb9d910b337c23ab779055674604d240a67533"
-  },
-  {
-   "t": "綱とりの大関霧島が７勝目 大関復帰狙う安青錦も１敗キープも左足負傷か １敗首位は４人 横綱大の里が復調気配の４連勝 デイリースポーツ 2026/7/19 17:57",
-   "u": "https://news.yahoo.co.jp/articles/3950ced8baf9c86b584baba52030f32faccfbce6"
-  },
-  {
-   "t": "カド番の琴桜が４勝目 星を五分に 平戸海に勝つ スポーツ報知 2026/7/19 17:56",
-   "u": "https://news.yahoo.co.jp/articles/f295a9addae2b2260fb441a3f28172136a586d4c"
   }
  ],
  "awards": null,
