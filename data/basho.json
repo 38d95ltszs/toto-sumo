@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-20T08:00:44.154Z",
+ "updatedAt": "2026-07-20T08:11:03.708Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -291,6 +291,14 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "琴栄峰が勝ち越して首位キープ 過去２敗の藤凌駕から初勝利の要因は「立ち合いで前傾姿勢を保てている」 スポーツ報知 2026/7/20 17:08",
+   "u": "https://news.yahoo.co.jp/articles/d334acc603603016bffce4a4285b7bd8a3a6abc7"
+  },
+  {
+   "t": "高安が2敗対決を制して7勝目 機敏な動きで錦富士を土俵の外へ吹っ飛ばす スポニチアネックス 2026/7/20 16:59",
+   "u": "https://news.yahoo.co.jp/articles/130e4cbf009c325efd6c03b50a67446caeda0aeb"
+  },
+  {
    "t": "琴栄峰が藤凌駕に快勝 2日目から8連勝で自己最速の勝ち越し！1敗でトップ守る スポニチアネックス 2026/7/20 16:55",
    "u": "https://news.yahoo.co.jp/articles/287de6fb549f83e85826d0d58808825d003cf9c0"
   },
@@ -301,14 +309,6 @@
   {
    "t": "新十両の嵐富士が勝ち越し「昨日のことは忘れた」勇み足で初黒星から切り替え １敗キープ 日刊スポーツ 2026/7/20 16:40",
    "u": "https://news.yahoo.co.jp/articles/2a27dd989552c81e089ff79cb4813761e8aa294b"
-  },
-  {
-   "t": "【大相撲】炎鵬が３連勝で白星先行 長丁場にも「しっかり寝ているんで大丈夫。10時間ぐらい」 東スポWEB 2026/7/20 16:35",
-   "u": "https://news.yahoo.co.jp/articles/7e74d0e998c97c81fbaa889cf15263982efa18da"
-  },
-  {
-   "t": "炎鵬が３連勝で白星先行「ここが勝負だと思って出ました」猛暑の名古屋も会場が「寒い」 日刊スポーツ 2026/7/20 16:27",
-   "u": "https://news.yahoo.co.jp/articles/19fc59e454d2936bad531df6665e79fc3fe6d1ae"
   }
  ],
  "awards": null,
@@ -1565,8 +1565,8 @@
    {
     "e": "宇良",
     "w": "若元春",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
