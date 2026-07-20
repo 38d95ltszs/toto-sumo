@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-20T08:41:59.397Z",
+ "updatedAt": "2026-07-20T08:52:18.845Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -291,24 +291,24 @@
  "injuredCarry": [],
  "news": [
   {
-   "t": "【大相撲】獅司が幕内の勝ち越し第１号「うれししです」お決まりのフレーズで喜びを表現 東スポWEB 2026/7/20 17:10",
-   "u": "https://news.yahoo.co.jp/articles/86679a03d64e8506a2e284b215a0e674a3e2f4e1"
+   "t": "カド番の大関・琴桜が５敗目で再び黒星先行 上手投げに足がついていかず スポーツ報知 2026/7/20 17:49",
+   "u": "https://news.yahoo.co.jp/articles/8dc44dda4c509c0a7604c14578c4a742867f6b38"
   },
   {
-   "t": "琴栄峰が勝ち越して首位キープ 過去２敗の藤凌駕から初勝利の要因は「立ち合いで前傾姿勢を保てている」 スポーツ報知 2026/7/20 17:08",
-   "u": "https://news.yahoo.co.jp/articles/d334acc603603016bffce4a4285b7bd8a3a6abc7"
+   "t": "横綱・大の里が４敗目 過去４戦全勝だった安青錦に初めて敗れる スポーツ報知 2026/7/20 17:49",
+   "u": "https://news.yahoo.co.jp/articles/24116f8f3c0a2a3ae5bded6303b1e726ff7aa555"
   },
   {
-   "t": "高安が2敗対決を制して7勝目 機敏な動きで錦富士を土俵の外へ吹っ飛ばす スポニチアネックス 2026/7/20 16:59",
-   "u": "https://news.yahoo.co.jp/articles/130e4cbf009c325efd6c03b50a67446caeda0aeb"
+   "t": "安青錦が勝ち越しで首位守る 大関復帰にあと２勝 過去４戦全敗の大の里を初めて撃破 スポーツ報知 2026/7/20 17:48",
+   "u": "https://news.yahoo.co.jp/articles/13331f9feb0e95eae4b544611ddf5cc35fa07136"
   },
   {
-   "t": "琴栄峰が藤凌駕に快勝 2日目から8連勝で自己最速の勝ち越し！1敗でトップ守る スポニチアネックス 2026/7/20 16:55",
-   "u": "https://news.yahoo.co.jp/articles/287de6fb549f83e85826d0d58808825d003cf9c0"
+   "t": "綱取りの霧島が手痛い２敗目 美ノ海に苦杯 スポーツ報知 2026/7/20 17:42",
+   "u": "https://news.yahoo.co.jp/articles/f1d5121596e0846913240396104a4b00d2e3433e"
   },
   {
-   "t": "獅司が勝ち越し１号 自身最速で３場所ぶりの給金直し 先場所後に左肩を手術して好結果に「もっと早くやればよかった」 スポーツ報知 2026/7/20 16:42",
-   "u": "https://news.yahoo.co.jp/articles/5106ad040f46961ab6340897a2513fadb62ecaaa"
+   "t": "霧島、痛恨２敗目 綱とりに向けて極めて厳しい黒星に 日刊スポーツ 2026/7/20 17:42",
+   "u": "https://news.yahoo.co.jp/articles/0171dc0ecd8f87cf65c9ef12aeb55bb83ecc0f14"
   }
  ],
  "awards": null,
@@ -1509,15 +1509,15 @@
    {
     "e": "安青錦",
     "w": "大の里",
-    "k": null,
-    "win": null,
+    "k": "上手出し投げ",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "霧島",
     "w": "美ノ海",
-    "k": null,
-    "win": null,
+    "k": "突き落とし",
+    "win": "w",
     "fusen": false
    },
    {
