@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-20T08:11:03.708Z",
+ "updatedAt": "2026-07-20T08:21:22.341Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -291,6 +291,10 @@
  "injuredCarry": [],
  "news": [
   {
+   "t": "【大相撲】獅司が幕内の勝ち越し第１号「うれししです」お決まりのフレーズで喜びを表現 東スポWEB 2026/7/20 17:10",
+   "u": "https://news.yahoo.co.jp/articles/86679a03d64e8506a2e284b215a0e674a3e2f4e1"
+  },
+  {
    "t": "琴栄峰が勝ち越して首位キープ 過去２敗の藤凌駕から初勝利の要因は「立ち合いで前傾姿勢を保てている」 スポーツ報知 2026/7/20 17:08",
    "u": "https://news.yahoo.co.jp/articles/d334acc603603016bffce4a4285b7bd8a3a6abc7"
   },
@@ -305,10 +309,6 @@
   {
    "t": "獅司が勝ち越し１号 自身最速で３場所ぶりの給金直し 先場所後に左肩を手術して好結果に「もっと早くやればよかった」 スポーツ報知 2026/7/20 16:42",
    "u": "https://news.yahoo.co.jp/articles/5106ad040f46961ab6340897a2513fadb62ecaaa"
-  },
-  {
-   "t": "新十両の嵐富士が勝ち越し「昨日のことは忘れた」勇み足で初黒星から切り替え １敗キープ 日刊スポーツ 2026/7/20 16:40",
-   "u": "https://news.yahoo.co.jp/articles/2a27dd989552c81e089ff79cb4813761e8aa294b"
   }
  ],
  "awards": null,
@@ -1551,15 +1551,15 @@
    {
     "e": "豪ノ山",
     "w": "隆の勝",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "大栄翔",
     "w": "正代",
-    "k": null,
-    "win": null,
+    "k": "突き出し",
+    "win": "e",
     "fusen": false
    },
    {
