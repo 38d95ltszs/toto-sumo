@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-20T08:21:22.341Z",
+ "updatedAt": "2026-07-20T08:31:40.896Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -1530,22 +1530,22 @@
    {
     "e": "熱海富士",
     "w": "一山本",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "平戸海",
     "w": "琴勝峰",
-    "k": null,
-    "win": null,
+    "k": "突き落とし",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "藤ノ川",
     "w": "王鵬",
-    "k": null,
-    "win": null,
+    "k": "すくい投げ",
+    "win": "e",
     "fusen": false
    },
    {
