@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-20T07:09:08.860Z",
+ "updatedAt": "2026-07-20T07:19:28.375Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -1628,15 +1628,15 @@
    {
     "e": "獅司",
     "w": "阿炎",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "朝紅龍",
     "w": "尊富士",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "w",
     "fusen": false
    }
   ]
