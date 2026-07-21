@@ -151,20 +151,53 @@ function parseKyujo(html) {
 }
 
 // ---------- 新着ニュース見出しのパース ----------
-function parseNews(html) {
+// ---------- 大相撲ニュース見出し（Google ニュースRSS） ----------
+// クエリ「大相撲」で日本語ニュースを取得する。RSSはXMLなので構造が安定しており、
+// サイトのHTML変更に強い。リンクはGoogleニュースの記事URL（ブラウザで開けば元記事へ遷移）。
+const NEWS_RSS = "https://news.google.com/rss/search?q=" + encodeURIComponent("大相撲") + "&hl=ja&gl=JP&ceid=JP:ja";
+
+// 簡易HTMLエンティティ・デコード（RSSタイトルは &amp; や &#39; を含む）
+function decodeEntities(s) {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&#0*(\d+);/g, (_, n) => String.fromCodePoint(+n))
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+// GoogleニュースRSSの<item>から見出しとリンクを取り出す
+function parseNews(xml) {
   const out = [];
   const seen = new Set();
-  const re = /<a[^>]+href="(https:\/\/news\.yahoo\.co\.jp\/articles\/[^"#]+)"[^>]*>([\s\S]*?)<\/a>/g;
-  let m;
-  while ((m = re.exec(html)) && out.length < 6) {
-    const url = m[1];
-    if (seen.has(url)) continue;
+  const items = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
+  for (const it of items) {
+    if (out.length >= 6) break;
+    const tm = it.match(/<title>([\s\S]*?)<\/title>/);
+    const lm = it.match(/<link>([\s\S]*?)<\/link>/);
+    if (!tm || !lm) continue;
+    let title = decodeEntities(tm[1]);
+    const url = decodeEntities(lm[1]);
+    // Googleニュースの見出しは「記事タイトル - メディア名」形式。末尾のメディア名は落とす
+    title = title.replace(/\s+-\s+[^-]+$/, "").trim();
+    if (title.length < 8 || seen.has(url)) continue;
     seen.add(url);
-    const title = m[2].replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    if (title.length < 8) continue;
     out.push({ t: title, u: url });
   }
   return out;
+}
+
+// ニュースRSSを取得して見出し配列を返す（失敗時は空配列）
+async function fetchNews() {
+  try {
+    const res = await fetch(NEWS_RSS, { headers: { "User-Agent": UA } });
+    if (!res.ok) { console.log(`ニュースRSS: HTTP ${res.status} スキップ`); return []; }
+    return parseNews(await res.text());
+  } catch (e) {
+    console.log("ニュースRSS取得失敗:", e.message);
+    return [];
+  }
 }
 
 // ---------- 表彰力士（幕内優勝・三賞）のパース ----------
@@ -353,8 +386,6 @@ for (const d of fetchDays) {
   }
   const ky = parseKyujo(html);
   if (ky.length) kyujoToday = [...new Set([...kyujoToday, ...ky])];
-  const nw = parseNews(html);
-  if (nw.length) news = nw;
   const parsed = parseDay(html);
   if (!parsed.length) { console.log(`day${d}: 取組なし（未発表）`); continue; }
   const bouts = [];
@@ -385,6 +416,10 @@ for (const d of fetchDays) {
   console.log(`day${d}: ${bouts.length}番 (結果確定 ${resolved})`);
   await new Promise(r => setTimeout(r, 1500)); // 行儀よく1.5秒待つ
 }
+
+// 大相撲ニュース見出し（Googleニュースの「大相撲」クエリ・1場所につき毎回更新）
+news = await fetchNews();
+console.log(`ニュース見出し: ${news.length}件`);
 
 // 表彰発表（幕内優勝・三賞）: 千秋楽翌日以降のみ取得を試みる
 let awards = null;
