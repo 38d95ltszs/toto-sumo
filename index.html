@@ -880,15 +880,33 @@ function boutState(day, i) {
 // 日程ボーナス（初日・中日〜・鉄火場）はその差に掛け合わせる。
 // ============================================================
 const EW_ODDS = 3; // 互角(差0や取組未確定)の場合のフォールバック値
-// 日程ボーナス（初日・8〜12日目=×2、13日目〜千秋楽=×3の鉄火場）
+
+// ============================================================
+// オッズ倍付けボーナスの新旧切替
+// 令和8年七月場所で日程ボーナスと一門・推しの重複により最大24倍前後まで
+// 膨らみ、持ち米インフレが過剰になったため、九月場所（2026-09）以降は
+// 「文脈に紐づいたボーナスだけ」の新体系に切り替える:
+//   廃止: 日程ボーナス（初日/2週目×2・終盤鉄火場×3。東西対抗の分も含む）
+//   変更: 一門×2→×1.5 / 推し×2→×1.5（重複可＝×2.25。推し活支援の意図）
+//   新設: 初白星ボーナス×2（その場所でまだ0勝の力士。0勝0敗も含む）
+//   維持: 勝ち越し王手×2・懸賞一番×3・怪我明け×2
+// 進行中の場所には遡って適用しない（場所キーで判定。精算も張った時のオッズで行う）
+// ============================================================
+const ODDS_V2_FROM = "2026-09";
+let BUILDING_KEY = null; // SIM構築中の場所キー（構築中はSIM.keyがまだ無いため）
+function oddsV2(key) { return String(key || BUILDING_KEY || (SIM && SIM.key) || "") >= ODDS_V2_FROM; }
+
+// 日程ボーナス（旧体系のみ: 初日・8〜12日目=×2、13日目〜千秋楽=×3の鉄火場）
 function dayBonusOf(day) {
   return (day === 1 || (day >= 8 && day <= 12)) ? 2 : (day >= 13 && day <= 15) ? 3 : 1;
 }
-// 結果確定後の東西対抗オッズ（勝ち数の差×日程ボーナス）。差が0(引き分け)の間は
+// 結果確定後の東西対抗オッズ。新体系では「勝ち数の差」がそのまま倍率、
+// 旧体系ではさらに日程ボーナスを掛け合わせる。差が0(引き分け)の間は
 // 便宜上EW_ODDSを返す（引き分けは全額返還になるため実際には使われない）。
 function ewFinalOdds(day, counts) {
   const margin = Math.abs(counts.e - counts.w);
-  return margin > 0 ? round2(margin * dayBonusOf(day)) : EW_ODDS;
+  const mult = oddsV2() ? 1 : dayBonusOf(day);
+  return margin > 0 ? round2(margin * mult) : EW_ODDS;
 }
 function ewCounts(day) {
   const dd = SIM && SIM.days[day];
@@ -952,6 +970,7 @@ function cancelEwBet(day) {
 // ============================================================
 // buildSim(key, uptoDay): 1..uptoDay の取組を構築、resultsReady(d)の日は結果も確定
 function buildSim(key, uptoDay) {
+  BUILDING_KEY = key; // 構築中のオッズ新旧判定用（makeBoutDetが参照）
   const rngB = rngOf(key + "::basho");
   const rikishi = {};
   RIKISHI.forEach(r => {
@@ -1028,10 +1047,17 @@ function makeBoutDet(east, west, rikishi, day) {
   const kachiE = rikishi[east.id].wins === 7, kachiW = rikishi[west.id].wins === 7;
   if (kachiE) oddsE *= 2;
   if (kachiW) oddsW *= 2;
-  // 日程ボーナス: 初日と2週目(8〜12日目)は全取組×2、終盤3日間(13日目〜千秋楽)は鉄火場の×3
-  const dayBonus = dayBonusOf(day);
+  const v2 = oddsV2();
+  // 初白星ボーナス（新体系のみ）: その場所でまだ1勝もしていない力士への応援×2
+  // ※0勝0敗も対象＝初日は全力士に付く（仕様確認済み）。勝ち越し王手(7勝)とは定義上共存しない
+  const hatsuE = v2 && rikishi[east.id].wins === 0;
+  const hatsuW = v2 && rikishi[west.id].wins === 0;
+  if (hatsuE) oddsE *= 2;
+  if (hatsuW) oddsW *= 2;
+  // 日程ボーナス（旧体系のみ）: 初日と2週目(8〜12日目)は全取組×2、終盤3日間は鉄火場の×3
+  const dayBonus = v2 ? 1 : dayBonusOf(day);
   if (dayBonus > 1) { oddsE *= dayBonus; oddsW *= dayBonus; }
-  return { east: east.id, west: west.id, oddsE: round2(oddsE), oddsW: round2(oddsW), kachiE, kachiW, dayBonus, kensho: false, result: null };
+  return { east: east.id, west: west.id, oddsE: round2(oddsE), oddsW: round2(oddsW), kachiE, kachiW, hatsuE, hatsuW, dayBonus, kensho: false, result: null };
 }
 
 function strengthDet(id, rikishi) {
@@ -1062,8 +1088,10 @@ function profileLocked() {
 function finalOdds(bout, side, day) {
   let o = side === "east" ? bout.oddsE : bout.oddsW;
   const r = rk(side === "east" ? bout.east : bout.west);
-  if (r.ichimon === G.profile.ichimon) o *= 2;
-  if (r.id === G.profile.oshiId) o *= 2;
+  // 一門・推しボーナス: 新体系では×1.5ずつ（重複可＝×2.25。推し活支援の意図）、旧体系は×2ずつ
+  const fanMult = oddsV2() ? 1.5 : 2;
+  if (r.ichimon === G.profile.ichimon) o *= fanMult;
+  if (r.id === G.profile.oshiId) o *= fanMult;
   if (bout.kensho) o *= 3; // 懸賞一番はライトユーザー向けの大盤振る舞い
   return round2(o);
 }
@@ -1351,7 +1379,7 @@ function settlePending() {
     } else {
       const winSide = c.e > c.w ? "east" : "west";
       b.hit = b.side === winSide;
-      // オッズ＝勝ち数の差×日程ボーナス（例: 東16勝-西5勝→11倍、初日なら×2で22倍）
+      // オッズ＝勝ち数の差（例: 東16勝-西5勝→11倍。旧体系の場所は日程ボーナスも掛かる）
       b.odds = ewFinalOdds(b.day, c);
       const gain = b.hit ? Math.round(b.amount * b.odds) : 0;
       if (gain) { G.points += gain; s.totalEarned += gain; }
@@ -2094,6 +2122,7 @@ function applyRealBanzuke() {
 // 実データから SIM を構築（buildSim と同じ形を返す）
 function buildSimFromReal(uptoDay) {
   const key = REAL.bashoKey;
+  BUILDING_KEY = key; // 構築中のオッズ新旧判定用（makeBoutDetが参照）
   const rikishi = {};
   // 怪我明けB条件: 前場所5日以上休場 → 場所を通して×2
   const carry = REAL.injuredCarry || [];
@@ -2200,19 +2229,24 @@ const TUT_SEEN_KEY = "toto-sumo-honbasho-tutorial-seen";
 let tutAutoShown = false;       // 同一セッションで自動表示を繰り返さない
 let tutSlide = 0;
 let tutTouchX = null;
-const TUT_SLIDES = [
-  { icon: "🥁", title: "トト相撲へようこそ！", body: "本場所の勝敗を予想する、ファンメイドの非公式アプリです。実際の大相撲の結果と連動して、毎日遊べます。" },
-  { icon: "🌾", title: "米を増やせ！", body: "賭けの元手は「持ち米」。まずは33,000合、関取を目指して集めよう！千秋楽の持ち米で、次の場所のトト番付が決まるぞ。" },
-  { icon: "💪", title: "勝つのはどっちだ！？", body: "幕内の取組を見て、勝つと思う方に賭けよう！オッズは番付と調子で毎日変わる。締切は各取組の直前だ。" },
-  { icon: "🥋", title: "決まり手予想もできる！", body: "大相撲の決まり手の半分は、押し出しと寄り切り。取り口まで読み切って賭ければ、的中でさらに高配当！" },
-  { icon: "❤️", title: "推さば、推せ！", body: "所属一門と推し力士は、オッズが2倍に！中日までは「変化」（一門・推しの変更）もできるぞ。" },
-  { icon: "⏰", title: "さあ、時間いっぱい！", body: "まずは🚩懸賞一番（オッズ×3）から。遊び方は「？」ボタンでいつでも読み返せます。" },
-];
+// スライド5の倍率は新旧のオッズ体系（oddsV2）で変わるため、表示のたびに生成する
+function tutSlides() {
+  const fan = oddsV2() ? "1.5倍ずつ（重ねて2.25倍）" : "2倍";
+  return [
+    { icon: "🥁", title: "トト相撲へようこそ！", body: "本場所の勝敗を予想する、ファンメイドの非公式アプリです。実際の大相撲の結果と連動して、毎日遊べます。" },
+    { icon: "🌾", title: "米を増やせ！", body: "賭けの元手は「持ち米」。まずは33,000合、関取を目指して集めよう！千秋楽の持ち米で、次の場所のトト番付が決まるぞ。" },
+    { icon: "💪", title: "勝つのはどっちだ！？", body: "幕内の取組を見て、勝つと思う方に賭けよう！オッズは番付と調子で毎日変わる。締切は各取組の直前だ。" },
+    { icon: "🥋", title: "決まり手予想もできる！", body: "大相撲の決まり手の半分は、押し出しと寄り切り。取り口まで読み切って賭ければ、的中でさらに高配当！" },
+    { icon: "❤️", title: "推さば、推せ！", body: `所属一門と推し力士は、オッズが${fan}に！中日までは「変化」（一門・推しの変更）もできるぞ。` },
+    { icon: "⏰", title: "さあ、時間いっぱい！", body: "まずは🚩懸賞一番（オッズ×3）から。遊び方は「？」ボタンでいつでも読み返せます。" },
+  ];
+}
 function openTutorial() { tutSlide = 0; renderTutorial(); }
 function renderTutorial() {
-  const s = TUT_SLIDES[tutSlide];
-  const last = tutSlide === TUT_SLIDES.length - 1;
-  const dots = TUT_SLIDES.map((_, i) =>
+  const slides = tutSlides();
+  const s = slides[tutSlide];
+  const last = tutSlide === slides.length - 1;
+  const dots = slides.map((_, i) =>
     `<span style="font-size:11px;color:${i === tutSlide ? "var(--maroon)" : "#d8cdb4"}">●</span>`).join(" ");
   openModal(`
     <div ontouchstart="tutTouchStart(event)" ontouchend="tutTouchEnd(event)">
@@ -2233,7 +2267,7 @@ function renderTutorial() {
     </div>`);
 }
 function tutMove(d) {
-  tutSlide = Math.max(0, Math.min(TUT_SLIDES.length - 1, tutSlide + d));
+  tutSlide = Math.max(0, Math.min(tutSlides().length - 1, tutSlide + d));
   renderTutorial();
 }
 function tutTouchStart(e) { tutTouchX = e.touches && e.touches[0] ? e.touches[0].clientX : null; }
@@ -2398,7 +2432,7 @@ function renderTorikumi() {
   const day = info.current.day, hm = info.now.hm;
   const modeBanner = `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
-      <span class="muted" style="font-size:12px">${DATA_MODE === "real" ? "🛰 実データ連動中（場所中は約10分間隔で自動更新）" : "🎲 シミュレーションモード（実データ未取得）"}</span>
+      <span class="muted" style="font-size:12px">${DATA_MODE === "real" ? "🛰 実データ連動中（1日3回・自動更新）" : "🎲 シミュレーションモード（実データ未取得）"}</span>
       <button class="btn btn-ghost btn-sm" onclick="onNewsRefresh(this)" style="white-space:nowrap">↻ 更新</button>
     </div>`;
   let html = configWarning() + modeBanner + bonusRowHTML();
@@ -2491,7 +2525,8 @@ function ewCardHTML(day) {
   const bet = (G.ewBets || []).find(b => b.day === day);
   const open = UI.ewOpen && UI.ewOpen.day === day && st === "open";
   const clickable = st === "open";
-  const dayBonus = dayBonusOf(day);
+  // 日程ボーナスは旧体系のみ（新体系は「勝ち数の差」がそのまま倍率）
+  const dayBonus = oddsV2() ? 1 : dayBonusOf(day);
   const margin = Math.abs(c.e - c.w);
   // 開始前は日程ボーナスのみ案内、開始後は「今の差なら何倍か」を都度表示（確定後は最終倍率）
   const oddsLabel = st === "open"
@@ -2545,7 +2580,7 @@ function ewCardHTML(day) {
     const sel = UI.ewOpen.side;
     html += `
     <div class="bet-panel">
-      <div class="bet-row"><b>${sel === "east" ? "東方" : "西方"}</b>に賭ける（配当は勝ち数の差×${dayBonus > 1 ? `日程ボーナス${dayBonus}` : "1"}倍。大差で勝つほど高配当）</div>
+      <div class="bet-row"><b>${sel === "east" ? "東方" : "西方"}</b>に賭ける（配当は勝ち数の差がそのまま倍率${dayBonus > 1 ? `×日程ボーナス${dayBonus}` : ""}。大差で勝つほど高配当）</div>
       <div class="bet-row"><label>賭け米</label><input type="number" id="ew-amount-${day}" value="500" step="100" min="100" max="${G.points}"> 合</div>
       <div class="bet-row">
         <button class="btn btn-primary" onclick="onEwConfirm(${day})">この予想で確定</button>
@@ -2586,10 +2621,12 @@ function fighterHTML(bout, i, side, day, state) {
   const winner = bout.result && bout.result.winner === id;
   const loser = bout.result && bout.result.winner !== id;
   let tags = "";
+  const fan = oddsV2() ? "1.5" : "2"; // 一門・推しの倍率表示（新体系は×1.5）
   if (side === "east" ? bout.kachiE : bout.kachiW) tags += `<span class="f-tag" style="background:#e8f5e9;color:#2e7d32;border:1px solid #9ccc9c">☆勝ち越し王手×2</span> `;
+  if (side === "east" ? bout.hatsuE : bout.hatsuW) tags += `<span class="f-tag" style="background:#fff3e0;color:#b45309;border:1px solid #f2c894">🌅初白星×2</span> `;
   if (st.injured) tags += `<span class="f-tag tag-injured">🩹怪我明け×2</span> `;
-  if (r.ichimon === G.profile.ichimon) tags += `<span class="f-tag tag-ichimon">一門×2</span> `;
-  if (id === G.profile.oshiId) tags += `<span class="f-tag tag-oshi">⭐推し×2</span>`;
+  if (r.ichimon === G.profile.ichimon) tags += `<span class="f-tag tag-ichimon">一門×${fan}</span> `;
+  if (id === G.profile.oshiId) tags += `<span class="f-tag tag-oshi">⭐推し×${fan}</span>`;
   const clickable = state === "open";
   return `
     <button class="fighter ${picked ? "picked-" + side : ""}" ${clickable ? `onclick="openBetPanel(${i},'${side}',${day})"` : 'style="cursor:default;' + (loser ? "opacity:.55" : "") + '"'}>
@@ -3618,7 +3655,7 @@ async function onNewsRefresh(btn) {
   await ensureBashoState();
   renderAll();
   playPendingModals();
-  showToast("📰 更新", `データを読み直しました（クロールは自動・日中は毎時、取組中は10分毎）`);
+  showToast("📰 更新", `データを読み直しました（自動取得は1日3回。最新の結果は次回の取得で反映されます）`);
 }
 
 function onYusho() {
