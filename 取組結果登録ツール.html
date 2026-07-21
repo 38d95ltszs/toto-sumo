@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>トト相撲 データ登録ツール</title>
+<style>
+  :root{ --maroon:#6b1e28; --maroon-d:#4a141c; --gold:#c9a24b; --gold-l:#e8cf8f;
+    --washi:#faf3e6; --ink:#3a2c22; --line:#e2d3b4; --ok:#2e7d4f; --ng:#b23b3b; }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--washi);color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic Medium","Meiryo","Noto Sans JP",sans-serif;padding-bottom:60px;}
+  header{background:linear-gradient(135deg,var(--maroon),var(--maroon-d));color:var(--washi);padding:16px;text-align:center;}
+  header h1{margin:0;font-size:18px;}
+  header p{margin:4px 0 0;font-size:12px;color:var(--gold-l);}
+  .wrap{max-width:820px;margin:0 auto;padding:14px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:14px;}
+  .card h3{margin:0 0 8px;font-size:14px;color:var(--maroon);}
+  .step{display:inline-block;background:var(--maroon);color:var(--gold-l);border-radius:50%;width:22px;height:22px;line-height:22px;text-align:center;font-size:12px;margin-right:6px;}
+  label.fld{display:block;font-size:12px;color:#8a7a63;margin:8px 0 3px;}
+  input[type=text],input[type=number],textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:inherit;}
+  textarea{min-height:140px;white-space:pre;overflow:auto;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;}
+  .row > div{flex:1;min-width:120px;}
+  .btn{border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:bold;cursor:pointer;}
+  .btn-main{background:var(--maroon);color:var(--washi);}
+  .btn-ghost{background:#fff;color:var(--maroon);border:1px solid var(--maroon);}
+  .btn-gold{background:var(--gold);color:var(--maroon-d);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .note{font-size:12px;line-height:1.7;color:#6a5c4c;background:#fff8ea;border-left:4px solid var(--gold);border-radius:6px;padding:8px 10px;margin:8px 0;}
+  table.pv{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px;}
+  table.pv th{background:var(--maroon);color:var(--gold-l);padding:6px 4px;}
+  table.pv td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:center;vertical-align:middle;}
+  .win{color:var(--ok);font-weight:bold;} .lose{color:#999;}
+  .warn{color:var(--ng);font-weight:bold;}
+  .rikishi-e{color:#1f5fa8;} .rikishi-w{color:#8a2b2b;}
+  .badge{display:inline-block;font-size:10px;border-radius:4px;padding:1px 5px;margin-left:3px;}
+  .badge-warn{background:#fbeaea;color:var(--ng);border:1px solid #e0a3a3;}
+  .badge-ok{background:#e9f6ee;color:var(--ok);border:1px solid #a9d6ba;}
+  .summary{font-size:13px;margin:8px 0;}
+  #out{width:100%;min-height:120px;font-family:monospace;font-size:11px;white-space:pre;}
+  .status{font-size:12px;padding:6px 10px;border-radius:6px;margin-top:6px;}
+  .status.on{background:#e9f6ee;color:var(--ok);}
+  .status.off{background:#f3ece0;color:#8a7a63;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🥁 トト相撲 データ登録ツール</h1>
+  <p>ABEMA TIMES から番付・取組結果を貼り付けて data/basho.json を作る（手動運用）</p>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h3><span class="step">1</span>場所と、作業のもとになる basho.json</h3>
+    <div class="row">
+      <div><label class="fld">場所キー（YYYY-MM）</label><input type="text" id="bashoKey" placeholder="2026-09"></div>
+    </div>
+    <label class="fld">現在の data/basho.json（任意・マージ元。無ければ空のまま新規作成）</label>
+    <input type="file" id="jsonFile" accept=".json,application/json" style="font-size:12px;margin-bottom:6px">
+    <textarea id="jsonPaste" placeholder="（任意）既存の basho.json をここに貼り付けてもOK"></textarea>
+    <div style="margin-top:8px"><button class="btn btn-ghost" onclick="initWork()">📂 読み込む / 新規作成する</button></div>
+    <div class="status off" id="workStatus">未読み込み。まず「読み込む / 新規作成する」を押してください。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="step">2</span>番付を登録（ABEMAの「番付」ページ）</h3>
+    <div class="note">
+      ABEMAの番付ページ（東・番付・西の3列）を、見出し行ごと貼り付け。成績（n勝n敗）は無視します。<br>
+      成績行が無い力士（全休など）も、番付ラベルを目印に東西を振り分けます。
+    </div>
+    <textarea id="bzSrc" placeholder="東	番付	西&#10;豊昇龍&#10;6勝3敗&#10;横綱	大の里&#10;5勝4敗&#10;…"></textarea>
+    <div style="margin-top:8px"><button class="btn btn-main" onclick="analyzeBanzuke()">🔍 番付を解析</button></div>
+    <div id="bzPreview"></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="step">3</span>取組を登録（本日の結果 ＋ 翌日の割）</h3>
+    <div class="row"><div><label class="fld">本日は何日目（1〜15）</label><input type="number" id="dayNo" min="1" max="15" value="1"></div></div>
+    <div class="note">
+      毎晩、<b>本日の取組結果</b>と<b>翌日の取組（割）</b>を一緒に登録します。翌日分を入れておかないと、プレイヤーが前売りを賭けられません。<br>
+      千秋楽（翌日なし）のときは下段を空欄に。
+    </div>
+    <label class="fld">本日の取組結果（ABEMAの「取組結果」ページ・◯/●あり）</label>
+    <textarea id="tkSrc" placeholder="東	決まり手	西&#10;横綱	豊昇龍&#10;1勝0敗&#10;◯	渡し込み&#10;取組動画&#10;●	王鵬&#10;…"></textarea>
+    <label class="fld" style="margin-top:10px">翌日の取組＝割（ABEMAの「取組」ページ・結果なし）※千秋楽は空欄</label>
+    <textarea id="tkNextSrc" placeholder="東	決まり手	西&#10;東前頭四枚目	大栄翔&#10;6勝3敗&#10;大の里&#10;5勝4敗&#10;西横綱&#10;…"></textarea>
+    <div style="margin-top:8px"><button class="btn btn-main" onclick="analyzeTorikumi()">🔍 解析（本日＋翌日）</button></div>
+    <div id="tkPreview"></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="step">4</span>優勝・三賞を登録（千秋楽後・ABEMAや協会発表を見て手入力）</h3>
+    <div class="note">
+      千秋楽の結果が出たら入力してください。これが無いと場所が締まらず、総合発表（番付編成会議）も進みません。<br>
+      三賞は<b>複数受賞なら「、」または空白で区切って</b>入力。該当者なしは空欄でOK。優勝力士名は番付と一致している必要があります。
+    </div>
+    <label class="fld">幕内最高優勝（1名）</label>
+    <input type="text" id="awYusho" list="nameList" placeholder="例：豊昇龍">
+    <div class="row">
+      <div><label class="fld">殊勲賞</label><input type="text" id="awShukun" list="nameList" placeholder="例：安青錦（複数可）"></div>
+      <div><label class="fld">敢闘賞</label><input type="text" id="awKanto" list="nameList" placeholder="複数可・空欄可"></div>
+      <div><label class="fld">技能賞</label><input type="text" id="awGino" list="nameList" placeholder="複数可・空欄可"></div>
+    </div>
+    <datalist id="nameList"></datalist>
+    <div style="margin-top:10px"><button class="btn btn-main" onclick="commitAwards()">✅ 優勝・三賞を basho.json に登録</button></div>
+    <div id="awPreview"></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="step">5</span>出力</h3>
+    <div class="summary" id="outSummary">番付・取組を登録すると、ここに basho.json が組み上がります。</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn btn-gold" onclick="downloadJson()">💾 basho.json をダウンロード</button>
+      <button class="btn btn-ghost" onclick="copyAll()">📋 全文コピー</button>
+    </div>
+    <textarea id="out" readonly></textarea>
+  </div>
+
+</div>
+
+<script>
+let WORK = null;      // 組み立て中の basho.json オブジェクト
+let BZ_PARSED = [];   // 番付プレビュー中の行
+let TK_PARSED = [];   // 本日の取組結果プレビュー
+let TK_NEXT = [];     // 翌日の割プレビュー
+
+// ---------- 共通 ----------
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function readSource(cb){
+  const file=document.getElementById("jsonFile").files[0];
+  const paste=document.getElementById("jsonPaste").value.trim();
+  const parse=t=>{try{return JSON.parse(t);}catch(e){alert("basho.jsonの解析に失敗: "+e.message);return undefined;}};
+  if(file){const r=new FileReader();r.onload=()=>cb(parse(r.result));r.readAsText(file);}
+  else if(paste){cb(parse(paste));}
+  else cb(null);
+}
+function initWork(){
+  readSource(src=>{
+    if(src===undefined)return;
+    WORK = (src&&typeof src==="object")?src:{};
+    const key=document.getElementById("bashoKey").value.trim();
+    if(!WORK.bashoKey && key) WORK.bashoKey=key;
+    if(WORK.bashoKey && !key) document.getElementById("bashoKey").value=WORK.bashoKey;
+    if(!WORK.days||typeof WORK.days!=="object") WORK.days={};
+    const s=document.getElementById("workStatus");
+    s.className="status on";
+    const bzN=Array.isArray(WORK.banzuke)?WORK.banzuke.length:0;
+    const dN=Object.keys(WORK.days).length;
+    s.textContent=`読み込み完了：${src?"既存データにマージ":"新規作成"}。番付 ${bzN}人 / 取組登録済み ${dN}日分`;
+    refreshNameList();
+    refreshOut();
+  });
+}
+function ensureWork(){ if(!WORK){ alert("先に手順1で「読み込む / 新規作成する」を押してください"); return false; } return true; }
+
+// ---------- 番付パース ----------
+function normRank(s){
+  s=s.trim();
+  if(s==="横綱")return "Y"; if(s==="大関")return "O"; if(s==="関脇")return "S"; if(s==="小結")return "K";
+  let m=s.match(/^前頭(筆頭|\d+)(枚目)?$/); if(m)return "M"+(m[1]==="筆頭"?1:m[1]);
+  m=s.match(/^十両(筆頭|\d+)(枚目)?$/); if(m)return "J"+(m[1]==="筆頭"?1:m[1]);
+  return null;
+}
+const isRecord=t=>/^\d+勝\d+敗/.test(t)||/^\d+休$/.test(t);
+function parseBanzuke(text){
+  let toks=text.replace(/\r/g,"").split(/[\t\n]/).map(s=>s.trim()).filter(Boolean);
+  toks=toks.filter(t=>t!=="東"&&t!=="西"&&t!=="番付");
+  const isRk=t=>normRank(t)!==null;
+  const rows=[];
+  toks.forEach((t,i)=>{
+    if(!isRk(t))return;
+    let east=null;
+    for(let j=i-1;j>=0;j--){ if(isRk(toks[j]))break; if(isRecord(toks[j]))continue; east=toks[j];break; }
+    let west=null;
+    for(let j=i+1;j<toks.length;j++){ if(isRk(toks[j]))break; if(isRecord(toks[j]))continue; west=toks[j];break; }
+    rows.push({rankLabel:t, rank:normRank(t), east, west});
+  });
+  return rows;
+}
+function analyzeBanzuke(){
+  const text=document.getElementById("bzSrc").value;
+  if(!text.trim()){alert("番付を貼り付けてください");return;}
+  BZ_PARSED=parseBanzuke(text);
+  const total=BZ_PARSED.reduce((n,r)=>n+(r.east?1:0)+(r.west?1:0),0);
+  const missing=BZ_PARSED.filter(r=>!r.east||!r.west).length;
+  const rows=BZ_PARSED.map(r=>`<tr>
+    <td class="rikishi-e"><b>${esc(r.east)||"<span class='warn'>（無）</span>"}</b></td>
+    <td><b>${esc(r.rankLabel)}</b></td>
+    <td class="rikishi-w"><b>${esc(r.west)||"<span class='warn'>（無）</span>"}</b></td></tr>`).join("");
+  document.getElementById("bzPreview").innerHTML=`
+    <div class="summary">解析：${BZ_PARSED.length}番付・力士 <b>${total}</b>人 ${total===42?'<span class="badge badge-ok">幕内42人ちょうど</span>':`<span class="badge badge-warn">42人ではありません</span>`} ${missing?`<span class="warn">・東西が欠けた行 ${missing}件</span>`:""}</div>
+    <table class="pv"><thead><tr><th>東</th><th>番付</th><th>西</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="margin-top:10px"><button class="btn btn-main" onclick="commitBanzuke()">✅ この番付を basho.json に登録</button></div>`;
+}
+function commitBanzuke(){
+  if(!ensureWork())return;
+  const list=[];
+  BZ_PARSED.forEach(r=>{
+    if(r.east)list.push({name:r.east,rank:r.rank,side:"東"});
+    if(r.west)list.push({name:r.west,rank:r.rank,side:"西"});
+  });
+  if(list.length<20){alert("番付が20人未満です。ゲームは20人以上でないと実データを読みません。貼り付け範囲を確認してください。");return;}
+  WORK.banzuke=list;
+  if(!WORK.bashoKey)WORK.bashoKey=document.getElementById("bashoKey").value.trim();
+  refreshNameList();
+  refreshOut();
+  alert(`番付 ${list.length}人を登録しました。`);
+}
+
+// ---------- 取組パース（◯/●アンカー方式） ----------
+const isMark=t=>t==="◯"||t==="○"||t==="●"||t==="〇";
+const isWinMark=t=>t==="◯"||t==="○"||t==="〇";
+function parseTorikumi(text){
+  let toks=text.replace(/\r/g,"").split(/[\t\n]/).map(s=>s.trim()).filter(Boolean);
+  toks=toks.filter(t=>t!=="取組動画"&&t!=="決まり手"&&t!=="東"&&t!=="西");
+  const markIdx=[]; toks.forEach((t,i)=>{if(isMark(t))markIdx.push(i);});
+  const bouts=[];
+  for(let p=0;p+1<markIdx.length;p+=2){
+    const a=markIdx[p],b=markIdx[p+1];
+    const kimarite=(b-a>=2)?toks.slice(a+1,b).join(""):"";
+    const eastName=toks[a-2]||"", eastPos=toks[a-3]||"", westName=toks[b+1]||"", westPos=toks[b+3]||"";
+    const badMark=isWinMark(toks[a])===isWinMark(toks[b]);
+    const fusen=/不戦/.test(kimarite);
+    bouts.push({eastPos,eastName,westPos,westName,kimarite:fusen?"":kimarite,win:isWinMark(toks[a])?"e":"w",fusen,exclude:false,badMark});
+  }
+  return {bouts,markCount:markIdx.length};
+}
+// 翌日の取組（割）パース。◯/●が無いので、各取組が「位置\t力士名」のタブ行で
+// 始まる5行構成を利用する。タブ行を先頭アンカーにし、左（タブ行の名前）＝東方、
+// 直後の最初の非成績行＝西方。位置ラベルの東西（例:西小結）は番付上の東西で
+// 取組の東西とは別物なので、位置ラベルではなく「行の左右」で東西を決める。
+function parseWari(text){
+  const isRec=t=>/勝\d+敗/.test(t)||/^\d+休$/.test(t);
+  const lines=text.replace(/\r/g,"").split(/\n/);
+  const bouts=[];
+  let cur=null;
+  const finalize=c=>{ if(!c)return; const west=c.rest.find(t=>!isRec(t))||""; bouts.push({eastPos:c.pos,eastName:c.name,westName:west,westPos:c.rest[c.rest.length-1]||""}); };
+  for(const raw of lines){
+    const line=raw.trim();
+    if(!line)continue;
+    const parts=line.split(/\t/).map(s=>s.trim()).filter(Boolean);
+    if(parts.includes("決まり手"))continue;      // 見出し行を除外
+    if(parts.length>=2){ finalize(cur); cur={pos:parts[0],name:parts[1],rest:[]}; }
+    else if(cur){ cur.rest.push(line); }
+  }
+  finalize(cur);
+  return bouts;
+}
+function analyzeTorikumi(){
+  const text=document.getElementById("tkSrc").value;
+  if(!text.trim()){alert("本日の取組結果を貼り付けてください");return;}
+  const {bouts,markCount}=parseTorikumi(text);
+  if(markCount%2!==0)alert("◯/● の数が奇数です（"+markCount+"個）。貼り付け範囲が途中で切れていないか確認してください。");
+  TK_PARSED=bouts;
+  const nextText=document.getElementById("tkNextSrc").value;
+  TK_NEXT=nextText.trim()?parseWari(nextText):[];
+  renderTorikumi();
+}
+function bzNames(){ return (WORK&&Array.isArray(WORK.banzuke))?WORK.banzuke.map(b=>b.name):[]; }
+function nameWarn(name){ const n=bzNames(); if(!n.length||!name)return ""; return n.includes(name)?"":`<span class="badge badge-warn">要確認</span>`; }
+function renderTorikumi(){
+  const names=bzNames();
+  const rows=TK_PARSED.map((b,i)=>{
+    const eWin=b.win==="e",wWin=b.win==="w";
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="rikishi-e"><b>${esc(b.eastName)}</b><br><span style="font-size:10px;color:#999">${esc(b.eastPos)}</span>${nameWarn(b.eastName)}</td>
+      <td class="${eWin?"win":"lose"}">${eWin?"◯":"●"}</td>
+      <td>${b.fusen?"<span class='warn'>不戦</span>":(esc(b.kimarite)||"<span class='warn'>（空）</span>")}</td>
+      <td class="${wWin?"win":"lose"}">${wWin?"◯":"●"}</td>
+      <td class="rikishi-w"><b>${esc(b.westName)}</b><br><span style="font-size:10px;color:#999">${esc(b.westPos)}</span>${nameWarn(b.westName)}</td>
+      <td><input type="checkbox" ${b.fusen?"checked":""} onchange="TK_PARSED[${i}].fusen=this.checked;renderTorikumi()"></td>
+      <td><input type="checkbox" ${b.exclude?"checked":""} onchange="TK_PARSED[${i}].exclude=this.checked;renderTorikumi()"></td>
+    </tr>${b.badMark?`<tr><td colspan="8" class="warn" style="text-align:left;font-size:11px">⚠ ◯/●が両方同じ（勝敗が判定できません）。貼り付けを確認してください。</td></tr>`:""}`;
+  }).join("");
+  const active=TK_PARSED.filter(b=>!b.exclude);
+  const nameWarns=names.length?active.filter(b=>!names.includes(b.eastName)||!names.includes(b.westName)).length:0;
+  const day=parseInt(document.getElementById("dayNo").value,10)||0;
+  // 翌日の割プレビュー
+  let nextHtml="";
+  if(TK_NEXT.length){
+    const nrows=TK_NEXT.map((b,i)=>`<tr>
+      <td>${i+1}</td>
+      <td class="rikishi-e"><b>${esc(b.eastName)}</b><br><span style="font-size:10px;color:#999">${esc(b.eastPos)}</span>${nameWarn(b.eastName)}</td>
+      <td style="color:#999">— 対 —</td>
+      <td class="rikishi-w"><b>${esc(b.westName)}</b><br><span style="font-size:10px;color:#999">${esc(b.westPos)}</span>${nameWarn(b.westName)}</td>
+      <td><input type="checkbox" ${b.exclude?"checked":""} onchange="TK_NEXT[${i}].exclude=this.checked;renderTorikumi()"></td>
+    </tr>`).join("");
+    const nActive=TK_NEXT.filter(b=>!b.exclude).length;
+    nextHtml=`
+      <div class="summary" style="margin-top:14px">翌日（<b>${day+1}日目</b>）の割：<b>${TK_NEXT.length}</b>取組（保存 ${nActive}）<span class="badge badge-ok">結果なし・前売り用</span></div>
+      <table class="pv"><thead><tr><th>#</th><th>東方</th><th></th><th>西方</th><th>除外</th></tr></thead><tbody>${nrows}</tbody></table>`;
+  }
+  document.getElementById("tkPreview").innerHTML=`
+    <div class="summary">本日（<b>${day}日目</b>）の結果：<b>${TK_PARSED.length}</b>取組（保存 ${active.length}／除外 ${TK_PARSED.length-active.length}）${nameWarns?` <span class="warn">・名前要確認 ${nameWarns}件</span>`:(names.length?' <span class="badge badge-ok">名前は番付と全一致</span>':' <span class="badge badge-warn">先に番付を登録すると名前照合できます</span>')}</div>
+    <div class="note" style="margin:6px 0"><b>不戦</b>=賭け金全額返還／<b>除外</b>=保存に含めない（十両の混入・優勝決定戦など）。</div>
+    <table class="pv"><thead><tr><th>#</th><th>東</th><th>勝</th><th>決まり手</th><th>勝</th><th>西</th><th>不戦</th><th>除外</th></tr></thead><tbody>${rows}</tbody></table>
+    ${nextHtml}
+    <div style="margin-top:10px"><button class="btn btn-main" onclick="commitTorikumi()">✅ 本日${TK_NEXT.length?"＋翌日":""}の取組を basho.json に登録</button></div>`;
+}
+function commitTorikumi(){
+  if(!ensureWork())return;
+  const day=parseInt(document.getElementById("dayNo").value,10);
+  if(!(day>=1&&day<=15)){alert("日は1〜15で入力してください");return;}
+  const bad=TK_PARSED.filter(b=>!b.exclude&&b.badMark).length;
+  if(bad&&!confirm(`勝敗が判定できない取組が${bad}件あります。このまま登録しますか？`))return;
+  // 本日の結果
+  const arr=TK_PARSED.filter(b=>!b.exclude).map(b=>({e:b.eastName,w:b.westName,k:b.fusen?null:(b.kimarite||null),win:b.win,fusen:!!b.fusen}));
+  WORK.days[String(day)]=arr;
+  // 翌日の割（結果なし＝前売り用。win/kはnull）
+  let nextMsg="";
+  if(TK_NEXT.length){
+    if(day>=15){ nextMsg="\n（千秋楽のため翌日分は登録しませんでした）"; }
+    else{
+      const narr=TK_NEXT.filter(b=>!b.exclude).map(b=>({e:b.eastName,w:b.westName,k:null,win:null,fusen:false}));
+      WORK.days[String(day+1)]=narr;
+      nextMsg=`\n翌日（${day+1}日目）の割 ${narr.length}取組も登録しました。`;
+    }
+  }
+  if(!WORK.bashoKey)WORK.bashoKey=document.getElementById("bashoKey").value.trim();
+  refreshOut();
+  alert(`${day}日目に ${arr.length}取組を登録しました。`+nextMsg);
+}
+
+// ---------- 優勝・三賞 ----------
+function refreshNameList(){
+  const dl=document.getElementById("nameList");
+  dl.innerHTML=bzNames().map(n=>`<option value="${esc(n)}">`).join("");
+}
+// 「、」「,」「・」空白 区切りの氏名文字列 → [{name}]
+function parseNames(str){
+  return (str||"").split(/[、,・\s]+/).map(s=>s.trim()).filter(Boolean).map(name=>({name}));
+}
+function commitAwards(){
+  if(!ensureWork())return;
+  const yusho=document.getElementById("awYusho").value.trim();
+  if(!yusho){alert("幕内最高優勝の力士名を入力してください（三賞のみの登録はできません）");return;}
+  const shukun=parseNames(document.getElementById("awShukun").value);
+  const kanto=parseNames(document.getElementById("awKanto").value);
+  const gino=parseNames(document.getElementById("awGino").value);
+  const names=bzNames();
+  const all=[yusho,...shukun.map(x=>x.name),...kanto.map(x=>x.name),...gino.map(x=>x.name)];
+  const bad=names.length?all.filter(n=>!names.includes(n)):[];
+  if(bad.length&&!confirm("番付に見つからない力士名があります: "+[...new Set(bad)].join("、")+"\n（優勝力士名が一致しないとゲームが推定にフォールバックします）\nこのまま登録しますか？"))return;
+  WORK.awards={yusho:{name:yusho},shukun,kanto,gino};
+  refreshOut();
+  document.getElementById("awPreview").innerHTML=
+    `<div class="summary">登録：優勝 <b>${esc(yusho)}</b>${bad.length?' <span class="warn">(要確認あり)</span>':(names.length?' <span class="badge badge-ok">番付と一致</span>':'')}`
+    +`／殊勲 ${shukun.map(x=>esc(x.name)).join("・")||"なし"}／敢闘 ${kanto.map(x=>esc(x.name)).join("・")||"なし"}／技能 ${gino.map(x=>esc(x.name)).join("・")||"なし"}</div>`;
+}
+
+// ---------- 出力 ----------
+function refreshOut(){
+  if(!WORK)return;
+  WORK.updatedAt=new Date().toISOString();
+  document.getElementById("out").value=JSON.stringify(WORK,null,1);
+  const bzN=Array.isArray(WORK.banzuke)?WORK.banzuke.length:0;
+  const days=Object.keys(WORK.days||{}).sort((a,b)=>a-b);
+  document.getElementById("outSummary").innerHTML=
+    `場所 <b>${esc(WORK.bashoKey||"?")}</b>／番付 <b>${bzN}</b>人${bzN&&bzN<20?' <span class="warn">(20人未満・実データ不可)</span>':""}／取組登録済み：${days.length?days.map(d=>d+"日目").join("・"):"なし"}`
+    + (WORK.awards?" ／優勝三賞:あり":"")+ (WORK.nextBanzuke?" ／来場所番付:あり":"");
+}
+function downloadJson(){
+  if(!WORK){alert("まだ何も登録されていません");return;}
+  const blob=new Blob([JSON.stringify(WORK,null,1)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="basho.json";a.click();URL.revokeObjectURL(a.href);
+}
+function copyAll(){
+  if(!WORK)return;
+  navigator.clipboard.writeText(JSON.stringify(WORK,null,1)).then(()=>alert("basho.json 全文をコピーしました"),()=>alert("コピー失敗。出力欄から手動でどうぞ"));
+}
+</script>
+</body>
+</html>

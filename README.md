@@ -55,7 +55,7 @@ Supabaseプロジェクトの作成からGitHub Pagesでの公開、実データ
 | `index.html` | ゲーム本体（HTML/CSS/JSを1ファイルに集約） |
 | `取組結果登録ツール.html` | 番付・取組結果・優勝三賞を手動登録して `data/basho.json` を作る管理ツール（公開不要・手元で使用） |
 | `scraper/fetch_basho.mjs` | 大相撲ニュース見出しだけをGoogleニュースRSSから取得する軽量スクリプト（任意） |
-| `.github/workflows/update-data.yml` | 上記を1日1回実行しニュースのみ更新するGitHub Actions（任意） |
+| `.github/workflows/update-data.yml` | 上記を1日5回実行しニュースのみ更新するGitHub Actions（任意） |
 | `data/basho.json` | その場所の実データ（番付・取組結果・優勝三賞。ニュースは自動、それ以外は手動登録） |
 | `.nojekyll` | GitHub PagesのJekyllビルドを無効化するための空ファイル |
 
