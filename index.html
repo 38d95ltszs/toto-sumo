@@ -2432,7 +2432,7 @@ function renderTorikumi() {
   const day = info.current.day, hm = info.now.hm;
   const modeBanner = `
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
-      <span class="muted" style="font-size:12px">${DATA_MODE === "real" ? "🛰 実データ連動中（1日3回・自動更新）" : "🎲 シミュレーションモード（実データ未取得）"}</span>
+      <span class="muted" style="font-size:12px">${DATA_MODE === "real" ? "🛰 実データ（運営が手動更新）" : "🎲 シミュレーションモード（実データ未取得）"}</span>
       <button class="btn btn-ghost btn-sm" onclick="onNewsRefresh(this)" style="white-space:nowrap">↻ 更新</button>
     </div>`;
   let html = configWarning() + modeBanner + bonusRowHTML();
@@ -3655,7 +3655,7 @@ async function onNewsRefresh(btn) {
   await ensureBashoState();
   renderAll();
   playPendingModals();
-  showToast("📰 更新", `データを読み直しました（自動取得は1日3回。最新の結果は次回の取得で反映されます）`);
+  showToast("📰 更新", `データを読み直しました（取組結果は運営が手動で登録します。ニュースは自動更新）`);
 }
 
 function onYusho() {
