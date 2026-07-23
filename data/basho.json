@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-07",
- "updatedAt": "2026-07-23T09:37:34.879Z",
+ "updatedAt": "2026-07-23T10:01:16.604Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -2073,6 +2073,148 @@
     "w": "一意",
     "k": "寄り切り",
     "win": "e",
+    "fusen": false
+   }
+  ],
+  "13": [
+   {
+    "e": "豊昇龍",
+    "w": "熱海富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "尊富士",
+    "w": "大の里",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "霧島",
+    "w": "安青錦",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "獅司",
+    "w": "琴櫻",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "高安",
+    "w": "琴勝峰",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "義ノ富士",
+    "w": "琴栄峰",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "平戸海",
+    "w": "王鵬",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "藤ノ川",
+    "w": "美ノ海",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "大栄翔",
+    "w": "隆の勝",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "豪ノ山",
+    "w": "伯乃富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "狼雅",
+    "w": "一山本",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "宇良",
+    "w": "藤凌駕",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "朝乃山",
+    "w": "欧勝馬",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "正代",
+    "w": "阿炎",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "錦富士",
+    "w": "藤青雲",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "若元春",
+    "w": "朝紅龍",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "大青山",
+    "w": "翔猿",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "金峰山",
+    "w": "千代翔馬",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "一意",
+    "w": "御嶽海",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "朝白龍",
+    "w": "阿武剋",
+    "k": null,
+    "win": null,
     "fusen": false
    }
   ]
