@@ -297,8 +297,8 @@ body.a11y-mode :is(
 
 <div id="toast-area"></div>
 <div id="modal-area"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+window.__FAKE_NOW=null;(function(){var _n=Date.now.bind(Date);Date.now=function(){return window.__FAKE_NOW!=null?window.__FAKE_NOW:_n();};})();
 // ============================================================
 // トト相撲 v2.0 — ゲームデータ
 // ============================================================
@@ -4341,6 +4341,156 @@ function flushPendingSync() {
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushPendingSync(); });
 window.addEventListener("pagehide", flushPendingSync);
 
+// ===================== 場所後 試写ハーネス =====================
+const S7_START = Date.UTC(2026, 6, secondSunday(2026, 7));
+const S9_START = Date.UTC(2026, 8, secondSunday(2026, 9));
+const D = 86400e3, H = 3600e3;
+const JUMP = {
+  senshuraku: S7_START + 14 * D + (17 - 9) * H,
+  uchidome:   S7_START + 15 * D + (12 - 9) * H,
+  sougou:     S7_START + 17 * D + (10 - 9) * H,
+  yosou:      S9_START - 20 * D + (12 - 9) * H,
+  happyou:    S9_START - 13 * D + (10 - 9) * H,
+  shonichi:   S9_START + (12 - 9) * H
+};
+let __SHASHA_LEVEL = 9;
+const __ABOVE = { 9: 0, 8: 2, 7: 4, 6: 6, 5: 8 };
+function installLeaderboard(level) {
+  fetchLeaderboard = async () => {
+    if (level < 5) return null;
+    const above = __ABOVE[level] || 0;
+    const list = [];
+    for (let i = 0; i < above; i++) {
+      const p = 45000 + (above - i) * 500;
+      list.push({ id: "dummy" + i, shikona: "上位力士" + (i + 1), ichimon: "出羽海", title: "", points: p, final_points: p, hits: 20, bets: 30, basho_count: 2, comment: "", history: {} });
+    }
+    list.push({ id: "SHASHA", shikona: G.profile.shikona, ichimon: G.profile.ichimon, title: currentTitleName(), points: G.finalPoints, final_points: G.finalPoints, hits: G.hitsThisBasho, bets: G.betsThisBasho, basho_count: 1, comment: "", history: {} });
+    return list;
+  };
+}
+function shashaSeed(level) {
+  closeModal();
+  newGame("試写力士", "出羽海", (RIKISHI[0] && RIKISHI[0].name) || "", "");
+  MYID = "SHASHA";
+  const fp = level >= 5 ? 40000 : 20000;
+  Object.assign(G, {
+    bashoKey: "2026-07", bashoCount: 1, points: fp, finalPoints: fp,
+    finishedProcessed: true, banzukeAnnounced: false, banzukeLevel: 3,
+    betsThisBasho: 30, hitsThisBasho: 18, betDays: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+    banzukePrediction: null, lastKaigi: null,
+    lastResult: {
+      bashoName: bashoNameOf(2026, 7), champion: "豊昇龍", championWins: 13, playoff: false,
+      shukun: "安青錦", kanto: "尊富士", gino: "獅司", yushoResult: null, sanshoResult: null,
+      finalPoints: fp, hits: 18, bets: 30, banzuke: null,
+      kg: round2(fp * 0.15), tawara: round2(fp * 0.15 / 60), yen: Math.round(fp * 0.15 * 600),
+      ichimonWin: false, topIchimon: "出羽海"
+    }
+  });
+  __SHASHA_LEVEL = level;
+  installLeaderboard(level);
+  save();
+  window.__FAKE_NOW = JUMP.uchidome;
+  runShasha();
+}
+function shashaSeedRookie() {
+  localStorage.clear();
+  window.__FAKE_NOW = JUMP.yosou;
+  location.reload();
+}
+async function runShasha() {
+  try { await ensureBashoState(); } catch (e) { console.warn(e); }
+  renderAll();
+  playPendingModals();
+  updateShashaStatus();
+}
+function jumpTo(key) { window.__FAKE_NOW = JUMP[key]; runShasha(); }
+function shashaAutoPredict() {
+  const sched = offseasonSchedule();
+  if (!sched.yosouOpen) { alert("いまは番付予想の受付期間ではありません。先に『番付予想 受付中』へジャンプしてください。"); return; }
+  ensureYosouState(sched);
+  const p = G.banzukePrediction;
+  const cands = yosouCandidates();
+  yosouAllSlots(p.counts).forEach((s, i) => { p.slots[s.key] = cands[i % cands.length]; });
+  p.confirmed = true;
+  save();
+  gotoTab("yosou");
+  updateShashaStatus();
+}
+function shashaGradePredict() {
+  const p = G.banzukePrediction;
+  if (!p || !p.confirmed) { alert("先に受付期間で『番付予想を自動入力＆確定』を押してください。"); return; }
+  const cands = yosouCandidates();
+  const slots = yosouAllSlots(p.counts);
+  const list = [];
+  const SAN = { yokozuna: "Y", ozeki: "O", sekiwake: "S", komusubi: "K" };
+  slots.forEach((s, i) => {
+    let name = p.slots[s.key];
+    if (i % 5 === 0) { name = cands[(cands.indexOf(name) + 7) % cands.length]; }
+    const m = s.key.match(/^(yokozuna|ozeki|sekiwake|komusubi)-slot(\d+)$/);
+    if (m) list.push({ name, rank: SAN[m[1]], side: (+m[2]) % 2 === 0 ? "東" : "西" });
+    else { const mm = s.key.match(/^maegashira(\d+)-(東|西)$/); if (mm) list.push({ name, rank: "M" + mm[1], side: mm[2] }); }
+  });
+  REAL = { bashoKey: "2026-09", nextBanzuke: { bashoKey: "2026-09", list } };
+  p.graded = false; p.result = null; p.detail = null;
+  maybeGradeYosou();
+  renderAll(); playPendingModals();
+  gotoTab("yosou");
+  updateShashaStatus();
+}
+function updateShashaStatus() {
+  const el = document.getElementById("shasha-status");
+  if (!el) return;
+  const info = bashoInfo();
+  const t = jstNow();
+  const dstr = `${t.y}/${t.m}/${t.d} ${String(t.hour).padStart(2,"0")}:${String(t.min).padStart(2,"0")} JST`;
+  const bz = (typeof G !== "undefined" && G) ? (BANZUKE_NAMES[G.banzukeLevel] || "-") : "-";
+  const pts = (typeof G !== "undefined" && G) ? fmt(G.points) : "-";
+  const kaigi = (typeof G !== "undefined" && G && G.lastKaigi) ? `編成会議: ${BANZUKE_NAMES[G.lastKaigi.prevLevel]||"?"}→${BANZUKE_NAMES[G.lastKaigi.newLevel]} (+${fmt(G.lastKaigi.bonus)})` : "編成会議: 未";
+  el.innerHTML = `🕒 ${dstr}<br>モード: <b>${info.current ? "本場所" : "オフシーズン"}</b>／番付: <b>${bz}</b>／持ち米: <b>${pts}</b><br>${kaigi}`;
+}
+function buildDevPanel() {
+  const box = document.createElement("div");
+  box.id = "shasha-panel";
+  box.innerHTML = `
+    <style>
+      #shasha-panel{position:fixed;right:8px;bottom:8px;z-index:99999;width:250px;max-height:85vh;overflow:auto;
+        background:#1c1c1c;color:#eee;font:12px/1.5 sans-serif;border:2px solid #c9a24b;border-radius:10px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+      #shasha-panel h4{margin:8px 0 4px;color:#e8cf8f;font-size:12px;border-bottom:1px solid #555;padding-bottom:2px;}
+      #shasha-panel button{display:block;width:100%;margin:3px 0;padding:5px;font-size:11.5px;border:none;border-radius:5px;background:#3a3a3a;color:#fff;cursor:pointer;}
+      #shasha-panel button:hover{background:#4a4a4a;}
+      #shasha-panel button.hi{background:#6b1e28;}
+      #shasha-status{background:#000;border-radius:6px;padding:6px;margin:6px 0;font-size:11px;line-height:1.6;}
+      #shasha-panel .mini{font-size:10px;color:#aaa;margin:2px 0;}
+      #shasha-panel .close{position:absolute;top:4px;right:8px;width:auto;background:none;color:#aaa;font-size:16px;padding:0;}
+    </style>
+    <button class="close" onclick="document.getElementById('shasha-panel').style.display='none'">×</button>
+    <b style="color:#e8cf8f">🎬 場所後 試写パネル</b>
+    <div id="shasha-status">未設定</div>
+    <h4>① 場所終了時の番付を仕込む</h4>
+    <button onclick="shashaSeed(9)">トト綱で終了（+15,000）</button>
+    <button onclick="shashaSeed(8)">トー関で終了（+10,000）</button>
+    <button onclick="shashaSeed(7)">トト脇で終了（+7,000）</button>
+    <button onclick="shashaSeed(6)">ト結で終了（+5,000）</button>
+    <button onclick="shashaSeed(5)">関取で終了（+3,000）</button>
+    <button onclick="shashaSeed(4)">幕下で終了（ボーナスなし）</button>
+    <button onclick="shashaSeedRookie()">オフに新規入門（初土俵前）</button>
+    <h4>② 時間を進める</h4>
+    <button onclick="jumpTo('senshuraku')">千秋楽（取組中）</button>
+    <button onclick="jumpTo('uchidome')">打ち止め（編成会議前）</button>
+    <button class="hi" onclick="jumpTo('sougou')">総合発表・水曜10:00</button>
+    <button class="hi" onclick="jumpTo('yosou')">番付予想 受付中</button>
+    <button onclick="jumpTo('happyou')">大相撲 番付発表後</button>
+    <button class="hi" onclick="jumpTo('shonichi')">来場所（9月）初日</button>
+    <h4>③ 番付予想の試写</h4>
+    <button onclick="shashaAutoPredict()">予想を自動入力＆確定</button>
+    <button onclick="shashaGradePredict()">番付を注入して答え合わせ</button>
+    <p class="mini">①で番付を仕込み、②で時間を進めて挙動を確認。③は「受付中」で確定→「番付発表後」で採点。</p>
+  `;
+  document.body.appendChild(box);
+  updateShashaStatus();
+}
+
 init();
+buildDevPanel();
 </script>
 </body></html>
