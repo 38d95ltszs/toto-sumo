@@ -1942,8 +1942,10 @@ async function fetchPastBashoResults(bashoKey) {
 // useFinal=true なら千秋楽終了時の凍結スコア(final_points)を優先して使う
 function computeBanzuke(list, useFinal) {
   const rows = [];
-  const pts = p => (useFinal && typeof p.final_points === "number") ? p.final_points : p.points;
-  const myPts = (useFinal && typeof G.finalPoints === "number") ? G.finalPoints : G.points;
+  // 欠損値(null/undefined)は0として扱い、並び替えや表示で例外を出さない
+  const num = v => { const x = Number(v); return isFinite(x) ? x : 0; };
+  const pts = p => num((useFinal && typeof p.final_points === "number") ? p.final_points : p.points);
+  const myPts = num((useFinal && typeof G.finalPoints === "number") ? G.finalPoints : G.points);
   if (list && list.length) {
     list.forEach(p => rows.push({
       id: p.id, name: p.shikona, title: p.title, ichimon: p.ichimon,
@@ -2059,7 +2061,9 @@ function currentTitleName() {
   const t = TITLES.find(x => x.id === G.profile.title);
   return t ? t.name : "";
 }
-function fmt(n) { return n.toLocaleString("ja-JP"); }
+// null/undefined/NaN でも決して例外を投げない（共有ランキングの欠損値や
+// 旧セーブの未定義フィールドで米取表などがクラッシュするのを防ぐ）
+function fmt(n) { const x = Number(n); return isFinite(x) ? x.toLocaleString("ja-JP") : "0"; }
 function pickRand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 // ============================================================
 // トト相撲 ONLINE — 実データモード（data/basho.json 読込）
