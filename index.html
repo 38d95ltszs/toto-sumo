@@ -1125,6 +1125,20 @@ function hydrateG(obj) {
   G.bets = G.bets || [];
   G.ewBets = G.ewBets || [];
   G.dayAgg = G.dayAgg || {};
+  // 別端末ログイン等でクラウドから復元した状態に欠けがちなフィールドを補完する。
+  // （欠けていると 米取表 の "${G.betDays.length}" などで undefined 参照が起き、
+  //   スマホでの別端末復元時にだけタブが描画ごとクラッシュしていた）
+  if (!Array.isArray(G.betDays)) G.betDays = [];
+  if (!Array.isArray(G.achievements)) G.achievements = [];
+  if (!Array.isArray(G.pointsHistory)) G.pointsHistory = [];
+  if (typeof G.points !== "number") G.points = START_POINTS;
+  if (typeof G.betsThisBasho !== "number") G.betsThisBasho = 0;
+  if (typeof G.hitsThisBasho !== "number") G.hitsThisBasho = 0;
+  if (typeof G.bashoCount !== "number") G.bashoCount = 1;
+  if (typeof G.banzukeLevel !== "number") G.banzukeLevel = G.bashoCount === 1 ? 3 : 4;
+  if (!G.profile) G.profile = { shikona: "力士", ichimon: ICHIMON[0], oshiName: "", title: "t1_01", comment: "" };
+  if (!G.quizToday) G.quizToday = { date: "", count: 0 };
+  if (!Array.isArray(G.answeredQuiz)) G.answeredQuiz = [];
   // 旧セーブデータ移行: 推し力士をIDから名前に
   if (!G.profile.oshiName) {
     const r = RIKISHI.find(x => x.id === G.profile.oshiId);
@@ -3840,18 +3854,24 @@ async function renderKometori() {
     <button class="btn btn-ghost btn-wide" onclick="onReset()" style="margin-top:6px;color:var(--red);border-color:var(--red)">⚠ 全データをリセット（廃業）</button>
     <p class="muted" style="margin-top:14px;font-size:11px;line-height:1.8">本プロジェクトは個人が趣味で開発したファン制作の非公式ゲームです。日本相撲協会等とは一切関係ありません。ゲーム内の「持ち米」は遊戯上のポイントであり、実際の金銭や物品を賭けないでください。商用利用は想定していません。</p>
     <p class="muted center" style="margin-top:10px">build ${BUILD_VERSION}</p>`;
-  drawChart();
-  drawHitChart();
+  // 描画は個別に保護（1つ失敗してもタブ全体を巻き込まない）
+  try { drawChart(); } catch (e) { console.warn("収支グラフ描画失敗:", e); }
+  try { drawHitChart(); } catch (e) { console.warn("的中率グラフ描画失敗:", e); }
   renderRanking();
 }
 
 async function renderRanking() {
   const area = $("#ranking-area");
   if (!area) return;
-  let list = null;
-  if (SB && G.bashoKey) list = await fetchLeaderboard(G.bashoKey);
-  UI.lastRankList = list;
-  area.innerHTML = rankingHTML(list);
+  try {
+    let list = null;
+    if (SB && G.bashoKey) list = await fetchLeaderboard(G.bashoKey);
+    UI.lastRankList = list;
+    area.innerHTML = rankingHTML(list);
+  } catch (e) {
+    console.warn("トト番付の描画失敗:", e);
+    area.innerHTML = `<p class="muted center">番付の読み込みに失敗しました。<button class="btn btn-ghost btn-sm" onclick="renderRanking()">再試行</button></p>`;
+  }
 }
 function refreshRankArea() {
   const area = $("#ranking-area");
@@ -4055,8 +4075,9 @@ function showComment(el) {
 // 的中率ドーナツグラフ
 function drawHitChart() {
   const cv = $("#hitchart");
-  if (!cv) return;
+  if (!cv || !cv.getContext) return;
   const ctx = cv.getContext("2d");
+  if (!ctx) return; // iOS Safariはメモリ制約でnullを返すことがある
   const s = G.stats;
   const total = s.totalHits + s.totalMisses;
   const cx = 80, cy = 80, R = 66, r = 44;
@@ -4090,8 +4111,9 @@ function drawHitChart() {
 // ---------------- 収支グラフ ----------------
 function drawChart() {
   const cv = $("#chart");
-  if (!cv) return;
+  if (!cv || !cv.getContext) return;
   const ctx = cv.getContext("2d");
+  if (!ctx) return; // iOS Safariはメモリ制約でnullを返すことがある
   const W = cv.width, H = cv.height, P = 40;
   ctx.clearRect(0, 0, W, H);
   const hist = ((G.pointsHistory && G.pointsHistory.length) ? G.pointsHistory : [{ day: 0, points: G.points }]).slice();
