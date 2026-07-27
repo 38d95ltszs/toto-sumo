@@ -3766,6 +3766,7 @@ function onSansho() {
 
 // ---------------- 米取表タブ ----------------
 async function renderKometori() {
+ try {
   const s = G.stats;
   const rate = s.totalBets ? Math.round(s.totalHits / s.totalBets * 100) : 0;
   $("#tab-kometori").innerHTML = `
@@ -3858,6 +3859,14 @@ async function renderKometori() {
   try { drawChart(); } catch (e) { console.warn("収支グラフ描画失敗:", e); }
   try { drawHitChart(); } catch (e) { console.warn("的中率グラフ描画失敗:", e); }
   renderRanking();
+ } catch (e) {
+  // 想定外のエラーでも米取表を真っ白にしない（最終安全網）
+  console.error("米取表の描画に失敗:", e);
+  const el = $("#tab-kometori");
+  if (el) el.innerHTML = `<div class="card"><b style="color:var(--maroon)">米取表の表示中にエラーが発生しました。</b>
+    <div class="note">お手数ですが、ページを再読み込みしてお試しください。改善しない場合は開発者へお知らせください。</div>
+    <button class="btn btn-ghost btn-wide" style="margin-top:8px" onclick="renderKometori()">🔄 再試行</button></div>`;
+ }
 }
 
 async function renderRanking() {
