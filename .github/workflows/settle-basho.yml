@@ -26,10 +26,15 @@ jobs:
         env:
           SETTLE_SECRET: ${{ secrets.SETTLE_SECRET }}
           FUNCTION_URL: "https://ukfeaqlmtxzrtlznjtxz.supabase.co/functions/v1/settle-basho"
+          # 公開anonキー（index.htmlにも入っている公開情報）。JWT検証がオンのままでも
+          # ゲートウェイを通過できるように付与する。実際の認可は x-settle-secret で行う。
+          ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrZmVhcWxtdHh6cnRsem5qdHh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NTUxMTIsImV4cCI6MjA5OTQzMTExMn0.f3TTMgt6bUf6NefErlrGLOUvblLEDhmWQyvYAGYjMiI"
         run: |
           echo "サーバー精算を呼び出します..."
           code=$(curl -s -o /tmp/resp.json -w "%{http_code}" -X POST "$FUNCTION_URL" \
             -H "x-settle-secret: $SETTLE_SECRET" \
+            -H "apikey: $ANON_KEY" \
+            -H "Authorization: Bearer $ANON_KEY" \
             -H "content-type: application/json")
           echo "HTTP $code"
           cat /tmp/resp.json
