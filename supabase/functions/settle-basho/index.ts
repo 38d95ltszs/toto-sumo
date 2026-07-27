@@ -144,12 +144,12 @@ export function settlePlayer(fs: any, ctx: ReturnType<typeof buildContext>) {
 // ---------- HTTPハンドラ ----------
 Deno.serve(async (req) => {
   // 認証: cronからの合言葉ヘッダを照合（--no-verify-jwt でデプロイする前提）
-  const secret = Deno.env.get("SETTLE_SECRET");
+  const secret = Deno.env.get("94f1TAvqXyQSuRpB22JoLIhnwsBD3kZp");
   if (!secret || req.headers.get("x-settle-secret") !== secret) {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
   }
 
-  const bashoUrl = Deno.env.get("BASHO_DATA_URL") || DEFAULT_BASHO_URL;
+  const bashoUrl = Deno.env.get("https://github.com/38d95ltszs/toto-sumo/blob/main/data/basho.json") || DEFAULT_BASHO_URL;
   let basho: any;
   try {
     const res = await fetch(bashoUrl + "?t=" + Date.now(), { headers: { "cache-control": "no-cache" } });
