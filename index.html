@@ -1519,8 +1519,11 @@ async function processFinish() {
   const gino = ginoList.length ? ginoList.join("・") : "該当者なし";
 
   // 三賞予想の精算: 的中した賞1つにつき持ち米に倍率を重ね掛け（受賞者が複数でも予想はひとり）
+  // ※settledフラグで「一度だけ適用」を保証（万一processFinishが再実行されても倍付けが
+  //   重複適用されて持ち米が指数的に膨張する事故を防ぐ）
   let sanshoResult = null;
-  if (G.sanshoBet) {
+  if (G.sanshoBet && !G.sanshoBet.settled) {
+    G.sanshoBet.settled = true;
     const sb = G.sanshoBet;
     const mult = sb.mult || SANSHO_ODDS[sb.day] || 1.2;
     if (sb.amount) G.points += sb.amount * 3; // 旧方式（予想料制）の返還
@@ -1540,8 +1543,10 @@ async function processFinish() {
   }
 
   // 優勝予想の精算（三賞まで精算し終えた「千秋楽終了時の持ち米すべて」に倍率を掛ける）
+  // ※三賞と同じくsettledフラグで一度だけ適用する
   let yushoResult = null;
-  if (G.yushoBet) {
+  if (G.yushoBet && !G.yushoBet.settled) {
+    G.yushoBet.settled = true;
     const yb = G.yushoBet;
     const hit = yb.rikishiId === champion.id;
     let bonus = 0;
@@ -1844,19 +1849,23 @@ async function pushProfile() {
     }
   } catch (e) { console.warn("競合チェック失敗:", e); }
   const nowIso = new Date().toISOString();
+  // Postgresのinteger上限(約21億)に収める安全キャップ。正常な遊びでは到達しないが、
+  // 万一異常値になっても同期が400で失敗し続けないようにする（表示用のG.pointsは触らない）
+  const INT_MAX = 2000000000;
+  const clampInt = v => (typeof v === "number" && isFinite(v)) ? Math.max(-INT_MAX, Math.min(INT_MAX, Math.round(v))) : 0;
   const row = {
     id: MYID,
     shikona: G.profile.shikona,
     ichimon: G.profile.ichimon,
     title: currentTitleName(),
     basho_key: G.bashoKey,
-    points: G.points,
-    hits: G.hitsThisBasho,
-    bets: G.betsThisBasho,
+    points: clampInt(G.points),
+    hits: clampInt(G.hitsThisBasho),
+    bets: clampInt(G.betsThisBasho),
     banzuke_level: G.banzukeLevel,
-    basho_count: G.bashoCount,
-    final_points: (typeof G.finalPoints === "number") ? G.finalPoints : null,
-    history: Object.fromEntries((G.pointsHistory || []).map(h => [String(h.day), h.points])),
+    basho_count: clampInt(G.bashoCount),
+    final_points: (typeof G.finalPoints === "number") ? clampInt(G.finalPoints) : null,
+    history: Object.fromEntries((G.pointsHistory || []).map(h => [String(h.day), clampInt(h.points)])),
     comment: G.profile.comment || "",
     updated_at: nowIso
   };
@@ -4142,7 +4151,10 @@ function drawChart() {
   const maxV = Math.max(33000, ...vals) * 1.05, minV = 0;
   const ys = v => H - P + (P * 2 - H) * ((v - minV) / (maxV - minV));
   ctx.strokeStyle = "#ddd2b8"; ctx.fillStyle = "#8a7a60"; ctx.font = "11px serif"; ctx.lineWidth = 1;
-  for (let v = 0; v <= maxV; v += 10000) {
+  // グリッド線は最大でも約8本に抑える（持ち米が異常に大きい場合でもループが
+  // 数百万回に膨らんでスマホがフリーズ/クラッシュするのを防ぐ）
+  const gridStep = Math.max(10000, Math.ceil(maxV / 8 / 10000) * 10000);
+  for (let v = 0; v <= maxV; v += gridStep) {
     ctx.beginPath(); ctx.moveTo(P, ys(v)); ctx.lineTo(W - P, ys(v)); ctx.stroke();
     ctx.fillText((v / 1000) + "k", 6, ys(v) + 4);
   }
