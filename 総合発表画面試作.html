@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>総合発表（試作）</title>
+<style>
+  :root{
+    --maroon:#6b1e28; --maroon-d:#4a141c; --gold:#c9a24b; --gold-l:#e8cf8f;
+    --washi:#faf3e6; --ink:#3a2c22; --line:#e2d3b4; --ok:#2e7d4f; --up:#b8892e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--washi); color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic Medium","Meiryo","Noto Sans JP",sans-serif;
+    padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(135deg,var(--maroon),var(--maroon-d));
+    color:var(--washi); padding:18px 16px 14px; text-align:center;
+  }
+  header h1{margin:0 0 4px; font-size:20px;}
+  header p{margin:0; font-size:12.5px; color:var(--gold-l);}
+  .wrap{max-width:520px; margin:0 auto; padding:14px;}
+  .notice{
+    background:#fff; border:1px solid var(--line); border-left:4px solid var(--gold);
+    border-radius:6px; padding:10px 12px; font-size:12px; line-height:1.7; margin-bottom:14px;
+  }
+  .notice b{color:var(--maroon);}
+
+  .preview-box{
+    background:#fff; border:1px dashed var(--gold); border-radius:8px; padding:10px 12px; margin-bottom:16px;
+  }
+  .preview-box summary{font-size:12.5px; color:var(--maroon); font-weight:bold; cursor:pointer;}
+  .preview-row{display:flex; gap:10px; margin-top:10px; align-items:center;}
+  .preview-row label{font-size:12px; flex:0 0 90px; color:#8a7a63;}
+  .preview-row select, .preview-row input{
+    flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:13px;
+  }
+
+  .stage{
+    background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); padding:22px 18px; text-align:center;
+    display:none;
+  }
+  .stage.show{display:block; animation:fadeUp .4s ease;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  .kaigi-tag{
+    display:inline-block; background:var(--maroon); color:var(--gold-l); font-size:11px;
+    padding:3px 10px; border-radius:20px; margin-bottom:10px; letter-spacing:.05em;
+  }
+  .stage h2{margin:0 0 4px; font-size:17px; color:var(--maroon);}
+  .stage .sub{font-size:12px; color:#8a7a63; margin-bottom:18px;}
+
+  .rank-change{
+    display:flex; align-items:center; justify-content:center; gap:14px; margin:14px 0 18px;
+  }
+  .rank-chip{
+    background:var(--washi); border:2px solid var(--line); border-radius:10px; padding:10px 16px; min-width:96px;
+  }
+  .rank-chip.new{border-color:var(--gold); background:linear-gradient(135deg,#fff,var(--gold-l));}
+  .rank-chip .lbl{font-size:10px; color:#9a8b74;}
+  .rank-chip .name{font-size:16px; font-weight:bold; color:var(--maroon); margin-top:2px;}
+  .arrow{font-size:20px; color:var(--gold);}
+  .move-tag{font-size:12px; font-weight:bold; margin-top:-8px; margin-bottom:14px;}
+  .move-up{color:var(--ok);}
+  .move-down{color:#b23b3b;}
+  .move-same{color:#8a7a63;}
+
+  .bonus-card{
+    background:var(--washi); border:1px solid var(--line); border-radius:10px; padding:16px; margin:6px 0 18px;
+  }
+  .bonus-card .cap{font-size:12px; color:#8a7a63; margin-bottom:6px;}
+  .bonus-amt{font-size:26px; font-weight:bold; color:var(--up);}
+  .bonus-amt.zero{color:#8a7a63; font-size:18px;}
+  .total-row{display:flex; justify-content:center; align-items:center; gap:10px; margin-top:12px; font-size:14px;}
+  .total-row .before{color:#9a8b74; text-decoration:line-through;}
+  .total-row .after{color:var(--maroon); font-weight:bold; font-size:17px;}
+  .total-row.plain .before, .total-row.plain .arrow-sep{display:none;}
+
+  .btn{
+    display:block; width:100%; padding:12px; border:none; border-radius:8px; font-size:14.5px; font-weight:bold;
+    cursor:pointer; margin-top:8px; text-decoration:none; text-align:center;
+  }
+  .btn-main{background:var(--maroon); color:var(--washi);}
+  .btn-ghost{background:#fff; color:var(--maroon); border:1px solid var(--maroon);}
+
+  .yosou-banner{
+    margin-top:22px; background:linear-gradient(135deg,var(--maroon),var(--maroon-d)); color:var(--washi);
+    border-radius:10px; padding:16px; text-align:left; display:none;
+  }
+  .yosou-banner.show{display:block; animation:fadeUp .5s ease .3s both;}
+  .yosou-banner h3{margin:0 0 6px; font-size:15px; color:var(--gold-l);}
+  .yosou-banner p{margin:0 0 10px; font-size:12px; line-height:1.7;}
+  .yosou-banner .period{
+    display:flex; justify-content:space-between; font-size:11.5px; background:rgba(255,255,255,.1);
+    border-radius:6px; padding:6px 10px; margin-bottom:12px;
+  }
+
+  .quiet-note{margin-top:18px; text-align:center; font-size:11.5px; color:#8a7a63;}
+  footer{text-align:center; font-size:11px; color:#a99; padding:24px 0 4px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📢 総合発表</h1>
+  <p>令和7年7月場所 千秋楽から3日後・水曜10:00</p>
+</header>
+
+<div class="wrap">
+
+  <div class="notice">
+    これは <b>独立したHTMLプロトタイプ</b> です。本番の保存データとは連動していません。実際のトト番付・持ち米はありませんので、下の「プレビュー設定」で値を選んで発表の見え方を確認してください。
+  </div>
+
+  <details class="preview-box" open>
+    <summary>🔧 プレビュー設定</summary>
+    <div class="preview-row">
+      <label>場所数</label>
+      <select id="prevFirstBasho" onchange="toggleFirstBasho()">
+        <option value="0" selected>2場所目以降</option>
+        <option value="1">1場所目（全員新弟子）</option>
+      </select>
+    </div>
+    <div id="normalRows">
+      <div class="preview-row">
+        <label>今場所の番付</label>
+        <select id="prevRank">
+          <option value="6">トト綱</option>
+          <option value="5">トー関</option>
+          <option value="4" selected>トト脇</option>
+          <option value="3">ト結</option>
+          <option value="2">関取</option>
+          <option value="1">幕下</option>
+        </select>
+      </div>
+      <div class="preview-row">
+        <label>今場所の結果</label>
+        <select id="prevMove">
+          <option value="1">昇進</option>
+          <option value="0" selected>変動なし</option>
+          <option value="-1">陥落</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-ghost" style="margin-top:12px" onclick="runAnnouncement()">📣 発表を見る</button>
+  </details>
+
+  <div class="stage" id="stage">
+    <span class="kaigi-tag">トト番付編成会議の結果</span>
+    <h2>来場所の番付が内定しました</h2>
+    <div class="sub">大相撲の正式な番付発表は本場所の2週間前の月曜日です</div>
+
+    <div class="rank-change">
+      <div class="rank-chip"><div class="lbl">今場所</div><div class="name" id="oldRankName">－</div></div>
+      <div class="arrow">→</div>
+      <div class="rank-chip new"><div class="lbl">来場所</div><div class="name" id="newRankName">－</div></div>
+    </div>
+    <div class="move-tag" id="moveTag"></div>
+
+    <div class="bonus-card">
+      <div class="cap">来場所の初期持ち米（基本15,000合＋編成会議ボーナス）</div>
+      <div class="bonus-amt" id="bonusAmt">+0合</div>
+      <div class="total-row" id="totalRow">
+        <span class="before" id="beforeTotal"></span>
+        <span class="arrow-sep">→</span>
+        <span class="after" id="afterTotal"></span>
+      </div>
+    </div>
+
+    <div class="yosou-banner" id="yosouBanner">
+      <h3>🏆 番付予想モード 受付開始！</h3>
+      <p>来場所の大相撲の新番付（横綱〜上位16人）を予想しよう。全問的中で持ち米+30,000合！</p>
+      <div class="period">
+        <span>受付開始：7月29日(水)</span>
+        <span>締切：8月30日(日)</span>
+      </div>
+      <a class="btn btn-main" href="番付予想モード試作.html">番付予想をする →</a>
+    </div>
+
+    <div class="quiet-note">この後、次の本場所初日まで特にイベントはありません。</div>
+  </div>
+
+</div>
+
+<footer>トト相撲 ONLINE — 総合発表 プロトタイプ</footer>
+
+<script>
+const BASE_POINTS = 15000; // 来場所の初期持ち米は常にこの固定値からスタート
+const RANK_NAMES = { "6":"トト綱", "5":"トー関", "4":"トト脇", "3":"ト結", "2":"関取", "1":"幕下", "0":"新弟子" };
+const BONUS_BY_RANK = { "6":15000, "5":10000, "4":7000, "3":5000, "2":3000, "1":0 };
+// 2場所目以降は「幕下」が最下位（新弟子は1場所目限りで、二度と戻らない）
+const RANK_ORDER = ["1","2","3","4","5","6"]; // 低い→高い（幕下〜トト綱）
+
+function computeNewRank(oldRank, move){
+  const idx = RANK_ORDER.indexOf(oldRank);
+  const nextIdx = Math.max(0, Math.min(RANK_ORDER.length - 1, idx + move));
+  return RANK_ORDER[nextIdx];
+}
+
+function toggleFirstBasho(){
+  const isFirst = document.getElementById("prevFirstBasho").value === "1";
+  document.getElementById("normalRows").style.display = isFirst ? "none" : "block";
+}
+
+function setTotalRow(bonus){
+  const totalRow = document.getElementById("totalRow");
+  document.getElementById("beforeTotal").textContent = `基本 ${BASE_POINTS.toLocaleString()}合`;
+  document.getElementById("afterTotal").textContent = `${(BASE_POINTS + bonus).toLocaleString()}合`;
+  // ボーナスが無い場合は「変化なし」なので、取り消し線つきの比較表示はせず、金額だけを素直に出す
+  totalRow.classList.toggle("plain", bonus === 0);
+}
+
+function runAnnouncement(){
+  const isFirst = document.getElementById("prevFirstBasho").value === "1";
+  let oldRank, newRank, move;
+
+  if (isFirst){
+    // 1場所目は全員新弟子スタート。特別対応で幕下へ昇格し、補正（ボーナス）は無い
+    oldRank = "0";
+    newRank = "1";
+    move = 1;
+  } else {
+    oldRank = document.getElementById("prevRank").value;
+    move = parseInt(document.getElementById("prevMove").value, 10);
+    newRank = computeNewRank(oldRank, move);
+  }
+  const bonus = BONUS_BY_RANK[newRank] || 0;
+
+  document.getElementById("oldRankName").textContent = RANK_NAMES[oldRank];
+  document.getElementById("newRankName").textContent = RANK_NAMES[newRank];
+
+  const moveTag = document.getElementById("moveTag");
+  if (isFirst){ moveTag.textContent = "初めての番付編成（全員が幕下からスタート）"; moveTag.className = "move-tag move-same"; }
+  else if (move > 0){ moveTag.textContent = "🎉 昇進！"; moveTag.className = "move-tag move-up"; }
+  else if (move < 0){ moveTag.textContent = "陥落"; moveTag.className = "move-tag move-down"; }
+  else { moveTag.textContent = "番付変動なし"; moveTag.className = "move-tag move-same"; }
+
+  const bonusEl = document.getElementById("bonusAmt");
+  bonusEl.textContent = bonus > 0 ? `+${bonus.toLocaleString()}合` : "ボーナスなし（幕下）";
+  bonusEl.className = bonus > 0 ? "bonus-amt" : "bonus-amt zero";
+
+  setTotalRow(bonus);
+
+  document.getElementById("stage").classList.add("show");
+  document.getElementById("yosouBanner").classList.remove("show");
+  // 少し間を置いて予想モードの案内を表示（発表→ボーナス→次の告知、という流れを見せる）
+  setTimeout(() => {
+    document.getElementById("yosouBanner").classList.add("show");
+  }, 500);
+
+  const stageEl = document.getElementById("stage");
+  if (typeof stageEl.scrollIntoView === "function") {
+    stageEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+</script>
+</body>
+</html>

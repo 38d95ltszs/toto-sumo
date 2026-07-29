@@ -1,0 +1,46 @@
+name: settle basho (server-side)
+
+# トト相撲 サーバー精算のcron起動。
+# 配置先: .github/workflows/settle-basho.yml
+#
+# 千秋楽後、アプリを開いていないプレイヤーの分も含めて全員の最終持ち米を
+# サーバー(Edge Function)で確定させ、水曜10:00の番付編成会議で相対順位が
+# 正しく決まるようにする。Edge Functionは awards 未発表なら自動でスキップするので、
+# 毎日走らせても本場所中や平常時は何もしない（安全）。
+#
+# 事前準備:
+#   - Edge Function settle-basho をデプロイ済み（--no-verify-jwt）
+#   - GitHubリポジトリの Secrets に SETTLE_SECRET を登録（Edge Function側と同じ値）
+#   - 下の FUNCTION_URL を自分のプロジェクトURLに合わせる
+
+on:
+  schedule:
+    - cron: "0 21 * * *"    # JST 06:00（水曜10:00の編成会議より前に全員を精算しておく）
+  workflow_dispatch: {}      # 手動実行も可能
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call settle-basho Edge Function
+        env:
+          SETTLE_SECRET: ${{ secrets.SETTLE_SECRET }}
+          FUNCTION_URL: "https://ukfeaqlmtxzrtlznjtxz.supabase.co/functions/v1/settle-basho"
+          # 公開anonキー（index.htmlにも入っている公開情報）。JWT検証がオンのままでも
+          # ゲートウェイを通過できるように付与する。実際の認可は x-settle-secret で行う。
+          ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrZmVhcWxtdHh6cnRsem5qdHh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NTUxMTIsImV4cCI6MjA5OTQzMTExMn0.f3TTMgt6bUf6NefErlrGLOUvblLEDhmWQyvYAGYjMiI"
+        run: |
+          echo "サーバー精算を呼び出します..."
+          code=$(curl -s -o /tmp/resp.json -w "%{http_code}" -X POST "$FUNCTION_URL" \
+            -H "x-settle-secret: $SETTLE_SECRET" \
+            -H "apikey: $ANON_KEY" \
+            -H "Authorization: Bearer $ANON_KEY" \
+            -H "content-type: application/json")
+          echo "HTTP $code"
+          cat /tmp/resp.json
+          echo ""
+          # 401/5xx は失敗として扱う（200 と、awards未発表のskippも成功扱い）
+          if [ "$code" -ge 400 ]; then
+            echo "::error::サーバー精算の呼び出しに失敗しました (HTTP $code)"
+            exit 1
+          fi

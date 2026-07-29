@@ -82,9 +82,9 @@
       毎晩、<b>本日の取組結果</b>と<b>翌日の取組（割）</b>を一緒に登録します。翌日分を入れておかないと、プレイヤーが前売りを賭けられません。<br>
       千秋楽（翌日なし）のときは下段を空欄に。
     </div>
-    <label class="fld">本日の取組結果（ABEMAの「取組結果」ページ・◯/●あり）</label>
+    <label class="fld">本日の取組結果（相撲レファレンス／ABEMA／スポナビの結果ページ・◯/●あり）</label>
     <textarea id="tkSrc" placeholder="東	決まり手	西&#10;横綱	豊昇龍&#10;1勝0敗&#10;◯	渡し込み&#10;取組動画&#10;●	王鵬&#10;…"></textarea>
-    <label class="fld" style="margin-top:10px">翌日の取組＝割（ABEMAの「取組」ページ・結果なし）※千秋楽は空欄</label>
+    <label class="fld" style="margin-top:10px">翌日の取組＝割（相撲レファレンス／ABEMA／スポナビの「取組」・結果なし）※千秋楽は空欄。並び順は貼り付けたまま登録されます</label>
     <textarea id="tkNextSrc" placeholder="東	決まり手	西&#10;東前頭四枚目	大栄翔&#10;6勝3敗&#10;大の里&#10;5勝4敗&#10;西横綱&#10;…"></textarea>
     <div style="margin-top:8px"><button class="btn btn-main" onclick="analyzeTorikumi()">🔍 解析（本日＋翌日）</button></div>
     <div id="tkPreview"></div>
@@ -209,11 +209,29 @@ function commitBanzuke(){
   alert(`番付 ${list.length}人を登録しました。`);
 }
 
-// ---------- 取組パース（◯/●アンカー方式） ----------
+// ---------- 取組結果パース ----------
 const isMark=t=>t==="◯"||t==="○"||t==="●"||t==="〇";
 const isWinMark=t=>t==="◯"||t==="○"||t==="〇";
 function parseTorikumi(text){
-  let toks=text.replace(/\r/g,"").split(/[\t\n]/).map(s=>s.trim()).filter(Boolean);
+  const clean=text.replace(/\r/g,"");
+  // 【相撲レファレンス形式】1取組=1行・全項目タブ区切り。列の並びは
+  //  [日, 幕内区分(=5), 取組番号, 東位, 東名, 東成績, 東○●, 決まり手, 西○●, 西位, 西名, 西成績]
+  //  ※ABEMAと違い西側は「○● → 位置 → 名前 → 成績」の順。日付は先頭列
+  const srRows=clean.split(/\n/).map(l=>l.split(/\t/).map(s=>s.trim()))
+    .filter(f=>f.length>=12 && isMark(f[6]) && isMark(f[8]));
+  if(srRows.length){
+    const bouts=srRows.map(f=>{
+      const eastMark=f[6], westMark=f[8], kimarite=f[7];
+      const fusen=/不戦/.test(kimarite);
+      return {eastPos:f[3],eastName:f[4],westPos:f[9],westName:f[10],
+        kimarite:fusen?"":kimarite, win:isWinMark(eastMark)?"e":"w", fusen,
+        exclude:false, badMark:isWinMark(eastMark)===isWinMark(westMark), day:parseInt(f[0],10)||null};
+    });
+    const days=[...new Set(bouts.map(b=>b.day).filter(Boolean))];
+    return {bouts, markCount:srRows.length*2, srDay:days.length===1?days[0]:null};
+  }
+  // 【ABEMA / スポナビ形式】◯/●アンカー方式（位置・名前が別行、決まり手も別）
+  let toks=clean.split(/[\t\n]/).map(s=>s.trim()).filter(Boolean);
   toks=toks.filter(t=>t!=="取組動画"&&t!=="決まり手"&&t!=="東"&&t!=="西");
   const markIdx=[]; toks.forEach((t,i)=>{if(isMark(t))markIdx.push(i);});
   const bouts=[];
@@ -232,8 +250,29 @@ function parseTorikumi(text){
 // 直後の最初の非成績行＝西方。位置ラベルの東西（例:西小結）は番付上の東西で
 // 取組の東西とは別物なので、位置ラベルではなく「行の左右」で東西を決める。
 function parseWari(text){
+  const clean=text.replace(/\r/g,"");
+  // 【相撲レファレンス形式】1取組=1行・タブ区切り12列。○●と決まり手の列は空欄。
+  //  [日, 幕内区分, 取組番号, 東位, 東名, 東成績, (空), (空), (空), 西位, 西名, 西成績]
+  //  並び順は貼り付けたまま保持する（結び先頭への整形は手作業で行う運用）。
+  const srRows=clean.split(/\n/).map(l=>l.split(/\t/).map(s=>s.trim())).filter(f=>f.length>=12 && f[4] && f[10]);
+  if(srRows.length){
+    return srRows.map(f=>({eastPos:f[3],eastName:f[4],westPos:f[9],westName:f[10]}));
+  }
+  // 【スポナビ形式】決まり手欄に「取組前」が入り、位置と力士名が別の行になっている。
+  //   東横綱 / 豊昇龍 / 取組前 / 琴勝峰 / 西関脇 …「取組前」をアンカーにする。
+  if(/取組前/.test(clean)){
+    let toks=clean.split(/[\t\n]/).map(s=>s.trim()).filter(Boolean);
+    toks=toks.filter(t=>t!=="東"&&t!=="西"&&t!=="決まり手");
+    const bouts=[];
+    toks.forEach((t,i)=>{
+      if(t!=="取組前")return;
+      bouts.push({eastPos:toks[i-2]||"",eastName:toks[i-1]||"",westName:toks[i+1]||"",westPos:toks[i+2]||""});
+    });
+    return bouts;
+  }
+  // 【ABEMA形式】各取組が「位置\t力士名」のタブ行で始まる5行構成。
   const isRec=t=>/勝\d+敗/.test(t)||/^\d+休$/.test(t);
-  const lines=text.replace(/\r/g,"").split(/\n/);
+  const lines=clean.split(/\n/);
   const bouts=[];
   let cur=null;
   const finalize=c=>{ if(!c)return; const west=c.rest.find(t=>!isRec(t))||""; bouts.push({eastPos:c.pos,eastName:c.name,westName:west,westPos:c.rest[c.rest.length-1]||""}); };
@@ -251,9 +290,11 @@ function parseWari(text){
 function analyzeTorikumi(){
   const text=document.getElementById("tkSrc").value;
   if(!text.trim()){alert("本日の取組結果を貼り付けてください");return;}
-  const {bouts,markCount}=parseTorikumi(text);
+  const {bouts,markCount,srDay}=parseTorikumi(text);
   if(markCount%2!==0)alert("◯/● の数が奇数です（"+markCount+"個）。貼り付け範囲が途中で切れていないか確認してください。");
   TK_PARSED=bouts;
+  // 相撲レファレンス形式は日付を含むので、日欄を自動補完する
+  if(srDay) document.getElementById("dayNo").value=srDay;
   const nextText=document.getElementById("tkNextSrc").value;
   TK_NEXT=nextText.trim()?parseWari(nextText):[];
   renderTorikumi();

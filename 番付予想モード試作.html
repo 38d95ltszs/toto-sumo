@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>番付予想モード（試作）</title>
+<style>
+  :root{
+    --maroon:#6b1e28; --maroon-d:#4a141c; --gold:#c9a24b; --gold-l:#e8cf8f;
+    --washi:#faf3e6; --ink:#3a2c22; --line:#e2d3b4; --ok:#2e7d4f; --ng:#b23b3b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--washi); color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic Medium","Meiryo","Noto Sans JP",sans-serif;
+    padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(135deg,var(--maroon),var(--maroon-d));
+    color:var(--washi); padding:18px 16px 14px;
+  }
+  header h1{margin:0 0 4px; font-size:19px;}
+  header p{margin:0; font-size:12.5px; color:var(--gold-l); line-height:1.6;}
+  .wrap{max-width:640px; margin:0 auto; padding:14px;}
+  .notice{
+    background:#fff; border:1px solid var(--line); border-left:4px solid var(--gold);
+    border-radius:6px; padding:10px 12px; font-size:12.5px; line-height:1.7; margin-bottom:14px;
+  }
+  .notice b{color:var(--maroon);}
+  .period{
+    display:flex; justify-content:space-between; gap:8px; background:#fff;
+    border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12.5px;
+  }
+  .period div{flex:1;}
+  .period b{display:block; color:var(--maroon); font-size:11px; margin-bottom:2px;}
+  .counter{
+    display:flex; justify-content:space-between; align-items:center; background:#fff;
+    border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12.5px;
+  }
+  .counter b{color:var(--maroon); font-size:15px;}
+  .counter span.note{color:#8a7a63; font-size:11px;}
+  table.pred{width:100%; border-collapse:collapse; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  table.pred th{
+    background:var(--maroon); color:var(--gold-l); font-size:12px; padding:8px 6px; text-align:left;
+  }
+  table.pred td{padding:7px 6px; border-bottom:1px solid var(--line); font-size:13.5px; vertical-align:middle;}
+  table.pred tr.tier-first td{border-top:2px solid var(--gold);}
+  td.no{width:34px; color:#9a8b74; font-size:12px; text-align:center;}
+  td.rank{width:120px; font-weight:bold; white-space:nowrap;}
+  td.rank small{display:block; font-weight:normal; color:#9a8b74; font-size:10.5px;}
+  select{
+    width:100%; padding:6px 4px; border:1px solid var(--line); border-radius:6px;
+    background:#fff; font-size:13.5px; color:var(--ink);
+  }
+  select.correct{border-color:var(--ok); background:#eaf6ee;}
+  select.wrong{border-color:var(--ng); background:#fbeaea;}
+  .tier-actions{padding:6px 6px 10px; text-align:right;}
+  .tier-actions button{
+    font-size:11.5px; background:none; border:1px dashed var(--gold); color:var(--maroon);
+    border-radius:5px; padding:3px 8px; cursor:pointer;
+  }
+  .tier-actions button:hover{background:var(--gold-l);}
+  .tier-actions button.remove{border-color:#c9a2a2; color:var(--ng); margin-left:6px;}
+  .actions{margin-top:16px; display:flex; gap:10px;}
+  .btn{
+    flex:1; padding:12px; border:none; border-radius:8px; font-size:14.5px; font-weight:bold;
+    cursor:pointer;
+  }
+  .btn-main{background:var(--maroon); color:var(--washi);}
+  .btn-main:disabled{background:#c9b9a8; cursor:not-allowed;}
+  .btn-ghost{background:#fff; color:var(--maroon); border:1px solid var(--maroon);}
+  .result-box{margin-top:16px; background:#fff; border:1px solid var(--line); border-radius:8px; padding:14px; display:none;}
+  .result-box.show{display:block;}
+  .result-score{font-size:22px; font-weight:bold; color:var(--maroon); text-align:center; margin-bottom:6px;}
+  .result-sub{text-align:center; font-size:12.5px; color:#8a7a63; margin-bottom:10px;}
+  .result-list{font-size:12px; line-height:1.9; max-height:180px; overflow-y:auto; border-top:1px solid var(--line); padding-top:8px;}
+  .badge{display:inline-block; width:16px; text-align:center; margin-right:4px;}
+  .ok-tag{color:var(--ok); font-weight:bold;}
+  .ng-tag{color:var(--ng); font-weight:bold;}
+  .locked-note{
+    margin-top:14px; font-size:11.5px; color:#8a7a63; text-align:center;
+  }
+  footer{text-align:center; font-size:11px; color:#a99; padding:20px 0 4px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap" style="padding:0;">
+    <h1>🏆 番付予想モード（試作）</h1>
+    <p>来場所（令和7年9月場所）の新番付・上位16人を予想しよう。全問的中で持ち米+30,000！</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="notice">
+    これは <b>独立したHTMLプロトタイプ</b> です。本番実装ではまだありません。UI・入力方式の確認用で、力士データはサンプル（前場所の実在力士名）を使っています。<br>
+    このモードは<b>「上位16人」を予想する遊び</b>です。横綱・大関・関脇・小結が全員2人ずつなら8人なので、残り8人＝<b>前頭4枚目まで</b>が予想範囲になります。三役の人数を増減させると、その分だけ前頭側の対象範囲（何枚目まで含むか）が自動的に伸び縮みします。
+  </div>
+
+  <div class="period">
+    <div><b>予想受付</b>7月29日(水) 総合発表後〜</div>
+    <div><b>締切</b>8月30日(日) 番付発表前日まで</div>
+    <div><b>答え合わせ</b>8月31日(月) 番付発表後</div>
+  </div>
+
+  <div class="counter">
+    <div>対象人数：<b id="counterNum">16</b> / 16人</div>
+    <span class="note" id="counterNote"></span>
+  </div>
+
+  <table class="pred" id="predTable">
+    <thead><tr><th class="no">No.</th><th>番付</th><th>予想する力士</th></tr></thead>
+    <tbody id="predBody"></tbody>
+  </table>
+
+  <div class="actions">
+    <button class="btn btn-main" id="confirmBtn" onclick="onConfirm()">この内容で確定する</button>
+    <button class="btn btn-ghost" id="editBtn" style="display:none" onclick="onEdit()">編集に戻る</button>
+  </div>
+  <div class="locked-note" id="lockedNote" style="display:none">
+    ✅ 予想を確定しました（試作のため保存はされません）。<b>締切（8月30日）までは「編集に戻る」から何度でも内容を修正できます。</b>番付発表後、下の「デモ：答え合わせ」で結果を確認できます。
+  </div>
+
+  <div class="actions" id="demoActions" style="display:none">
+    <button class="btn btn-ghost" onclick="onDemoJudge()">🔎 デモ：サンプル正解と答え合わせ</button>
+  </div>
+
+  <div class="result-box" id="resultBox">
+    <div class="result-score" id="resultScore"></div>
+    <div class="result-sub" id="resultSub"></div>
+    <div class="result-list" id="resultList"></div>
+  </div>
+
+</div>
+
+<footer>トト相撲 ONLINE — 番付予想モード プロトタイプ</footer>
+
+<script>
+// ---- サンプル力士データ（2026年7月場所の幕内成績を基にした仮データ） ----
+const CANDIDATES = [
+  "豊昇龍","大の里","霧島","琴櫻","熱海富士","琴勝峰","若隆景","安青錦",
+  "義ノ富士","王鵬","藤ノ川","隆の勝","豪ノ山","美ノ海","平戸海","伯乃富士",
+  "大栄翔","一山本"
+];
+
+// ---- 番付の階層定義 ----
+// 三役（横綱〜小結）は人数を手動で増減できる（min〜max人）
+const MAX_TOTAL = 16;
+const SANYAKU = [
+  { key:"yokozuna", label:"横綱", min:1, max:4, count:2 },
+  { key:"ozeki",    label:"大関", min:1, max:4, count:2 },
+  { key:"sekiwake", label:"関脇", min:2, max:4, count:2 },
+  { key:"komusubi", label:"小結", min:2, max:4, count:2 },
+];
+// 前頭は「上位16人になるまで」何枚目まででも自動的に生成する。
+// 三役（横綱〜小結）の合計人数が少ないほど、前頭側は4枚目・5枚目…と対象が広がり、
+// 三役が増えるほど前頭2枚目・3枚目…と対象が狭まる（常に合計16人になるよう調整）。
+function maegashiraLabel(n){
+  return n === 1 ? "前頭筆頭" : `前頭${n}枚目`;
+}
+
+// 各スロットの選択値を保持: selections["yokozuna-slot0"] = "豊昇龍" など
+const selections = {};
+let locked = false;
+
+// 三役スロットのラベルを、人数(count)とインデックスから決定
+// 1人→側の区別なし、2人→東西、3人→東西＋②、4人→東西＋東②西②
+function sanyakuSlotLabel(tier, idx){
+  const c = tier.count;
+  if (c <= 1) return tier.label;
+  if (idx === 0) return "東" + tier.label;
+  if (idx === 1) return "西" + tier.label;
+  if (idx === 2) return c === 3 ? tier.label + "②" : "東" + tier.label + "②";
+  return "西" + tier.label + "②";
+}
+
+function sanyakuSum(){
+  return SANYAKU.reduce((s, t) => s + t.count, 0);
+}
+
+function activeMaegashira(){
+  const budget = Math.max(0, MAX_TOTAL - sanyakuSum());
+  const slots = [];
+  let n = 1;
+  while (slots.length < budget){
+    slots.push({ key:`maegashira${n}`, side:"東", label:maegashiraLabel(n) });
+    if (slots.length < budget){
+      slots.push({ key:`maegashira${n}`, side:"西", label:maegashiraLabel(n) });
+    }
+    n++;
+  }
+  return slots;
+}
+
+function totalSlots(){
+  return sanyakuSum() + activeMaegashira().length;
+}
+
+function render(){
+  const body = document.getElementById("predBody");
+  body.innerHTML = "";
+  let no = 1;
+
+  SANYAKU.forEach(tier => {
+    for (let idx = 0; idx < tier.count; idx++){
+      const tr = document.createElement("tr");
+      if (idx === 0) tr.className = "tier-first";
+      const slotKey = `${tier.key}-slot${idx}`;
+      const selected = selections[slotKey] || "";
+      const label = sanyakuSlotLabel(tier, idx);
+      tr.innerHTML = `
+        <td class="no">${no++}</td>
+        <td class="rank">${label}</td>
+        <td>
+          <select ${locked ? "disabled" : ""} onchange="onSelect('${slotKey}', this.value)">
+            <option value="">－ 未選択 －</option>
+            ${CANDIDATES.map(name => `<option value="${name}" ${selected === name ? "selected" : ""}>${name}</option>`).join("")}
+          </select>
+        </td>`;
+      body.appendChild(tr);
+    }
+    const trBtn = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 3;
+    td.className = "tier-actions";
+    let html = "";
+    if (!locked){
+      if (tier.count < tier.max) html += `<button onclick="changeSanyaku('${tier.key}', 1)">＋ ${tier.label}を1人増やす</button>`;
+      if (tier.count > tier.min) html += `<button class="remove" onclick="changeSanyaku('${tier.key}', -1)">－ ${tier.label}を1人減らす</button>`;
+    }
+    td.innerHTML = html;
+    trBtn.appendChild(td);
+    body.appendChild(trBtn);
+  });
+
+  const maegashira = activeMaegashira();
+  maegashira.forEach((slot, i) => {
+    const tr = document.createElement("tr");
+    if (i === 0) tr.className = "tier-first";
+    const slotKey = `${slot.key}-${slot.side}`;
+    const selected = selections[slotKey] || "";
+    tr.innerHTML = `
+      <td class="no">${no++}</td>
+      <td class="rank">${slot.side}${slot.label}</td>
+      <td>
+        <select ${locked ? "disabled" : ""} onchange="onSelect('${slotKey}', this.value)">
+          <option value="">－ 未選択 －</option>
+          ${CANDIDATES.map(name => `<option value="${name}" ${selected === name ? "selected" : ""}>${name}</option>`).join("")}
+        </select>
+      </td>`;
+    body.appendChild(tr);
+  });
+  if (maegashira.length){
+    const lastLabel = maegashira[maegashira.length - 1].label;
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 3;
+    td.style.cssText = "padding:8px; text-align:center; font-size:11.5px; color:#8a7a63;";
+    td.textContent = `※ 三役${sanyakuSum()}人＋前頭 = 合計${MAX_TOTAL}人となるよう、前頭は「${lastLabel}」まで自動的に対象範囲を伸縮しています`;
+    tr.appendChild(td);
+    body.appendChild(tr);
+  }
+
+  const total = totalSlots();
+  document.getElementById("counterNum").textContent = total;
+  document.getElementById("counterNote").textContent = "";
+}
+
+function onSelect(slotKey, value){
+  selections[slotKey] = value;
+}
+
+function changeSanyaku(key, delta){
+  const tier = SANYAKU.find(t => t.key === key);
+  const next = tier.count + delta;
+  if (next < tier.min || next > tier.max) return;
+  tier.count = next;
+  render();
+}
+
+function onConfirm(){
+  const total = totalSlots();
+  const filled = Object.values(selections).filter(v => v).length;
+  if (filled < total){
+    if (!confirm(`まだ${total - filled}枠が未選択です。このまま確定しますか？`)) return;
+  }
+  locked = true;
+  document.getElementById("confirmBtn").style.display = "none";
+  document.getElementById("editBtn").style.display = "block";
+  document.getElementById("lockedNote").style.display = "block";
+  document.getElementById("demoActions").style.display = "flex";
+  document.getElementById("resultBox").classList.remove("show");
+  render();
+}
+
+function onEdit(){
+  locked = false;
+  document.getElementById("confirmBtn").style.display = "block";
+  document.getElementById("editBtn").style.display = "none";
+  document.getElementById("lockedNote").style.display = "none";
+  document.getElementById("demoActions").style.display = "none";
+  document.getElementById("resultBox").classList.remove("show");
+  render();
+}
+
+// 現在アクティブな全スロットを { key, label } の配列で返す（採点・デモ表示用）
+function allActiveSlots(){
+  const list = [];
+  SANYAKU.forEach(tier => {
+    for (let idx = 0; idx < tier.count; idx++){
+      list.push({ key:`${tier.key}-slot${idx}`, label:sanyakuSlotLabel(tier, idx) });
+    }
+  });
+  activeMaegashira().forEach(slot => {
+    list.push({ key:`${slot.key}-${slot.side}`, label:`${slot.side}${slot.label}` });
+  });
+  return list;
+}
+
+// ---- デモ用の「サンプル正解」（実際の番付発表データの代わり）----
+function sampleAnswer(){
+  const ans = {};
+  allActiveSlots().forEach(({ key }) => {
+    // デモなので、ユーザー入力の8割を「正解」、2割をわざと外れにする
+    const guess = selections[key];
+    if (guess && Math.random() > 0.25){
+      ans[key] = guess; // 正解扱い
+    } else {
+      const pool = CANDIDATES.filter(n => n !== guess);
+      ans[key] = pool[Math.floor(Math.random() * pool.length)] || guess;
+    }
+  });
+  return ans;
+}
+
+function onDemoJudge(){
+  const answer = sampleAnswer();
+  const slots = allActiveSlots();
+  const total = slots.length;
+  let correct = 0;
+  const rows = [];
+  slots.forEach(({ key, label }) => {
+    const guess = selections[key] || "（未選択）";
+    const truth = answer[key];
+    const hit = selections[key] && selections[key] === truth;
+    if (hit) correct++;
+    rows.push(`<div><span class="badge">${hit ? '<span class="ok-tag">✓</span>' : '<span class="ng-tag">✗</span>'}</span>${label}：あなた「${guess}」 / 正解「${truth}」</div>`);
+  });
+  const miss = total - correct;
+  const bonus = miss === 0 ? 30000 : Math.max(0, 15000 - (miss - 1) * 1000);
+
+  document.getElementById("resultScore").textContent = `${correct} / ${total} 問正解`;
+  document.getElementById("resultSub").textContent = miss === 0
+    ? `全問正解！ボーナス +${bonus.toLocaleString()}合`
+    : `${miss}ミス　ボーナス +${bonus.toLocaleString()}合`;
+  document.getElementById("resultList").innerHTML = rows.join("");
+  document.getElementById("resultBox").classList.add("show");
+}
+
+render();
+</script>
+</body>
+</html>
