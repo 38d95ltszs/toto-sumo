@@ -1211,6 +1211,8 @@ async function ensureBashoState() {
       await announceBanzuke();
     }
   }
+  // 番付発表済みなのにアーカイブ未送信（前回起動時に失敗）なら再試行
+  await syncBashoArchive();
   // 新しい場所が始まっていたら参加
   if (info.current && G.bashoKey !== info.current.key) {
     if (G.bashoKey) { G.bashoCount++; G.stats.bashoPlayed = G.bashoCount; }
@@ -1220,7 +1222,7 @@ async function ensureBashoState() {
     G.dayLog = []; G.betDays = [];
     G.hitsThisBasho = 0; G.betsThisBasho = 0;
     G.finishedProcessed = false;
-    G.finalPoints = null; G.banzukeAnnounced = false;
+    G.finalPoints = null; G.banzukeAnnounced = false; G.archiveSynced = false;
     G.stats.rescuedThisBasho = false;
   }
   // 今場所のシミュレーション構築 + 未精算ベットの精算
@@ -1635,28 +1637,39 @@ async function announceBanzuke() {
   G.lastKaigi = { prevLevel, newLevel: bz.level, bonus: kaigiBonus, bashoKey: G.bashoKey };
   G.points = START_POINTS + kaigiBonus;
   G.banzukeAnnounced = true;
+  G.archiveSynced = false;
   pendingModals.push({ type: "banzuke", data: bz });
   checkAchievements();
   save();
+  await syncBashoArchive();
+}
 
-  // 過去のトト番付アーカイブ: 自分の行だけを書き込む（各自のタイミングでOK・競合しない）
-  if (SB && MYID) {
-    const { error } = await SB.from("basho_results").upsert({
-      basho_key: G.bashoKey,
-      player_id: MYID,
-      shikona: G.profile.shikona,
-      ichimon: G.profile.ichimon,
-      title: currentTitleName(),
-      final_points: G.finalPoints,
-      hits: G.hitsThisBasho,
-      bets: G.betsThisBasho,
-      banzuke_level: bz.level,
-      banzuke_pos: bz.pos,
-      banzuke_total: bz.total,
-      updated_at: new Date().toISOString()
-    });
-    if (error) console.warn("番付アーカイブ保存失敗（basho_resultsテーブル未作成の可能性）:", error.message);
-  }
+// 過去のトト番付アーカイブ（basho_results）への書き込み。
+// 以前は announceBanzuke 内で一度だけ送信しており、その一回が通信エラー等で
+// 失敗すると二度と再送されず記録から抜け落ちる不具合があった（G.banzukeAnnounced
+// は失敗有無に関わらずtrueのまま残るため）。G.archiveSyncedで成否を管理し、
+// 成功するまでensureBashoState経由で毎起動時に再試行する。
+async function syncBashoArchive() {
+  if (!G.banzukeAnnounced || G.archiveSynced || !SB || !MYID) return;
+  const bz = G.lastResult && G.lastResult.banzuke;
+  if (!bz || typeof G.finalPoints !== "number") return;
+  const { error } = await SB.from("basho_results").upsert({
+    basho_key: G.bashoKey,
+    player_id: MYID,
+    shikona: G.profile.shikona,
+    ichimon: G.profile.ichimon,
+    title: currentTitleName(),
+    final_points: G.finalPoints,
+    hits: G.hitsThisBasho,
+    bets: G.betsThisBasho,
+    banzuke_level: bz.level,
+    banzuke_pos: bz.pos,
+    banzuke_total: bz.total,
+    updated_at: new Date().toISOString()
+  });
+  if (error) { console.warn("番付アーカイブ保存失敗（次回起動時に再試行します）:", error.message); return; }
+  G.archiveSynced = true;
+  save();
 }
 
 // 場所の振り返り記事（テンプレート生成・約300字）
