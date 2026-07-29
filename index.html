@@ -683,6 +683,12 @@ const BUILD_VERSION = "2026-07-15b"; // 更新確認用（配布のたびに更�
 const START_POINTS = 15000;
 const SIM_SALT = "toto-sumo-r8"; // 全員共通のシード塩
 
+// Postgresのinteger上限(約21億)に収める安全キャップ。正常な遊びでは到達しないが、
+// 万一異常値になっても各テーブルへの同期が400で失敗し続けないようにする
+// （persistのDB値のみ丸める。表示用のG.pointsなどは触らない）
+const INT_MAX = 2000000000;
+const clampInt = v => (typeof v === "number" && isFinite(v)) ? Math.max(-INT_MAX, Math.min(INT_MAX, Math.round(v))) : 0;
+
 const DEFAULT_STATS = () => ({
   totalBets: 0, totalHits: 0, totalMisses: 0,
   currentStreak: 0, bestStreak: 0, currentMissStreak: 0,
@@ -1659,12 +1665,12 @@ async function syncBashoArchive() {
     shikona: G.profile.shikona,
     ichimon: G.profile.ichimon,
     title: currentTitleName(),
-    final_points: G.finalPoints,
-    hits: G.hitsThisBasho,
-    bets: G.betsThisBasho,
-    banzuke_level: bz.level,
-    banzuke_pos: bz.pos,
-    banzuke_total: bz.total,
+    final_points: clampInt(G.finalPoints),
+    hits: clampInt(G.hitsThisBasho),
+    bets: clampInt(G.betsThisBasho),
+    banzuke_level: clampInt(bz.level),
+    banzuke_pos: clampInt(bz.pos),
+    banzuke_total: clampInt(bz.total),
     updated_at: new Date().toISOString()
   });
   if (error) { console.warn("番付アーカイブ保存失敗（次回起動時に再試行します）:", error.message); return; }
@@ -1862,10 +1868,6 @@ async function pushProfile() {
     }
   } catch (e) { console.warn("競合チェック失敗:", e); }
   const nowIso = new Date().toISOString();
-  // Postgresのinteger上限(約21億)に収める安全キャップ。正常な遊びでは到達しないが、
-  // 万一異常値になっても同期が400で失敗し続けないようにする（表示用のG.pointsは触らない）
-  const INT_MAX = 2000000000;
-  const clampInt = v => (typeof v === "number" && isFinite(v)) ? Math.max(-INT_MAX, Math.min(INT_MAX, Math.round(v))) : 0;
   const row = {
     id: MYID,
     shikona: G.profile.shikona,
