@@ -3101,7 +3101,8 @@ function bashoStartMsOf(key) {
 }
 // 予想候補: 前場所の幕内力士全員（上位16人は幕内からしか生まれない）
 function yosouCandidates() {
-  return RIKISHI.filter(r => /^([YOSK]|M\d+)$/.test(r.rank)).map(r => r.name);
+  // 番付順（横綱→大関→…→前頭、同位は東→西）で候補を並べる
+  return rikishiByBanzuke().filter(r => /^([YOSK]|M\d+)$/.test(r.rank)).map(r => r.name);
 }
 // 三役スロットのラベル: 1人→側なし / 2人→東・西 / 3人→東・西・② / 4人→東・西・東②・西②
 function yosouSlotLabel(tier, count, idx) {
