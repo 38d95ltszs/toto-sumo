@@ -297,20 +297,12 @@
  "injuredCarry": [],
  "news": [
   {
-   "t": "大相撲 番付発表 大関復帰の安青錦“いちばん上の番付を”",
-   "u": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE1ZZXZ6UzBtd3dIZWpwUEltNXZoRWlJUDdlWlBXbDFRYmJzRWcxZnJxN2o5OWFJUVBfdHBpX3lmZVVzUXl4NHZJUVlDOXd2N1V4UEh4N2NhaGh0bFRWQ0tz?oc=5"
-  },
-  {
    "t": "【大相撲】父はモンゴル相撲横綱の新入幕の寿之富士 元横綱白鵬からスカウト、師匠の元照ノ富士「伸びしろしかない」三役期待",
    "u": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1ydDNYSjVGQV9ncW1zbmpzU2x1LS1FM1l4ZURJczlYdGlKMkxrZUhBbVg2cVB2QlRqbzByWEFfczBGcVVTU2FLVWRPaG9oZzI4YUVZVQ?oc=5"
   },
   {
-   "t": "【大相撲】元照ノ富士の伊勢ケ浜親方、今年だけで三役３人 新小結・伯乃富士、新入幕・寿之富士の会見に同席し語った育成のツボとは (中日スポーツ)",
-   "u": "https://news.google.com/rss/articles/CBMijgFBVV95cUxQd0gyM2QtaUxhVkhTSXNTVDFnenJxZ3llZEFBNnZVcXNqWEVlNjdEdE1FRWhBWldidUhJd1c5eW9ibWRuNGFwY1gwdWFKVWpEM21EMHJSQy1icWtyLWNTSzFZOVJvR3dqc1J2R05wTDBkaW9aNGY1a1pYNlF0ZmZPRDNjZG5yWFJheS1Ea25n?oc=5"
-  },
-  {
-   "t": "【大相撲】元照ノ富士の伊勢ケ浜親方、今年だけで三役３人　新小結・伯乃富士、新入幕・寿之富士の会見に同席し語った育成のツボとは",
-   "u": "https://news.google.com/rss/articles/CBMid0FVX3lxTE1Bb052RFlndFhURFNNN3kxNm1JQ0VTSEFVdXpHMEczaUpTaVNGQzBGeUoteVFFSmlLNC1SWldiMExTWk1yVkF3ZkdSdDM5RnlJcWhtYndIZnZJcUJGc3N3VVZQZE12ckxZcDZrcUNmdlZvbm0wV2R30gF8QVVfeXFMT0FiMEl2dXNsMVpoZEc4NmhNVmpBd0o0SHYxY0RGb1BoM3UzejFsalp2VWxxTmhqTk1GVk1NTEtQUDE0MktJQTFNdzd3elNJck5QN0laNVN0alh6dzgwSzlKVWRsUFR2Z2g5ejlGamhpdU1jZXhJQXM3MEJWZQ?oc=5"
+   "t": "大相撲＝秋場所新番付 安青錦２場所ぶり大関 藤ノ川新関脇、伯乃富士は新小結",
+   "u": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTFB1NllzZW5welRtMXIzNTc1bFBDQ1VTQWw0TVB0S2ZFX1Jqby1YVDBrcG9NWnZ2SFBPSnkyZXhyRWhMRHBka0tHRDdHUHlRZElwTWgzYUdYS0R3T3NYal9LQXd0Y24xeWM?oc=5"
   },
   {
    "t": "綱とり霧島、自然体で 大相撲秋場所：時事ドットコム",
@@ -319,6 +311,14 @@
   {
    "t": "［大相撲］霧島「楽しくいきたい」 連続の綱とりへ意欲",
    "u": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE12aFg4OWN3U0d6S1BtRHh0bWhTcjI3M2kxWWpLUEROSEVJQXoyRWN4aHJ3aXgzZU0wbFNxWmprS3BCcVJOOHNaY1EtcldwTTJXQ1lfRjlxTlVpMkFfU0E?oc=5"
+  },
+  {
+   "t": "【大相撲】大関・霧島が“三度目の正直”へ 混戦の秋場所で「綱とり」再挑戦、求められる“14勝以上”",
+   "u": "https://news.google.com/rss/articles/CBMiZEFVX3lxTFBwMnU5eXgxSW01U3N6cXRQaGRoZjZ4YWYyTTFwaWJGdEM2b2xiYmxUcERYUzR6Q2ZvMXZzWjZqMUM0ZW05Qk4tNUQtb3ZUQkREU2NUWk1LLVdSRmtwZ1psVW1oT0Q?oc=5"
+  },
+  {
+   "t": "大相撲和気場所見に来て 秋巡業で１０月に初開催",
+   "u": "https://news.google.com/rss/articles/CBMiUkFVX3lxTE8wZWx2WUxUcXNycnRBanZ3d2t4X1hwRVRhdVVNR1FOcW9yR2xTNkMwdHpDZ01hOEtmeFR4Zjl3Qm16SW9OVWktMEF3aFpYVmd1NGc?oc=5"
   }
  ],
  "awards": {
@@ -2528,5 +2528,5 @@
    }
   ]
  },
- "newsUpdatedAt": "2026-09-02T10:00:24.113Z"
+ "newsUpdatedAt": "2026-09-02T13:12:14.453Z"
 }
