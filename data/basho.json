@@ -1,5 +1,224 @@
 {
- "bashoKey": "2026−09",
+ "bashoKey": "2026-09",
+ "updatedAt": "2026-09-11T09:59:30.265Z",
+ "source": "sports.yahoo.co.jp/sumo",
+ "banzuke": [
+  {
+   "name": "大の里",
+   "rank": "Y",
+   "side": "東"
+  },
+  {
+   "name": "豊昇龍",
+   "rank": "Y",
+   "side": "西"
+  },
+  {
+   "name": "霧島",
+   "rank": "O",
+   "side": "東"
+  },
+  {
+   "name": "琴櫻",
+   "rank": "O",
+   "side": "西"
+  },
+  {
+   "name": "安青錦",
+   "rank": "O",
+   "side": "東"
+  },
+  {
+   "name": "熱海富士",
+   "rank": "S",
+   "side": "東"
+  },
+  {
+   "name": "藤ノ川",
+   "rank": "S",
+   "side": "西"
+  },
+  {
+   "name": "伯乃富士",
+   "rank": "K",
+   "side": "東"
+  },
+  {
+   "name": "大栄翔",
+   "rank": "K",
+   "side": "西"
+  },
+  {
+   "name": "琴勝峰",
+   "rank": "M1",
+   "side": "東"
+  },
+  {
+   "name": "琴栄峰",
+   "rank": "M1",
+   "side": "西"
+  },
+  {
+   "name": "高安",
+   "rank": "M2",
+   "side": "東"
+  },
+  {
+   "name": "義ノ富士",
+   "rank": "M2",
+   "side": "西"
+  },
+  {
+   "name": "豪ノ山",
+   "rank": "M3",
+   "side": "東"
+  },
+  {
+   "name": "美ノ海",
+   "rank": "M3",
+   "side": "西"
+  },
+  {
+   "name": "隆の勝",
+   "rank": "M4",
+   "side": "東"
+  },
+  {
+   "name": "藤凌駕",
+   "rank": "M4",
+   "side": "西"
+  },
+  {
+   "name": "狼雅",
+   "rank": "M5",
+   "side": "東"
+  },
+  {
+   "name": "欧勝馬",
+   "rank": "M5",
+   "side": "西"
+  },
+  {
+   "name": "朝乃山",
+   "rank": "M6",
+   "side": "東"
+  },
+  {
+   "name": "一山本",
+   "rank": "M6",
+   "side": "西"
+  },
+  {
+   "name": "藤青雲",
+   "rank": "M7",
+   "side": "東"
+  },
+  {
+   "name": "錦富士",
+   "rank": "M7",
+   "side": "西"
+  },
+  {
+   "name": "尊富士",
+   "rank": "M8",
+   "side": "東"
+  },
+  {
+   "name": "平戸海",
+   "rank": "M8",
+   "side": "西"
+  },
+  {
+   "name": "宇良",
+   "rank": "M9",
+   "side": "東"
+  },
+  {
+   "name": "獅司",
+   "rank": "M9",
+   "side": "西"
+  },
+  {
+   "name": "王鵬",
+   "rank": "M10",
+   "side": "東"
+  },
+  {
+   "name": "金峰山",
+   "rank": "M10",
+   "side": "西"
+  },
+  {
+   "name": "若元春",
+   "rank": "M11",
+   "side": "東"
+  },
+  {
+   "name": "正代",
+   "rank": "M11",
+   "side": "西"
+  },
+  {
+   "name": "若隆景",
+   "rank": "M12",
+   "side": "東"
+  },
+  {
+   "name": "朝白龍",
+   "rank": "M12",
+   "side": "西"
+  },
+  {
+   "name": "朝紅龍",
+   "rank": "M13",
+   "side": "東"
+  },
+  {
+   "name": "阿炎",
+   "rank": "M13",
+   "side": "西"
+  },
+  {
+   "name": "翔猿",
+   "rank": "M14",
+   "side": "東"
+  },
+  {
+   "name": "千代翔馬",
+   "rank": "M14",
+   "side": "西"
+  },
+  {
+   "name": "朝翠龍",
+   "rank": "M15",
+   "side": "東"
+  },
+  {
+   "name": "時疾風",
+   "rank": "M15",
+   "side": "西"
+  },
+  {
+   "name": "若ノ勝",
+   "rank": "M16",
+   "side": "東"
+  },
+  {
+   "name": "寿之富士",
+   "rank": "M16",
+   "side": "西"
+  },
+  {
+   "name": "湘南乃海",
+   "rank": "M17",
+   "side": "東"
+  }
+ ],
+ "kyujoLog": {},
+ "injuredCarry": [
+  "若隆景",
+  "若ノ勝"
+ ],
  "days": {
   "1": [
    {
@@ -144,5 +363,31 @@
    }
   ]
  },
- "updatedAt": "2026-09-11T09:52:27.075Z"
+ "news": [
+  {
+   "t": "大相撲 横綱豊昇龍が２日連続で稽古休む、秋場所出場は厳しい見通し（デイリースポーツ）",
+   "u": "https://news.google.com/rss/articles/CBMif0FVX3lxTE5iRjR3MGtsNm0wTDAyZk5KVFVxalAwU2p5UUNYdUZBWlpjN1dyaFdtNVdQU0dWZVdqTlpLWE1PSC1WWnd2TlB3VzBVRFFwdnFxRXItS1F3cHRvZHJLQXh1ZTR5QXNsTHMxTnktcUZkdHBuSmkwMUVjandIUl9zbW8?oc=5"
+  },
+  {
+   "t": "《大相撲「給金番付」を一挙公開！》横綱・大の里よりも持ち給金が多い十両力士とは？ 来年からの「給与改定」で横綱は年収420万円アップ、懸賞金激増で“臨時収入”年間約1.5億円も",
+   "u": "https://news.google.com/rss/articles/CBMiR0FVX3lxTE0yUnNTeFRLT05tclF3NHQyMkh5RmpYdThXVjY2Ni1ZblBfRURPbHpHQ3phUGI2NXZVblVOY3BEUHlkeVJsei1z?oc=5"
+  },
+  {
+   "t": "大相撲冬巡業に選ばれた姶良 枝川親方らが米丸市長を表敬訪問",
+   "u": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5uR19udnJjdHhaUEtVTGRiSmZLRWExYV8wbV80bXdDQkQ4NmgyZzZwTUJCb0VHalBCbE5haWo0d1ZQdWRDSXJvMFllVENIWEdsWE5Gd3J0NjE?oc=5"
+  },
+  {
+   "t": "大相撲が姶良に帰ってくる 37年ぶりの巡業決定（ＫＹＴ鹿児島読売テレビ）",
+   "u": "https://news.google.com/rss/articles/CBMif0FVX3lxTE13TGs1dHZadkNwY3g1b29TTC1sQ2lTN3lnaC11MWU5UWh5bUZoVm8wSDI3eEtMVmJIWmNDUXRCZlB1eW1pVVh3ZjRCaXVITmVHc0tFREVKT1plZ2xTdzE0UTZHbWFxWk9IUVczQ2ZKZnd6Q2VHM3FILU53andjTXc?oc=5"
+  },
+  {
+   "t": "大相撲が姶良に帰ってくる 37年ぶりの巡業決定",
+   "u": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE5MV3VabnJsU2FGRFEwTjE3RVVTTWI0bzB3d1VZUHU5QWNFU2xIVEl4bF9SSEpldXI4Y3FLY0pzN0ZDbW9tOUFFZUNpWQ?oc=5"
+  },
+  {
+   "t": "大相撲秋場所新番付",
+   "u": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE13VldJUFNuZC1rRndaNDNmR19VcmVoSnczUFJVazJacjRzSUFpazhJaXR3T0NqNzhBaGJrcTcwNGFhOG9TYzFreG5NSUQ2dDhWRnUzNmVzXzNiYW9MSEE?oc=5"
+  }
+ ],
+ "newsUpdatedAt": "2026-09-11T00:51:51.982Z"
 }
