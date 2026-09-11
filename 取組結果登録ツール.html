@@ -77,10 +77,11 @@
 
   <div class="card">
     <h3><span class="step">3</span>取組を登録（本日の結果 ＋ 翌日の割）</h3>
-    <div class="row"><div><label class="fld">本日は何日目（1〜15）</label><input type="number" id="dayNo" min="1" max="15" value="1"></div></div>
+    <div class="row"><div><label class="fld">本日は何日目（0〜15）</label><input type="number" id="dayNo" min="0" max="15" value="1"></div></div>
     <div class="note">
       毎晩、<b>本日の取組結果</b>と<b>翌日の取組（割）</b>を一緒に登録します。翌日分を入れておかないと、プレイヤーが前売りを賭けられません。<br>
-      千秋楽（翌日なし）のときは下段を空欄に。
+      千秋楽（翌日なし）のときは下段を空欄に。<br>
+      初日の割だけを先に登録したい（まだ結果が無い）場合は、<b>本日の取組結果を空欄のまま</b>、本日を<b>0日目</b>にして翌日（＝初日）の割だけを入力してください。
     </div>
     <label class="fld">本日の取組結果（相撲レファレンス／ABEMA／スポナビの結果ページ・◯/●あり）</label>
     <textarea id="tkSrc" placeholder="東	決まり手	西&#10;横綱	豊昇龍&#10;1勝0敗&#10;◯	渡し込み&#10;取組動画&#10;●	王鵬&#10;…"></textarea>
@@ -319,13 +320,15 @@ function parseWari(text){
 }
 function analyzeTorikumi(){
   const text=document.getElementById("tkSrc").value;
-  if(!text.trim()){alert("本日の取組結果を貼り付けてください");return;}
-  const {bouts,markCount,srDay}=parseTorikumi(text);
+  const nextText=document.getElementById("tkNextSrc").value;
+  // 初日開幕前は「本日の結果」が存在しない（0日目扱い）ので、翌日の割だけの
+  // 入力でも解析できるようにする。両方とも空のときだけ止める。
+  if(!text.trim()&&!nextText.trim()){alert("本日の取組結果か、翌日の割のどちらかを貼り付けてください");return;}
+  const {bouts,markCount,srDay}=text.trim()?parseTorikumi(text):{bouts:[],markCount:0,srDay:null};
   if(markCount%2!==0)alert("◯/● の数が奇数です（"+markCount+"個）。貼り付け範囲が途中で切れていないか確認してください。");
   TK_PARSED=bouts;
   // 相撲レファレンス形式は日付を含むので、日欄を自動補完する
   if(srDay) document.getElementById("dayNo").value=srDay;
-  const nextText=document.getElementById("tkNextSrc").value;
   TK_NEXT=nextText.trim()?parseWari(nextText):[];
   renderTorikumi();
 }
@@ -364,8 +367,9 @@ function renderTorikumi(){
       <div class="summary" style="margin-top:14px">翌日（<b>${day+1}日目</b>）の割：<b>${TK_NEXT.length}</b>取組（保存 ${nActive}）<span class="badge badge-ok">結果なし・前売り用</span></div>
       <table class="pv"><thead><tr><th>#</th><th>東方</th><th></th><th>西方</th><th>除外</th></tr></thead><tbody>${nrows}</tbody></table>`;
   }
+  const todayLabel=day===0?"0日目（初日開幕前・結果なし）":`本日（${day}日目）`;
   document.getElementById("tkPreview").innerHTML=`
-    <div class="summary">本日（<b>${day}日目</b>）の結果：<b>${TK_PARSED.length}</b>取組（保存 ${active.length}／除外 ${TK_PARSED.length-active.length}）${nameWarns?` <span class="warn">・名前要確認 ${nameWarns}件</span>`:(names.length?' <span class="badge badge-ok">名前は番付と全一致</span>':' <span class="badge badge-warn">先に番付を登録すると名前照合できます</span>')}</div>
+    <div class="summary">${todayLabel}の結果：<b>${TK_PARSED.length}</b>取組（保存 ${active.length}／除外 ${TK_PARSED.length-active.length}）${nameWarns?` <span class="warn">・名前要確認 ${nameWarns}件</span>`:(names.length?' <span class="badge badge-ok">名前は番付と全一致</span>':' <span class="badge badge-warn">先に番付を登録すると名前照合できます</span>')}</div>
     <div class="note" style="margin:6px 0"><b>不戦</b>=賭け金全額返還／<b>除外</b>=保存に含めない（十両の混入・優勝決定戦など）。</div>
     <table class="pv"><thead><tr><th>#</th><th>東</th><th>勝</th><th>決まり手</th><th>勝</th><th>西</th><th>不戦</th><th>除外</th></tr></thead><tbody>${rows}</tbody></table>
     ${nextHtml}
@@ -374,12 +378,13 @@ function renderTorikumi(){
 function commitTorikumi(){
   if(!ensureWork())return;
   const day=parseInt(document.getElementById("dayNo").value,10);
-  if(!(day>=1&&day<=15)){alert("日は1〜15で入力してください");return;}
+  if(!(day>=0&&day<=15)){alert("日は0〜15で入力してください（0は初日開幕前・翌日の割のみ登録する場合用）");return;}
   const bad=TK_PARSED.filter(b=>!b.exclude&&b.badMark).length;
   if(bad&&!confirm(`勝敗が判定できない取組が${bad}件あります。このまま登録しますか？`))return;
-  // 本日の結果
-  const arr=TK_PARSED.filter(b=>!b.exclude).map(b=>({e:b.eastName,w:b.westName,k:b.fusen?null:(b.kimarite||null),win:b.win,fusen:!!b.fusen}));
-  WORK.days[String(day)]=arr;
+  // 本日の結果（0日目＝初日開幕前は「本日」が存在しないので登録しない。
+  // 翌日＝初日の割だけを下のブロックで登録する）
+  const arr=day>=1?TK_PARSED.filter(b=>!b.exclude).map(b=>({e:b.eastName,w:b.westName,k:b.fusen?null:(b.kimarite||null),win:b.win,fusen:!!b.fusen})):[];
+  if(day>=1)WORK.days[String(day)]=arr;
   // 翌日の割（結果なし＝前売り用。win/kはnull）
   let nextMsg="";
   if(TK_NEXT.length){
@@ -392,7 +397,8 @@ function commitTorikumi(){
   }
   if(!WORK.bashoKey)WORK.bashoKey=document.getElementById("bashoKey").value.trim();
   refreshOut();
-  alert(`${day}日目に ${arr.length}取組を登録しました。`+nextMsg);
+  const todayMsg=day>=1?`${day}日目に ${arr.length}取組を登録しました。`:"0日目（初日開幕前）のため本日分の登録はスキップしました。";
+  alert(todayMsg+nextMsg);
 }
 
 // ---------- 優勝・三賞 ----------
