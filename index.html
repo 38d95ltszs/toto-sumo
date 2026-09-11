@@ -765,9 +765,13 @@ function bashoKeyOf(y, m) { return y + "-" + String(m).padStart(2, "0"); }
 const KANJI_MONTH = { 1: "一", 3: "三", 5: "五", 7: "七", 9: "九", 11: "十一" };
 function bashoNameOf(y, m) { return "令和" + (y - 2018) + "年" + (KANJI_MONTH[m] || m) + "月場所"; }
 // 場所の日程表示: 初日(1日目)・中日(8日目)・千秋楽(15日目)は漢字、他は算用数字
-function dayKanji(day) { return day === 1 ? "初日" : day === 8 ? "中日" : day === 15 ? "千秋楽" : day + "日目"; }
+// 0日目=初日の割が発表され前売りが始まった、本場所開幕前の特別な状態
+function dayKanji(day) { return day === 0 ? "初日前売り中" : day === 1 ? "初日" : day === 8 ? "中日" : day === 15 ? "千秋楽" : day + "日目"; }
 
 // 現在の場所と次の場所を返す
+// 実際の大相撲は初日の2日前（金曜）に取組（割）が発表されるのが通例。
+// 運営が初日の割を実データに登録済みなら、その2日前〜前日を「0日目」
+// （前売り受付中）として本場所モードに含める（登録が無ければ従来通りオフシーズン）
 function bashoInfo() {
   const t = jstNow();
   const cands = [];
@@ -780,6 +784,11 @@ function bashoInfo() {
   for (const c of cands) {
     const day = Math.floor((t.dateMs - c.startMs) / 86400e3) + 1;
     if (day >= 1 && day <= 15) { current = Object.assign({ day }, c); break; }
+    if (day === -1 || day === 0) {
+      const day1Ready = typeof REAL !== "undefined" && REAL && REAL.bashoKey === c.key &&
+        REAL.days && REAL.days["1"] && REAL.days["1"].length > 0;
+      if (day1Ready) { current = Object.assign({ day: 0 }, c); break; }
+    }
   }
   const next = cands.find(c => c.startMs > t.dateMs);
   return { current, next, now: t };
@@ -2513,8 +2522,9 @@ function renderTorikumi() {
   </div>`;
 
   // 本日の取組（各取組の直前まで受付・結果は随時反映）— アコーディオン
-  const dd = SIM.days[day];
-  if (dd) {
+  // 0日目（初日開幕前の前売り期間）は「本日」が存在しないためこのブロックを飛ばす
+  const dd = day >= 1 ? SIM.days[day] : null;
+  if (day >= 1 && dd) {
     const n = dd.torikumi.length;
     const done = dd.torikumi.filter(bt => bt.result).length;
     const openCount = dd.torikumi.filter((bt, i) => boutState(day, i) === "open").length;
@@ -2546,9 +2556,11 @@ function renderTorikumi() {
       </summary>
       <div class="acc-body">${cards}</div>
     </details>`;
-  } else {
+  } else if (day >= 1) {
     html += `<div class="offseason-note">📋 ${dayKanji(day)}の取組は発表待ちです。<br>データが更新されると予想できるようになります。</div>`;
   }
+  // day===0（初日開幕前の前売り期間）はここでは何も表示しない。
+  // 初日の割は下の「翌日の前売り」ブロックにそのまま表示される
 
   // 翌日の前売り（18:00以降）— アコーディオン（デフォルト開）
   if (hm >= NEXT_OPEN_HM && day < 15 && !G.finishedProcessed) {
