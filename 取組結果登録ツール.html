@@ -159,12 +159,35 @@ function ensureWork(){ if(!WORK){ alert("先に手順1で「読み込む / 新�
 function normRank(s){
   s=s.trim();
   if(s==="横綱")return "Y"; if(s==="大関")return "O"; if(s==="関脇")return "S"; if(s==="小結")return "K";
-  let m=s.match(/^前頭(筆頭|\d+)(枚目)?$/); if(m)return "M"+(m[1]==="筆頭"?1:m[1]);
-  m=s.match(/^十両(筆頭|\d+)(枚目)?$/); if(m)return "J"+(m[1]==="筆頭"?1:m[1]);
+  // 「前頭2枚目」「前頭筆頭」（ABEMA/スポナビ形式）に加え、相撲レファレンスの
+  // 短縮形「前2」「前1」（頭・枚目を省略）も同じ表記として受け付ける
+  let m=s.match(/^前(?:頭)?(筆頭|\d+)(?:枚目)?$/); if(m)return "M"+(m[1]==="筆頭"?1:m[1]);
+  m=s.match(/^十(?:両)?(筆頭|\d+)(?:枚目)?$/); if(m)return "J"+(m[1]==="筆頭"?1:m[1]);
   return null;
 }
-const isRecord=t=>/^\d+勝\d+敗/.test(t)||/^\d+休$/.test(t);
-function parseBanzuke(text){
+// 「9勝6敗」に加え、スポナビ形式の「先場所:9勝6敗」のようにラベルが前置される
+// ケースも成績行として認識できるよう、先頭アンカーなしでマッチさせる
+const isRecord=t=>/\d+勝\d+敗/.test(t)||/^\d+休$/.test(t);
+// 東西どちらかが不在の行は「-」（ハイフン）や空白で表される。これを力士名として
+// 拾ってしまうと存在しない力士が番付に混入するため、ここでnull扱いにする
+const isEmptyMark=t=>!t||t===""||t==="-"||t==="―"||t==="ー";
+
+// 【相撲レファレンス形式】1行1段・タブ区切り固定列：[東成績, 東名, 位, 西名, 西成績]
+// （西不在の段は西名列が空白または列自体が無い）。ABEMA/スポナビ形式のような
+// 複数行にまたがる自由なレイアウトではなく行内で完結するため、専用に読む。
+function parseBanzukeSumoReference(text){
+  const lines=text.replace(/\r/g,"").split(/\n/).map(l=>l.split(/\t/).map(s=>s.trim()));
+  const rows=[];
+  lines.forEach(cols=>{
+    if(cols.length<3)return;
+    const rank=normRank(cols[2]);
+    if(!rank)return; // 位列（ヘッダ行含む）でなければこの行は対象外
+    rows.push({rankLabel:cols[2], rank, east:isEmptyMark(cols[1])?null:cols[1], west:isEmptyMark(cols[3])?null:cols[3]});
+  });
+  return rows;
+}
+// 【ABEMA/スポナビ形式】番付ラベルの前後を走査して東西を探す自由レイアウト読み取り
+function parseBanzukeFreeform(text){
   let toks=text.replace(/\r/g,"").split(/[\t\n]/).map(s=>s.trim()).filter(Boolean);
   toks=toks.filter(t=>t!=="東"&&t!=="西"&&t!=="番付");
   const isRk=t=>normRank(t)!==null;
@@ -172,12 +195,19 @@ function parseBanzuke(text){
   toks.forEach((t,i)=>{
     if(!isRk(t))return;
     let east=null;
-    for(let j=i-1;j>=0;j--){ if(isRk(toks[j]))break; if(isRecord(toks[j]))continue; east=toks[j];break; }
+    for(let j=i-1;j>=0;j--){ if(isRk(toks[j]))break; if(isRecord(toks[j]))continue; east=isEmptyMark(toks[j])?null:toks[j];break; }
     let west=null;
-    for(let j=i+1;j<toks.length;j++){ if(isRk(toks[j]))break; if(isRecord(toks[j]))continue; west=toks[j];break; }
+    for(let j=i+1;j<toks.length;j++){ if(isRk(toks[j]))break; if(isRecord(toks[j]))continue; west=isEmptyMark(toks[j])?null:toks[j];break; }
     rows.push({rankLabel:t, rank:normRank(t), east, west});
   });
   return rows;
+}
+function parseBanzuke(text){
+  // 相撲レファレンス形式として十分な行数を読めたらそちらを採用、そうでなければ
+  // ABEMA/スポナビ形式として読む（貼り付け元によって自動判定）
+  const srRows=parseBanzukeSumoReference(text);
+  if(srRows.length>=10)return srRows;
+  return parseBanzukeFreeform(text);
 }
 function analyzeBanzuke(){
   const text=document.getElementById("bzSrc").value;
