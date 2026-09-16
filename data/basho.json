@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-09",
- "updatedAt": "2026-09-15T09:45:06.005Z",
+ "updatedAt": "2026-09-16T13:17:42.093Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -650,19 +650,147 @@
    {
     "e": "大の里",
     "w": "高安",
-    "k": null,
-    "win": null,
+    "k": "突き倒し",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "霧島",
     "w": "琴栄峰",
+    "k": "寄り切り",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "豪ノ山",
+    "w": "琴櫻",
+    "k": "上手投げ",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "安青錦",
+    "w": "伯乃富士",
+    "k": "押し出し",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "琴勝峰",
+    "w": "藤ノ川",
+    "k": "押し出し",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "熱海富士",
+    "w": "藤凌駕",
+    "k": "押し倒し",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "義ノ富士",
+    "w": "大栄翔",
+    "k": "突き倒し",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "隆の勝",
+    "w": "美ノ海",
+    "k": "寄り切り",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "朝乃山",
+    "w": "欧勝馬",
+    "k": "上手投げ",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "狼雅",
+    "w": "一山本",
+    "k": "寄り切り",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "宇良",
+    "w": "錦富士",
+    "k": "押し出し",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "藤青雲",
+    "w": "平戸海",
+    "k": "突き落とし",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "尊富士",
+    "w": "王鵬",
+    "k": "押し出し",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "若元春",
+    "w": "獅司",
+    "k": "寄り倒し",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "正代",
+    "w": "金峰山",
+    "k": "寄り切り",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "千代翔馬",
+    "w": "朝白龍",
+    "k": "寄り切り",
+    "win": "e",
+    "fusen": false
+   },
+   {
+    "e": "時疾風",
+    "w": "阿炎",
+    "k": "突き出し",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "朝紅龍",
+    "w": "寿之富士",
+    "k": "上手投げ",
+    "win": "w",
+    "fusen": false
+   },
+   {
+    "e": "翔猿",
+    "w": "湘南乃海",
+    "k": "上手出し投げ",
+    "win": "e",
+    "fusen": false
+   }
+  ],
+  "5": [
+   {
+    "e": "大の里",
+    "w": "義ノ富士",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "豪ノ山",
+    "e": "美ノ海",
     "w": "琴櫻",
     "k": null,
     "win": null,
@@ -670,48 +798,69 @@
    },
    {
     "e": "安青錦",
-    "w": "伯乃富士",
+    "w": "豪ノ山",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "琴勝峰",
-    "w": "藤ノ川",
+    "e": "霧島",
+    "w": "隆の勝",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
     "e": "熱海富士",
-    "w": "藤凌駕",
-    "k": null,
-    "win": null,
-    "fusen": false
-   },
-   {
-    "e": "義ノ富士",
     "w": "大栄翔",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "隆の勝",
-    "w": "美ノ海",
+    "e": "伯乃富士",
+    "w": "藤ノ川",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "朝乃山",
-    "w": "欧勝馬",
+    "e": "琴勝峰",
+    "w": "高安",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "藤凌駕",
+    "w": "琴栄峰",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
     "e": "狼雅",
+    "w": "藤青雲",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "錦富士",
+    "w": "欧勝馬",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "朝乃山",
+    "w": "尊富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "平戸海",
     "w": "一山本",
     "k": null,
     "win": null,
@@ -719,70 +868,56 @@
    },
    {
     "e": "宇良",
-    "w": "錦富士",
+    "w": "若元春",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "藤青雲",
-    "w": "平戸海",
-    "k": null,
-    "win": null,
-    "fusen": false
-   },
-   {
-    "e": "尊富士",
-    "w": "王鵬",
-    "k": null,
-    "win": null,
-    "fusen": false
-   },
-   {
-    "e": "若元春",
+    "e": "王鵬",
     "w": "獅司",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "正代",
+    "e": "朝白龍",
     "w": "金峰山",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "千代翔馬",
-    "w": "朝白龍",
-    "k": null,
-    "win": null,
-    "fusen": false
-   },
-   {
-    "e": "時疾風",
-    "w": "阿炎",
+    "e": "阿炎",
+    "w": "正代",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
     "e": "朝紅龍",
-    "w": "寿之富士",
+    "w": "時疾風",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
     "e": "翔猿",
-    "w": "湘南乃海",
+    "w": "朝翠龍",
     "k": null,
     "win": null,
     "fusen": false
    },
    {
-    "e": "朝翠龍",
-    "w": "一意",
+    "e": "玉鷲",
+    "w": "千代翔馬",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "湘南乃海",
+    "w": "寿之富士",
     "k": null,
     "win": null,
     "fusen": false
