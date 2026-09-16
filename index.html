@@ -2183,6 +2183,21 @@ function applyRealBanzuke() {
 function buildSimFromReal(uptoDay) {
   const key = REAL.bashoKey;
   BUILDING_KEY = key; // 構築中のオッズ新旧判定用（makeBoutDetが参照）
+  // 番付（banzuke）に登録が無い力士が取組に出てくる場合（前頭最下位が奇数枚で
+  // 十両上位が格上げ出場する等）に、その一番だけ黙って読み飛ばされて賭けられ
+  // なくなる不具合があった。番付に無い力士が出てきたら、最低限のRIKISHI
+  // エントリをその場で補って取りこぼさないようにする（十両想定でrank:"J1"）。
+  // 既に補済みの名前はRIKISHIに残るため、毎回の呼び出しで重複登録はしない。
+  const known = new Set(RIKISHI.map(r => r.name));
+  Object.values(REAL.days || {}).forEach(dayBouts => {
+    (dayBouts || []).forEach(x => {
+      [x.e, x.w].forEach(name => {
+        if (!name || known.has(name)) return;
+        known.add(name);
+        RIKISHI.push({ id: ridOf(name), name, rank: "J1", side: "", ichimon: ICHIMON_MAP[name] || ICHIMON[hashStr("im::" + name) % 5] });
+      });
+    });
+  });
   const rikishi = {};
   // 怪我明けB条件: 前場所5日以上休場 → 場所を通して×2
   const carry = REAL.injuredCarry || [];
