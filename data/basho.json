@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-09",
- "updatedAt": "2026-09-26T21:14:22.562Z",
+ "updatedAt": "2026-09-27T10:54:24.436Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -2177,163 +2177,178 @@
    {
     "e": "大の里",
     "w": "安青錦",
-    "k": null,
-    "win": null,
+    "k": "突き出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "霧島",
     "w": "琴櫻",
-    "k": null,
-    "win": null,
+    "k": "上手投げ",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "熱海富士",
     "w": "藤ノ川",
-    "k": null,
-    "win": null,
+    "k": "掬い投げ",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "伯乃富士",
     "w": "狼雅",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "美ノ海",
     "w": "大栄翔",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "欧勝馬",
     "w": "琴栄峰",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "高安",
     "w": "藤凌駕",
-    "k": null,
-    "win": null,
+    "k": "掬い投げ",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "朝乃山",
     "w": "義ノ富士",
-    "k": null,
-    "win": null,
+    "k": "寄り倒し",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "豪ノ山",
     "w": "若元春",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "金峰山",
     "w": "一山本",
-    "k": null,
-    "win": null,
+    "k": "送り出し",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "藤青雲",
     "w": "朝紅龍",
-    "k": null,
-    "win": null,
+    "k": "送り出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "阿炎",
     "w": "錦富士",
-    "k": null,
-    "win": null,
+    "k": "叩き込み",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "尊富士",
     "w": "朝白龍",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "寿之富士",
     "w": "平戸海",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "w",
     "fusen": false
    },
    {
     "e": "宇良",
     "w": "翔猿",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "朝翠龍",
     "w": "獅司",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "王鵬",
     "w": "時疾風",
-    "k": null,
-    "win": null,
+    "k": "寄り切り",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "千代翔馬",
     "w": "正代",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "e",
     "fusen": false
    },
    {
     "e": "湘南乃海",
     "w": "一意",
-    "k": null,
-    "win": null,
+    "k": "押し出し",
+    "win": "w",
     "fusen": false
    }
   ]
  },
  "news": [
   {
-   "t": "大の里 涙の復活！秋3連覇！安青錦との“千秋楽相星決戦”制して6度目V 1人横綱の意地見せた（スポニチアネックス）",
-   "u": "https://news.google.com/rss/articles/CBMif0FVX3lxTFBtazBlTnhRR2RnamNfekc1U1Rpc1VIQlZMaDJkcW9LN3UyMTFIbGp1UENpTzB1V0twTDJrUTktUFFvakhOMlh4bkFaVFg0b0VVS1J1X1M2Q3laU2dleFR4U001RkJxS1NjZEd3Z1BmYnpqa2NwSk9SVHdMdmxTanM?oc=5"
+   "t": "【大相撲】大の里と安青錦が相星決戦も…12勝Ｖは６場所連続 角界で懸念される〝地盤沈下〟（東スポWEB）",
+   "u": "https://news.google.com/rss/articles/CBMif0FVX3lxTE81a0w1QVF5M3IxSVNWSWw3S1NROWtrd1ktdEF1MjRzSGswT05EaHZYUFRhRzdOVzJyTDFhRWozVjR5TDhuWnV0NUpLaTB5RkNhN2pBdGszd1g4WWc5d1NELS1hcWRzZGg4RTNpVnNvTlhiVHdTdEtSYzlMYkhkUnc?oc=5"
   },
   {
-   "t": "大相撲秋場所 新関脇の藤ノ川と平幕の美ノ海が敢闘賞",
-   "u": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE92SmEza3BMSEd5SGxEZkdBa1V0V1FCelhTMmdjaWMtMFd3dDJDYzROcGNGdWVidkF4VUNnSmhqNnNGU0pkOXVITEc4TTFKTVlVMlpNVWxrQkFfajEzcEc4?oc=5"
+   "t": "「女将さんお綺麗」「美人が映ってると思ったら…」大相撲、客席に“凛”とした女性の姿 ひと際目立つ存在感に熱視線",
+   "u": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1JaGNkR0ZQWXJDSGxvQlB6OW1ZSzRMTEQxUWJ2Q0k0VElpeW1jMVZuMlVsdUl4OWxqM1pyTlhsYzMweVBYQkFvdExVTlk1WHFoTFJRaw?oc=5"
   },
   {
-   "t": "藤ノ川、美ノ海が2度目の敢闘賞 大相撲秋場所（時事通信）",
-   "u": "https://news.google.com/rss/articles/CBMif0FVX3lxTE5hWFBDRWhfOTVZLWROMFBVSWhUTHpQY0lRWlUwcWJPeWlpRUFpNUVQZWJadGZsdTVZOVp0R0FDLU1uNjE2ZDBVSXlITGx2NFlad3JqQ0U1RmZHNDE2ekxLZTVuUmU2VWc4MDdSci1hRzNlRUFURVR4UnV1WnpWTk0?oc=5"
+   "t": "「他人を傷つける行為が文化とは思わない」大相撲で飛び交う座布団、投げた客は刑事責任を問われないのか？",
+   "u": "https://news.google.com/rss/articles/CBMigAFBVV95cUxQaDltN3lzN3dhaDY5TzFqdXE0UWlCdHhkWV81b1lra1JRclViMUlNUk9fNmRUTGhPbkFCd1MtVjJsSVc2M3V3SFd4MGtmLUF3Z2NKeGxXakQ3ZzhmamQ0NmRwejBHbUs2QXBNRWNUUDg2U21BUVg4M0VqLVBMVEwwbNIBhgFBVV95cUxQaTJvX185ajNkX1FBaFJIX2lMejRYaFNDcDBmWi1SdUw5MnpLb0lqdko1Y3ZOZzM4N3haTndsWk52ME13MDdoVVR2MkRiOTlfRW9HZTA2bDRtUGtqNDhMODVaaUNxZ3RKbGxhMTNhLVhDZUcyUVFjZVJIbVo3RWZ4Z2ZQTTd6dw?oc=5"
   },
   {
-   "t": "藤ノ川「余裕あった」 大相撲秋場所：時事ドットコム",
-   "u": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE9zWGZKcVZKcGxNMlpxdVJxS1BHZS1ac3VtUXlZX2FCTVowZGdSaHA1Nkp4UXNiUlpENG1Tbl9oOWZaMHJMaUFoSUFUTXptT19MdzhpMFV6MEUwTUFPdXdoT1Ffbw?oc=5"
+   "t": "「こんなの泣ける」「見たことない」朝乃山、取組前に“まさか”の所作 負けられない一番であふれた思いにファン感涙",
+   "u": "https://news.google.com/rss/articles/CBMiVEFVX3lxTFA3TmJQSHZCNmVsMm45dV9DQVk5Zml0a3JLSDFEbTBicFJ6ZVBWVUxWTGFXS3gxNnAyZE5lNnhtTHl2aHQ2N2l0bVRpbDRLOUhxdE0wbA?oc=5"
   },
   {
-   "t": "大相撲秋場所千秋楽　十両・生田目（さくら市出身）9勝6敗　7場所ぶりの十両で勝ち越し",
-   "u": "https://news.google.com/rss/articles/CBMipgFBVV95cUxOdHZXSVpQT2ZwNGEtdGFHYjRhMlVtSU5vT0tTUHo4QkJtVklvWE1ERVA4VXFDRzBSck9SbVdfam56bnFMdVN5ZzgyNEJwaXlmUmx5RTRfOVlwc2lqNXFteHk3dTVhOGNXUHRnWlJZWVREeXYxc3luRkpaYzZodUhNYVhPMFJhWVFONktkUVJ1YmVEQ2txdDNVWGxTczJBN0tSeDZObENB0gGYAUFVX3lxTE5KcHIxdVJIZG1DdzRaZzN2bXJpTm45QTF1NTl5eV9FNkdEQldIXzdUMkRtRFdxWGFqZ2w4bGRXM18ydWU5YThxVkZjS3lzQ0luZTAyNEhKR3FSc01jS0lJSngzVXdDVFZpMVEzdkpxVGJhTk83MG5TUGp5OE1YS1R4OFBaTFFWSjNoQ3RmRE4xTm4xZXhzLXp1?oc=5"
+   "t": "【大相撲秋場所・１４日目】御嶽海は翠富士と対戦 | SBC NEWS | 長野のニュース | SBC信越放送 (1ページ)",
+   "u": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTFBaQnNiWVVtVTlLV3p0XzRkNTM3aXJUSHlBcU1EWGE2SzB6alE1dmQ0LWRUbkswMzRyT1Jnb3lIMEtJM0czUlRGbDNtaGhSSnl5MUNpLWVjRXluQlpRZlFNTHNNZEJWekk?oc=5"
   },
   {
-   "t": "大相撲秋場所千秋楽 伯乃富士は勝って５勝１０敗",
-   "u": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE5nbkpCZVdfOFRLRktTY0dwN0x5YXNkZ2FJV0VGU2pEMTdoSFVJc0FWVDVNcXFmems3U2RKUk1aZ2V5a21paWM0VVdzOThTUmxjYzV5M1NQaUw?oc=5"
+   "t": "矢後「やり切れた」 元幕内、引退会見―大相撲：時事ドットコム",
+   "u": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE1mUlM1T3doZDNOOVVxamN6QVhHT2ZTTDI3RHdIUGdYQUFwR2ZXbVRJSTl5Ri1FQU9GMkJ2R3h3MG9vU2hJOGJ4Sk81V2t3aXJXWW9JR1h1UktFamdlOF9oYzVuYw?oc=5"
   }
  ],
- "newsUpdatedAt": "2026-09-27T10:53:32.088Z"
+ "newsUpdatedAt": "2026-09-27T01:10:07.470Z",
+ "awards": {
+  "yusho": {
+   "name": "大の里"
+  },
+  "shukun": [],
+  "kanto": [
+   {
+    "name": "藤ノ川"
+   },
+   {
+    "name": "美ノ海"
+   }
+  ],
+  "gino": []
+ }
 }
