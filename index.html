@@ -3294,7 +3294,12 @@ function renderYosou() {
     </div>`;
   let body = "";
 
-  if (p && p.graded && p.result && p.detail) {
+  // p.gradedは「今回の受付対象(sched.next)」の採点結果とは限らない（前回の場所の
+  // 番付予想が採点済みのまま残っている場合がある）。forBashoKeyが一致する時だけ
+  // 「採点済み」として表示し、一致しなければ後続のensureYosouStateで新しい受付に切り替える
+  const pIsCurrent = !!(p && sched.next && p.forBashoKey === sched.next.key);
+
+  if (pIsCurrent && p.graded && p.result && p.detail) {
     // 採点済み: 結果表示
     const r = p.result;
     const rows = p.detail.map(d => `
