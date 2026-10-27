@@ -128,6 +128,11 @@ let TK_PARSED = [];   // 本日の取組結果プレビュー
 let TK_NEXT = [];     // 翌日の割プレビュー
 
 // ---------- 共通 ----------
+// 場所キーは「YYYY-MM」（半角ハイフン）。日本語入力などで「−」(U+2212)・全角・長音に
+// 化けると、ゲーム側の場所キー比較が一致せず実データが黙って無視されるため、
+// 入力・読み込み・出力のすべてで半角ハイフンに正規化する
+function normBashoKey(s){ return String(s||"").normalize("NFKC").replace(/[\u2010-\u2015\u2212\u30FC]/g,"-").replace(/\s+/g,""); }
+const validBashoKey=s=>/^\d{4}-(01|03|05|07|09|11)$/.test(s);
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function readSource(cb){
   const file=document.getElementById("jsonFile").files[0];
@@ -141,7 +146,8 @@ function initWork(){
   readSource(src=>{
     if(src===undefined)return;
     WORK = (src&&typeof src==="object")?src:{};
-    const key=document.getElementById("bashoKey").value.trim();
+    const key=normBashoKey(document.getElementById("bashoKey").value);
+    if(WORK.bashoKey) WORK.bashoKey=normBashoKey(WORK.bashoKey);
     if(!WORK.bashoKey && key) WORK.bashoKey=key;
     if(WORK.bashoKey && !key) document.getElementById("bashoKey").value=WORK.bashoKey;
     if(!WORK.days||typeof WORK.days!=="object") WORK.days={};
@@ -234,7 +240,7 @@ function commitBanzuke(){
   });
   if(list.length<20){alert("番付が20人未満です。ゲームは20人以上でないと実データを読みません。貼り付け範囲を確認してください。");return;}
   WORK.banzuke=list;
-  if(!WORK.bashoKey)WORK.bashoKey=document.getElementById("bashoKey").value.trim();
+  if(!WORK.bashoKey)WORK.bashoKey=normBashoKey(document.getElementById("bashoKey").value);
   refreshNameList();
   refreshOut();
   alert(`番付 ${list.length}人を登録しました。`);
@@ -395,7 +401,7 @@ function commitTorikumi(){
       nextMsg=`\n翌日（${day+1}日目）の割 ${narr.length}取組も登録しました。`;
     }
   }
-  if(!WORK.bashoKey)WORK.bashoKey=document.getElementById("bashoKey").value.trim();
+  if(!WORK.bashoKey)WORK.bashoKey=normBashoKey(document.getElementById("bashoKey").value);
   refreshOut();
   const todayMsg=day>=1?`${day}日目に ${arr.length}取組を登録しました。`:"0日目（初日開幕前）のため本日分の登録はスキップしました。";
   alert(todayMsg+nextMsg);
@@ -432,15 +438,17 @@ function commitAwards(){
 function refreshOut(){
   if(!WORK)return;
   WORK.updatedAt=new Date().toISOString();
+  if(WORK.bashoKey)WORK.bashoKey=normBashoKey(WORK.bashoKey);
   document.getElementById("out").value=JSON.stringify(WORK,null,1);
   const bzN=Array.isArray(WORK.banzuke)?WORK.banzuke.length:0;
   const days=Object.keys(WORK.days||{}).sort((a,b)=>a-b);
   document.getElementById("outSummary").innerHTML=
-    `場所 <b>${esc(WORK.bashoKey||"?")}</b>／番付 <b>${bzN}</b>人${bzN&&bzN<20?' <span class="warn">(20人未満・実データ不可)</span>':""}／取組登録済み：${days.length?days.map(d=>d+"日目").join("・"):"なし"}`
+    `場所 <b>${esc(WORK.bashoKey||"?")}</b>${WORK.bashoKey&&!validBashoKey(WORK.bashoKey)?' <span class="warn">(場所キーが「YYYY-MM」形式ではありません)</span>':""}／番付 <b>${bzN}</b>人${bzN&&bzN<20?' <span class="warn">(20人未満・実データ不可)</span>':""}／取組登録済み：${days.length?days.map(d=>d+"日目").join("・"):"なし"}`
     + (WORK.awards?" ／優勝三賞:あり":"")+ (WORK.nextBanzuke?" ／来場所番付:あり":"");
 }
 function downloadJson(){
   if(!WORK){alert("まだ何も登録されていません");return;}
+  if(WORK.bashoKey)WORK.bashoKey=normBashoKey(WORK.bashoKey);
   const blob=new Blob([JSON.stringify(WORK,null,1)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="basho.json";a.click();URL.revokeObjectURL(a.href);
 }
