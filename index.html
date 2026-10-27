@@ -3331,6 +3331,10 @@ function renderYosou() {
         ${rows}
         <button class="btn btn-ghost btn-wide" style="margin-top:8px" onclick="onYosouImage()">📷 予想を画像で保存</button>
       </div>`;
+  } else if (pIsCurrent && p.graded && !p.result) {
+    // 締切までに「この内容で確定する」を押さなかった場合は不参加扱い（採点・ボーナスなし）。
+    // 何も表示しないと「答え合わせが実行されない」ように見えるため理由を明示する
+    body = `<div class="card"><div class="note">📝 この回の番付予想は、締切までに<b>「この内容で確定する」</b>が押されなかったため<b>不参加扱い</b>（採点・ボーナスなし）になりました。<br>次回は${sched.next ? esc(sched.next.name) : "次の場所"}後の総合発表から受付開始です。入力したら忘れずに確定してください。</div></div>`;
   } else {
     body = `<div class="card"><div class="note">今回の番付予想は受付を終了しました。${sched.next ? `次回は${esc(sched.next.name)}後の総合発表から受付開始です。` : ""}</div></div>`;
   }
