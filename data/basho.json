@@ -2350,5 +2350,221 @@
    }
   ],
   "gino": []
+ },
+ "nextBanzuke": {
+  "bashoKey": "2026-11",
+  "fetchedAt": "2026-10-27T04:07:40.000Z",
+  "list": [
+   {
+    "name": "大の里",
+    "rank": "Y",
+    "side": "東"
+   },
+   {
+    "name": "豊昇龍",
+    "rank": "Y",
+    "side": "西"
+   },
+   {
+    "name": "安青錦",
+    "rank": "O",
+    "side": "東"
+   },
+   {
+    "name": "琴櫻",
+    "rank": "O",
+    "side": "西"
+   },
+   {
+    "name": "霧島",
+    "rank": "O",
+    "side": "東"
+   },
+   {
+    "name": "藤ノ川",
+    "rank": "S",
+    "side": "東"
+   },
+   {
+    "name": "熱海富士",
+    "rank": "S",
+    "side": "西"
+   },
+   {
+    "name": "美ノ海",
+    "rank": "K",
+    "side": "東"
+   },
+   {
+    "name": "義ノ富士",
+    "rank": "K",
+    "side": "西"
+   },
+   {
+    "name": "朝乃山",
+    "rank": "M1",
+    "side": "東"
+   },
+   {
+    "name": "藤凌駕",
+    "rank": "M1",
+    "side": "西"
+   },
+   {
+    "name": "宇良",
+    "rank": "M2",
+    "side": "東"
+   },
+   {
+    "name": "藤青雲",
+    "rank": "M2",
+    "side": "西"
+   },
+   {
+    "name": "高安",
+    "rank": "M3",
+    "side": "東"
+   },
+   {
+    "name": "伯乃富士",
+    "rank": "M3",
+    "side": "西"
+   },
+   {
+    "name": "尊富士",
+    "rank": "M4",
+    "side": "東"
+   },
+   {
+    "name": "大栄翔",
+    "rank": "M4",
+    "side": "西"
+   },
+   {
+    "name": "平戸海",
+    "rank": "M5",
+    "side": "東"
+   },
+   {
+    "name": "豪ノ山",
+    "rank": "M5",
+    "side": "西"
+   },
+   {
+    "name": "琴勝峰",
+    "rank": "M6",
+    "side": "東"
+   },
+   {
+    "name": "琴栄峰",
+    "rank": "M6",
+    "side": "西"
+   },
+   {
+    "name": "若元春",
+    "rank": "M7",
+    "side": "東"
+   },
+   {
+    "name": "金峰山",
+    "rank": "M7",
+    "side": "西"
+   },
+   {
+    "name": "狼雅",
+    "rank": "M8",
+    "side": "東"
+   },
+   {
+    "name": "錦富士",
+    "rank": "M8",
+    "side": "西"
+   },
+   {
+    "name": "欧勝馬",
+    "rank": "M9",
+    "side": "東"
+   },
+   {
+    "name": "朝紅龍",
+    "rank": "M9",
+    "side": "西"
+   },
+   {
+    "name": "獅司",
+    "rank": "M10",
+    "side": "東"
+   },
+   {
+    "name": "王鵬",
+    "rank": "M10",
+    "side": "西"
+   },
+   {
+    "name": "隆の勝",
+    "rank": "M11",
+    "side": "東"
+   },
+   {
+    "name": "朝白龍",
+    "rank": "M11",
+    "side": "西"
+   },
+   {
+    "name": "一山本",
+    "rank": "M12",
+    "side": "東"
+   },
+   {
+    "name": "阿炎",
+    "rank": "M12",
+    "side": "西"
+   },
+   {
+    "name": "寿之富士",
+    "rank": "M13",
+    "side": "東"
+   },
+   {
+    "name": "朝翠龍",
+    "rank": "M13",
+    "side": "西"
+   },
+   {
+    "name": "時疾風",
+    "rank": "M14",
+    "side": "東"
+   },
+   {
+    "name": "出羽ノ龍",
+    "rank": "M14",
+    "side": "西"
+   },
+   {
+    "name": "玉鷲",
+    "rank": "M15",
+    "side": "東"
+   },
+   {
+    "name": "北の若",
+    "rank": "M15",
+    "side": "西"
+   },
+   {
+    "name": "嵐富士",
+    "rank": "M16",
+    "side": "東"
+   },
+   {
+    "name": "旭海雄",
+    "rank": "M16",
+    "side": "西"
+   },
+   {
+    "name": "大青山",
+    "rank": "M17",
+    "side": "東"
+   }
+  ]
  }
 }
