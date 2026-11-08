@@ -249,6 +249,11 @@ function commitBanzuke(){
 // ---------- 取組結果パース ----------
 const isMark=t=>t==="◯"||t==="○"||t==="●"||t==="〇";
 const isWinMark=t=>t==="◯"||t==="○"||t==="〇";
+// 決まり手の表記をゲームの表記にそろえる（ABEMAの「叩き込み」等の漢字表記→慣用表記）。
+// ゲームの決まり手予想は「はたき込み」との完全一致で判定するため、そろえないと的中判定が狂う。
+// scraper/fetch_torikumi.mjs の KIMARITE_NORM と同じ対応表。
+const KIMARITE_NORM={"叩き込み":"はたき込み","掬い投げ":"すくい投げ","浴せ倒し":"あびせ倒し","浴びせ倒し":"あびせ倒し","下手捻り":"下手ひねり","上手捻り":"上手ひねり","蹴返し":"け返し","蹴手繰り":"けたぐり","打っ棄り":"うっちゃり"};
+const normKimarite=k=>KIMARITE_NORM[k]||k;
 function parseTorikumi(text){
   const clean=text.replace(/\r/g,"");
   // 【相撲レファレンス形式】1取組=1行・全項目タブ区切り。列の並びは
@@ -261,7 +266,7 @@ function parseTorikumi(text){
       const eastMark=f[6], westMark=f[8], kimarite=f[7];
       const fusen=/不戦/.test(kimarite);
       return {eastPos:f[3],eastName:f[4],westPos:f[9],westName:f[10],
-        kimarite:fusen?"":kimarite, win:isWinMark(eastMark)?"e":"w", fusen,
+        kimarite:fusen?"":normKimarite(kimarite), win:isWinMark(eastMark)?"e":"w", fusen,
         exclude:false, badMark:isWinMark(eastMark)===isWinMark(westMark), day:parseInt(f[0],10)||null};
     });
     const days=[...new Set(bouts.map(b=>b.day).filter(Boolean))];
@@ -278,7 +283,7 @@ function parseTorikumi(text){
     const eastName=toks[a-2]||"", eastPos=toks[a-3]||"", westName=toks[b+1]||"", westPos=toks[b+3]||"";
     const badMark=isWinMark(toks[a])===isWinMark(toks[b]);
     const fusen=/不戦/.test(kimarite);
-    bouts.push({eastPos,eastName,westPos,westName,kimarite:fusen?"":kimarite,win:isWinMark(toks[a])?"e":"w",fusen,exclude:false,badMark});
+    bouts.push({eastPos,eastName,westPos,westName,kimarite:fusen?"":normKimarite(kimarite),win:isWinMark(toks[a])?"e":"w",fusen,exclude:false,badMark});
   }
   return {bouts,markCount:markIdx.length};
 }

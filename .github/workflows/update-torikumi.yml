@@ -1,0 +1,59 @@
+name: update sumo torikumi
+
+# 本場所中、ABEMA TIMES「大相撲 取組結果」から幕内の勝敗と翌日の割（前売り用）を
+# 自動取得し、data/basho.json の days を更新する（scraper/fetch_torikumi.mjs）。
+#   ・JST 19:00 / 20:00 … 当日の勝敗 ＋ 翌日の割
+#   ・JST 08:00         … 前日分の取りこぼし回収 ＋ 当日の割
+#   ・初日の2日前（金）からは初日の割を取得。場所期間外は何もせず終了する。
+# 番付・優勝三賞は引き続き「取組結果登録ツール」で手動登録する（days 以外には触れない）。
+# 確定済みの取組結果は上書きしない。解析失敗（ページ仕様変更）やアクセス制限(403/429)の
+# ときはジョブが失敗し、GitHubから通知が届く。
+#
+# GitHub Actions の cron は UTC 表記（JST = UTC+9）。混雑時は数分〜数十分遅れることがある。
+#   UTC 10:00 = JST 19:00 / UTC 11:00 = JST 20:00 / UTC 23:00(前日) = JST 08:00
+
+on:
+  schedule:
+    - cron: "0 10 * * *"   # JST 19:00
+    - cron: "0 11 * * *"   # JST 20:00
+    - cron: "0 23 * * *"   # JST 08:00
+  workflow_dispatch: {}
+
+concurrency:
+  group: update-sumo-torikumi
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  torikumi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch torikumi & commit (最新を取り込んでから days を更新)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3; do
+            # ニュース自動更新や手動コミットなど最新の変更を取り込んでから実行する
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            node scraper/fetch_torikumi.mjs
+            git add data/basho.json
+            if git diff --cached --quiet; then
+              echo "変更なし。コミットをスキップします。"
+              exit 0
+            fi
+            git commit -m "update torikumi ($(date -u +%Y-%m-%dT%H:%MZ))"
+            if git push; then exit 0; fi
+            echo "push失敗。最新を取り込んで再試行 ($i)"
+            git reset --soft HEAD~1
+          done
+          echo "3回試行しても push できませんでした（次回スケジュールで再取得）。"
