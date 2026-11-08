@@ -885,7 +885,8 @@ function boutState(day, i) {
   const cur = info.current.day;
   if (day < cur || day > cur + 1) return "locked";
   if (day === cur) return info.now.hm >= boutLockHM(boutSlot(day, i), dd.torikumi.length, day) ? "locked" : "open";
-  return info.now.hm >= NEXT_OPEN_HM ? "open" : "locked"; // 翌日分
+  // 翌日分（0日目=初日前の前売り期間は時刻に関係なく受付）
+  return (cur === 0 || info.now.hm >= NEXT_OPEN_HM) ? "open" : "locked";
 }
 
 // ============================================================
@@ -948,7 +949,7 @@ function ewState(day) {
   if (!info.current || info.current.key !== SIM.key) return "locked";
   const cur = info.current.day;
   if (day === cur) return info.now.hm < boutLockHM(0, dd.torikumi.length, day) ? "open" : "locked";
-  if (day === cur + 1) return info.now.hm >= NEXT_OPEN_HM ? "open" : "locked";
+  if (day === cur + 1) return (cur === 0 || info.now.hm >= NEXT_OPEN_HM) ? "open" : "locked";
   return "locked";
 }
 function placeEwBet(day, side, amount) {
@@ -2578,7 +2579,8 @@ function renderTorikumi() {
   // 初日の割は下の「翌日の前売り」ブロックにそのまま表示される
 
   // 翌日の前売り（18:00以降）— アコーディオン（デフォルト開）
-  if (hm >= NEXT_OPEN_HM && day < 15 && !G.finishedProcessed) {
+  // 0日目（初日前の前売り期間）は時刻に関係なく初日の割を表示
+  if ((day === 0 || hm >= NEXT_OPEN_HM) && day < 15 && !G.finishedProcessed) {
     if (SIM.days[day + 1]) {
       const openTmr = UI.accTomorrow !== undefined ? UI.accTomorrow : true;
       let cards = ewCardHTML(day + 1);

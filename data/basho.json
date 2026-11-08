@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-11",
- "updatedAt": "2026-10-27T04:11:48.801Z",
+ "updatedAt": "2026-11-08T11:47:35.000Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -218,32 +218,247 @@
  "injuredCarry": [
   "豊昇龍"
  ],
- "days": {},
+ "days": {
+  "1": [
+   {
+    "e": "大の里",
+    "w": "義ノ富士",
+    "win": "w",
+    "k": "突き落とし"
+   },
+   {
+    "e": "美ノ海",
+    "w": "豊昇龍",
+    "win": "w",
+    "k": "押し出し"
+   },
+   {
+    "e": "安青錦",
+    "w": "朝乃山",
+    "win": "w",
+    "k": "寄り倒し"
+   },
+   {
+    "e": "藤凌駕",
+    "w": "琴櫻",
+    "win": "e",
+    "k": "押し出し"
+   },
+   {
+    "e": "霧島",
+    "w": "宇良",
+    "win": "e",
+    "k": "押し倒し"
+   },
+   {
+    "e": "藤ノ川",
+    "w": "藤青雲",
+    "win": "w",
+    "k": "寄り切り"
+   },
+   {
+    "e": "高安",
+    "w": "熱海富士",
+    "win": "w",
+    "k": "送り出し"
+   },
+   {
+    "e": "大栄翔",
+    "w": "伯乃富士",
+    "win": "e",
+    "k": "突き出し"
+   },
+   {
+    "e": "尊富士",
+    "w": "平戸海",
+    "win": "w",
+    "k": "引き落とし"
+   },
+   {
+    "e": "琴勝峰",
+    "w": "豪ノ山",
+    "win": "w",
+    "k": "押し出し"
+   },
+   {
+    "e": "若元春",
+    "w": "琴栄峰",
+    "win": "e",
+    "k": "寄り切り"
+   },
+   {
+    "e": "狼雅",
+    "w": "金峰山",
+    "win": "w",
+    "k": "寄り切り"
+   },
+   {
+    "e": "欧勝馬",
+    "w": "錦富士",
+    "win": "e",
+    "k": "突き落とし"
+   },
+   {
+    "e": "獅司",
+    "w": "朝紅龍",
+    "win": "w",
+    "k": "寄り切り"
+   },
+   {
+    "e": "隆の勝",
+    "w": "王鵬",
+    "win": "e",
+    "k": "押し出し"
+   },
+   {
+    "e": "一山本",
+    "w": "朝白龍",
+    "win": "w",
+    "k": "押し出し"
+   },
+   {
+    "e": "寿之富士",
+    "w": "阿炎",
+    "win": "w",
+    "k": "叩き込み"
+   },
+   {
+    "e": "時疾風",
+    "w": "朝翠龍",
+    "win": "w",
+    "k": "寄り切り"
+   },
+   {
+    "e": "玉鷲",
+    "w": "出羽ノ龍",
+    "win": "w",
+    "k": "寄り切り"
+   },
+   {
+    "e": "嵐富士",
+    "w": "北の若",
+    "win": "e",
+    "k": "押し出し"
+   },
+   {
+    "e": "大青山",
+    "w": "旭海雄",
+    "win": "w",
+    "k": "寄り切り"
+   }
+  ],
+  "2": [
+   {
+    "e": "朝乃山",
+    "w": "豊昇龍"
+   },
+   {
+    "e": "大の里",
+    "w": "藤凌駕"
+   },
+   {
+    "e": "美ノ海",
+    "w": "琴櫻"
+   },
+   {
+    "e": "霧島",
+    "w": "藤青雲"
+   },
+   {
+    "e": "安青錦",
+    "w": "義ノ富士"
+   },
+   {
+    "e": "宇良",
+    "w": "熱海富士"
+   },
+   {
+    "e": "藤ノ川",
+    "w": "高安"
+   },
+   {
+    "e": "平戸海",
+    "w": "伯乃富士"
+   },
+   {
+    "e": "尊富士",
+    "w": "大栄翔"
+   },
+   {
+    "e": "琴栄峰",
+    "w": "豪ノ山"
+   },
+   {
+    "e": "琴勝峰",
+    "w": "若元春"
+   },
+   {
+    "e": "錦富士",
+    "w": "金峰山"
+   },
+   {
+    "e": "狼雅",
+    "w": "欧勝馬"
+   },
+   {
+    "e": "王鵬",
+    "w": "朝紅龍"
+   },
+   {
+    "e": "獅司",
+    "w": "隆の勝"
+   },
+   {
+    "e": "阿炎",
+    "w": "朝白龍"
+   },
+   {
+    "e": "一山本",
+    "w": "寿之富士"
+   },
+   {
+    "e": "出羽ノ龍",
+    "w": "朝翠龍"
+   },
+   {
+    "e": "時疾風",
+    "w": "玉鷲"
+   },
+   {
+    "e": "旭海雄",
+    "w": "北の若"
+   },
+   {
+    "e": "嵐富士",
+    "w": "大青山"
+   }
+  ]
+ },
  "news": [
   {
-   "t": "大相撲九州場所番付発表 錦木は幕下に陥落",
-   "u": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE15Q0pwZzkyT0w5c0pRamhGYld0cmdVcHpDN0ZkVmVNN183TjhkZVR2cjR3TTVQejh1TWEzajhsMmJ1Y2dqTElGVGJLYzVMLWREU3NXTVEwMA?oc=5"
+   "t": "１横綱２大関敗れる波乱 大相撲九州場所初日：時事ドットコム",
+   "u": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE9EalpFVXd4TFRhZllHQ3JBVWl0d2ozaUIzM0phNkMtMlloUnNZRkdlTlVhaC03ZmltRWF6M2NkVlYwd0xqbUgwRjR6MlpaZENIWXowRjA0WEc4blFqSDVSMHZtYw?oc=5"
   },
   {
-   "t": "松の里、序ノ口デビュー 八代市出身 しこ名、横綱の系譜 大相撲九州場所",
-   "u": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE90VngwUS03azJUQnU3LW9ocThwRDRQNlNUQW1MVV9JZUQ4RmpmdGRXM3VZLVg4RlhWdTFlQndPM3MwWXB6YVFYVk5ZRTdZV2s?oc=5"
+   "t": "「NHK大相撲中継」中入り企画一覧 - 番組からの情報 - 大相撲中継",
+   "u": "https://news.google.com/rss/articles/CBMid0FVX3lxTE96MlRpQ1lZbmFJTHR5MmdJdUJncDdWRzZNVEswOXNqdVRMMndCeFFCeFBobVpud0tjY3VFanpxalI1M3ZCbnVGTUtkZWNwU1hmakVuVFZIYzdPMVdoRVpWMzBSaXJNaWhxbUdQQUhpR19qZXBhSlIw?oc=5"
   },
   {
-   "t": "来年春に小牧市で10年ぶり大相撲巡業が開催　枝川親方が巡業の魅力PR「本場所には無いイベントも」",
-   "u": "https://news.google.com/rss/articles/CBMie0FVX3lxTFBYUHVhZnJYLWpsSDJlM3pYenQwS25XZEpXeDMyWFo1WDhialg5aG1XSUhheUJhSy03cHVoTzFsV0N6OXY2azZjUkViVEVONm12RUF6ZVEyU1Y0ckhUVE8yRDFQcU9SX0UzTGs3QWU1S1h1cXVad0h4MklHNNIBgAFBVV95cUxPc3Vta0pWdnVUbzFjT0MxeHA5eHdSRG1fUXFmaEEyZlNNR3lvM0VTdnhXVlUtZHJPOTBDZGgxekhsMU5JMHNHY3c0dnRLME1zTXNJaGxRMGhzbURoWkxtUDRkM2FNbW1EbkRNNjVXZlNMbG45QnhoZ1dtUm9maDkxMA?oc=5"
+   "t": "大相撲 「お見事！」「神裁き」立行司デビュー戦の第４０代木村庄之助に絶賛の嵐！結びの一番で物言いも軍配通り 先に俵についていた横綱の手 ＮＨＫ解説も「さすが庄之助」（デイリースポーツ）",
+   "u": "https://news.google.com/rss/articles/CBMif0FVX3lxTFBma2pTLXBfNmFJaDZfTUJ0TGVBUzNUSTk5Ujltb1NNT0JHZldCTlhUWGlIWFZjWDVWTm9wM28ydzJlSTVoSEpDT2JWTUhVSGNmR2RsMkZXOE1oN3djdjhqa2RTa3g3ZmRGbGVfVTFibFhrd2M0bEFlY0tGWEJsOTA?oc=5"
   },
   {
-   "t": "小牧市スポーツ協会法人化40周年記念 令和九年 春巡業大相撲 小牧場所",
-   "u": "https://news.google.com/rss/articles/CBMiakFVX3lxTE4xbHJyQ3c5TzBwcjR2NnRXc0tDRDRObFF5NzRmT1JMNnN0UzhScGZiamlPMDZJSFNPMlQ1dDRJcHpHelZOeWNacFhzOU15Mzk0SE1rcUhTN2NCSmJQQ3czX3BLYVkyN1c3UHc?oc=5"
+   "t": "審判団は結びの一番の際どい土俵際をどう判定したのか？ 浅香山審判部長の見解 - 大相撲写真ニュース",
+   "u": "https://news.google.com/rss/articles/CBMikwFBVV95cUxNTEJqYnhUMVBkU1RHZzZRblNvVWVmaGd0OXpoaWpqazlGNFpCR3U3UU1fQmgxNzBOWFZhVFQ1MHotbThodlpDeE5ZQ2Q0UXBNV1dTMkhFejlCQ0Z6dWd3eUNHY0JYU3FsQ2ozaG5weUhSZkN5WElrbHppcmJwR3JTcG44U3BIakhlRmY5eUdubnZFY1E?oc=5"
   },
   {
-   "t": "来年春に小牧市で10年ぶり大相撲巡業が開催 枝川親方が巡業の魅力PR「本場所には無いイベントも」 (2026年10月26日掲載)",
-   "u": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE1HZ2dUX1B4c2EwckJ2TjBCdF9oUzQ1bVBhX1o5aTk3WVR6MnlrUUY2RTRPVlVCdnNEUDBVU0lrRmZqSTFEYjRaQjVCUzVQZWd1MVVRYTFpY19hMVlzOVE?oc=5"
+   "t": "大相撲 「お見事！」「神裁き」立行司デビュー戦の第４０代木村庄之助に絶賛の嵐！結びの一番で物言いも軍配通り 先に俵についていた横綱の手 ＮＨＫ解説も「さすが庄之助」",
+   "u": "https://news.google.com/rss/articles/CBMiR0FVX3lxTFBIb1FqbjJuOUl6VlJxQWFxaW50ZFp4T0RBNzk3b0g0QWZiQWdTRHJ0ZDg0ckR2am1Tb1ZDeVBIbFNleWNxTDlZ?oc=5"
   },
   {
-   "t": "“イケメン”注目23歳大森５勝！ 秋場所７番すべて本人コメント入りで振り返ります",
-   "u": "https://news.google.com/rss/articles/CBMieEFVX3lxTE1TS1hlNFN0QWkwS1FhMTRyd0syaEIyeDQwZ3MyZ1N5Z1haYVlkMlotNnZQWHhQVlpkMVdEd3lGdVN5TmM1WnBIcHZPYmV5NmhUZk9RbXo2VXpFUFgxa085XzNXc0RmZlBReGZnLVhwbEg4bmU5MEt1dg?oc=5"
+   "t": "【大相撲九州場所・初日】御嶽海は白熊に不戦勝",
+   "u": "https://news.google.com/rss/articles/CBMiV0FVX3lxTFAyeHd4Szl1RHJYcnplMF9uSXlNWDVOcFhTeUdjLWtWY3F2cG0zMmg5bWttbHN0MjdTcmRCZ2M5MGJMejFQLV9oLWpoek5TRWl6UTZFUXBsMA?oc=5"
   }
  ],
- "newsUpdatedAt": "2026-10-27T01:52:04.197Z"
+ "newsUpdatedAt": "2026-11-08T16:33:56.113Z"
 }
