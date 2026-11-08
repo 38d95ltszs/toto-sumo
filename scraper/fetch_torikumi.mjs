@@ -234,7 +234,9 @@ function mergeDay(existing, fresh, day) {
     const o = old[idx];
     if (!o.win) return b;                        // 既存が未確定 → 新しい情報を採用
     const swapped = o.e !== b.e;                 // 東西が逆に登録されていた場合は向きを合わせる
-    const kept = swapped ? { ...o, e: o.w, w: o.e, win: o.win === "e" ? "w" : "e" } : o;
+    let kept = swapped ? { ...o, e: o.w, w: o.e, win: o.win === "e" ? "w" : "e" } : o;
+    // 勝敗は保持したまま、決まり手の表記だけゲームの表記にそろえる（手動登録の「叩き込み」等）
+    if (kept.k && normKimarite(kept.k) !== kept.k) kept = { ...kept, k: normKimarite(kept.k) };
     if (b.win && b.win !== kept.win) {
       console.log(`day${day}: ⚠ ${b.e}-${b.w} の結果がABEMAと既存データで食い違い。確定済みの既存を保持します`);
     }
