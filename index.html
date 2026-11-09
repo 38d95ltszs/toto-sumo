@@ -1257,6 +1257,18 @@ async function ensureBashoState() {
 // ============================================================
 // ベット
 // ============================================================
+// 取組予想・東西対抗のベットパネルに最初から入る賭け米。米取表で各自が変更でき、
+// G に保存されるのでログインIDを設定していれば別端末にも引き継がれる
+const DEFAULT_BET = 500;
+function savedDefaultBet() {
+  const v = Math.floor(Number(G && G.defaultBet) / 100) * 100;
+  return v >= 100 ? v : DEFAULT_BET;
+}
+// 入力欄に入れる値: 設定値。ただし持ち米を超えるときは持ち米（100合単位）まで下げる
+function initialBetAmount() {
+  const cap = Math.floor(Math.max(0, G.points) / 100) * 100;
+  return Math.max(100, Math.min(savedDefaultBet(), cap || 100));
+}
 function placeBet(day, boutIdx, side, amount, kimarite, kAmount) {
   if (boutState(day, boutIdx) !== "open") return { ok: false, msg: "この取組は締め切られました" };
   const bout = SIM.days[day].torikumi[boutIdx];
@@ -2675,7 +2687,7 @@ function ewCardHTML(day) {
     html += `
     <div class="bet-panel">
       <div class="bet-row"><b>${sel === "east" ? "東方" : "西方"}</b>に賭ける（配当は勝ち数の差がそのまま倍率${dayBonus > 1 ? `×日程ボーナス${dayBonus}` : ""}。大差で勝つほど高配当）</div>
-      <div class="bet-row"><label>賭け米</label><input type="number" id="ew-amount-${day}" value="500" step="100" min="100" max="${G.points}"> 合</div>
+      <div class="bet-row"><label>賭け米</label><input type="number" id="ew-amount-${day}" value="${initialBetAmount()}" step="100" min="100" max="${G.points}"> 合</div>
       <div class="bet-row">
         <button class="btn btn-primary" onclick="onEwConfirm(${day})">この予想で確定</button>
         <button class="btn btn-ghost" onclick="UI.ewOpen=null;renderTorikumi()">やめる</button>
@@ -2779,7 +2791,7 @@ function boutCardHTML(bout, i, day) {
     html += `
     <div class="bet-panel">
       <div class="bet-row"><b>${esc(r.name)}</b>（${odds.toFixed(2)}倍）に賭ける</div>
-      <div class="bet-row"><label>賭け米</label><input type="number" id="bet-amount" value="500" step="100" min="100" max="${G.points}"> 合</div>
+      <div class="bet-row"><label>賭け米</label><input type="number" id="bet-amount" value="${initialBetAmount()}" step="100" min="100" max="${G.points}"> 合</div>
       <div class="bet-row"><label>決まり手</label>
         <select id="bet-kimarite"><option value="">予想しない</option>
           ${KIMARITE_BET.map(k => `<option value="${k.key}">${k.key}（${round2(k.odds * (bout.kensho ? kenshoMult() : 1))}倍）</option>`).join("")}
@@ -3903,6 +3915,13 @@ async function renderKometori() {
       <div class="center" style="margin-top:8px"><button class="btn btn-primary" onclick="onSaveProfile()">変更を保存</button></div>
     </div>
 
+    <div class="section-title">🎯 賭け米の初期値</div>
+    <div class="card">
+      <div class="form-row"><label>最初に入る賭け米</label><input type="number" id="pf-defbet" value="${savedDefaultBet()}" step="100" min="100"> 合</div>
+      <div class="note">取組予想・東西対抗で予想を開いたとき、賭け米の欄に最初から入る金額です（100合単位・初期設定は${fmt(DEFAULT_BET)}合）。持ち米が足りないときは、持ち米までの額が入ります。</div>
+      <div class="center" style="margin-top:8px"><button class="btn btn-primary" onclick="onSaveDefaultBet()">保存</button></div>
+    </div>
+
     ${sbConfigured() ? `<div class="section-title">🔑 アカウント設定</div>
     <div class="card">
       ${IS_ANON ? `
@@ -4075,6 +4094,15 @@ async function onSetupAccount() {
   renderKometori();
 }
 
+// 賭け米の初期値を保存（100合単位・100合以上）
+function onSaveDefaultBet() {
+  const v = Math.floor(parseInt(($("#pf-defbet") || {}).value || "0", 10) / 100) * 100;
+  if (!(v >= 100)) { showToast("⚠ 入力エラー", "100合以上を100合単位で入力してください"); return; }
+  G.defaultBet = v;
+  save();
+  showToast("🎯 保存しました", `賭け米の初期値を ${fmt(v)}合 にしました`);
+  renderKometori();
+}
 async function onSaveProfile() {
   const name = $("#pf-name").value.trim().slice(0, 10);
   if (!name) { alert("四股名を入力してください"); return; }
