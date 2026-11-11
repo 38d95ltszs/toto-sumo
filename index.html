@@ -1269,6 +1269,26 @@ function initialBetAmount() {
   const cap = Math.floor(Math.max(0, G.points) / 100) * 100;
   return Math.max(100, Math.min(savedDefaultBet(), cap || 100));
 }
+// 賭け中（未精算）の賭け米。賭けた時点で持ち米から差し引かれている分
+function pendingStake() {
+  let s = 0;
+  (G.bets || []).forEach(b => { if (!b.settled) s += (b.amount || 0) + (b.kAmount || 0); });
+  (G.ewBets || []).forEach(b => { if (!b.settled) s += (b.amount || 0); });
+  return s;
+}
+// 米取表（トト番付・収支グラフ・場所開始比）に使う持ち米。賭け中の米を含めるので、
+// 賭けても・取り消しても動かず、払い戻し（精算）やちゃんこ・クイズの時だけ変わる
+function rankPoints() { return G.points + pendingStake(); }
+// いちばん新しい「全取組の結果が出た日」（今場所）。まだ無ければ0
+function latestSettledDay() {
+  if (!SIM || !SIM.days || SIM.key !== G.bashoKey) return 0;
+  let d = 0;
+  for (let k = 1; k <= 15; k++) {
+    const dd = SIM.days[k];
+    if (dd && dd.torikumi.length && dd.torikumi.every(bt => bt.result)) d = k;
+  }
+  return d;
+}
 function placeBet(day, boutIdx, side, amount, kimarite, kAmount) {
   if (boutState(day, boutIdx) !== "open") return { ok: false, msg: "この取組は締め切られました" };
   const bout = SIM.days[day].torikumi[boutIdx];
@@ -1479,7 +1499,7 @@ function settlePending() {
       if (dd && agg.bets >= dd.torikumi.length) s.allInDays++;
     }
     G.dayLog.push({ day, bets: agg.bets, hits: agg.hits, net: agg.net });
-    if (!G.pointsHistory.some(h => h.day === day)) G.pointsHistory.push({ day, points: G.points });
+    if (!G.pointsHistory.some(h => h.day === day)) G.pointsHistory.push({ day, points: rankPoints() });
     delete G.dayAgg[day];
   });
 
@@ -1896,13 +1916,16 @@ async function pushProfile() {
     ichimon: G.profile.ichimon,
     title: currentTitleName(),
     basho_key: G.bashoKey,
-    points: clampInt(G.points),
+    points: clampInt(rankPoints()), // 賭けても動かない値で番付を出すため賭け中の米を含める
     hits: clampInt(G.hitsThisBasho),
     bets: clampInt(G.betsThisBasho),
     banzuke_level: G.banzukeLevel,
     basho_count: clampInt(G.bashoCount),
     final_points: (typeof G.finalPoints === "number") ? clampInt(G.finalPoints) : null,
-    history: Object.fromEntries((G.pointsHistory || []).map(h => [String(h.day), clampInt(h.points)])),
+    // 日別の持ち米（"日目"キー）と、その日の精算差分（"n日目"キー。米取表の「（＋nn,nnn）」表示用）
+    history: Object.assign(
+      Object.fromEntries((G.pointsHistory || []).map(h => [String(h.day), clampInt(h.points)])),
+      Object.fromEntries((G.dayLog || []).map(l => ["n" + l.day, clampInt(l.net)]))),
     comment: G.profile.comment || "",
     updated_at: nowIso
   };
@@ -2005,19 +2028,31 @@ function computeBanzuke(list, useFinal) {
   // 欠損値(null/undefined)は0として扱い、並び替えや表示で例外を出さない
   const num = v => { const x = Number(v); return isFinite(x) ? x : 0; };
   const pts = p => num((useFinal && typeof p.final_points === "number") ? p.final_points : p.points);
-  const myPts = num((useFinal && typeof G.finalPoints === "number") ? G.finalPoints : G.points);
+  const myPts = num((useFinal && typeof G.finalPoints === "number") ? G.finalPoints : rankPoints());
+  // 「（＋nn,nnn）」表示用: いちばん新しい精算済みの日の精算差分（場所中のみ）
+  const netDay = useFinal ? 0 : latestSettledDay();
+  const netOf = p => {
+    const v = netDay && p.history && typeof p.history === "object" ? p.history["n" + netDay] : undefined;
+    return typeof v === "number" ? v : undefined;
+  };
+  const myLog = netDay ? (G.dayLog || []).find(l => l.day === netDay) : null;
+  const myNet = myLog ? num(myLog.net) : undefined;
   if (list && list.length) {
-    list.forEach(p => rows.push({
-      id: p.id, name: p.shikona, title: p.title, ichimon: p.ichimon,
-      points: pts(p), rate: p.bets ? p.hits / p.bets : 0,
-      hits: p.hits || 0, bets: p.bets || 0, comment: p.comment || "",
-      isNew: (p.basho_count || 1) === 1, me: p.id === MYID
-    }));
+    list.forEach(p => {
+      const me = p.id === MYID;
+      rows.push({
+        id: p.id, name: p.shikona, title: p.title, ichimon: p.ichimon,
+        // 自分の行は同期待ちのずれが出ないよう手元の値を使う
+        points: me && !useFinal ? myPts : pts(p), rate: p.bets ? p.hits / p.bets : 0,
+        hits: p.hits || 0, bets: p.bets || 0, comment: p.comment || "",
+        isNew: (p.basho_count || 1) === 1, me, dayNet: me ? myNet : netOf(p)
+      });
+    });
     if (MYID && !rows.some(r => r.me) && G.betsThisBasho > 0) {
-      rows.push({ id: MYID, name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, comment: G.profile.comment || "", isNew: G.bashoCount === 1, me: true });
+      rows.push({ id: MYID, name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, comment: G.profile.comment || "", isNew: G.bashoCount === 1, me: true, dayNet: myNet });
     }
   } else {
-    rows.push({ id: "me", name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, comment: G.profile.comment || "", isNew: G.bashoCount === 1, me: true });
+    rows.push({ id: "me", name: G.profile.shikona, title: currentTitleName(), ichimon: G.profile.ichimon, points: myPts, rate: G.betsThisBasho ? G.hitsThisBasho / G.betsThisBasho : 0, hits: G.hitsThisBasho, bets: G.betsThisBasho, comment: G.profile.comment || "", isNew: G.bashoCount === 1, me: true, dayNet: myNet });
   }
   rows.sort((x, y2) => y2.points - x.points || y2.rate - x.rate);
   const N = rows.length;
@@ -3866,9 +3901,9 @@ async function renderKometori() {
       <div class="stats-grid">
         <div>🎫 今場所ベット <b>${fmt(G.betsThisBasho)}</b>回</div><div>🎯 今場所的中 <b>${fmt(G.hitsThisBasho)}</b>回</div>
         <div>📊 今場所的中率 <b>${G.betsThisBasho ? Math.round(G.hitsThisBasho / G.betsThisBasho * 100) : 0}</b>％</div><div>📆 ベットした日数 <b>${G.betDays.length}</b>日</div>
-        <div>💰 現在の持ち米 <b>${fmt(G.points)}</b>合</div><div>${(() => {
-          const start = G.pointsHistory && G.pointsHistory[0] ? G.pointsHistory[0].points : G.points;
-          const diff = G.points - start;
+        <div>💰 現在の持ち米 <b>${fmt(G.points)}</b>合${pendingStake() ? `<br><span class="muted" style="font-size:10px">＋賭け中 ${fmt(pendingStake())}合</span>` : ""}</div><div>${(() => {
+          const start = G.pointsHistory && G.pointsHistory[0] ? G.pointsHistory[0].points : rankPoints();
+          const diff = rankPoints() - start;
           return `📈 場所開始比 <b class="${diff >= 0 ? "net-plus" : "net-minus"}">${diff >= 0 ? "+" : ""}${fmt(diff)}</b>合`;
         })()}</div>
       </div>
@@ -3968,6 +4003,12 @@ function refreshRankArea() {
   const area = $("#ranking-area");
   if (area) area.innerHTML = rankingHTML(UI.lastRankList);
 }
+// その日の精算差分「（＋nn,nnn）」。その日に賭けていない・まだ精算していない人は出さない
+function netTag(u) {
+  if (typeof u.dayNet !== "number") return "";
+  const n = u.dayNet;
+  return `<br><span class="${n >= 0 ? "net-plus" : "net-minus"}" style="font-size:10px">（${n > 0 ? "＋" : n < 0 ? "－" : "±"}${fmt(Math.abs(n))}）</span>`;
+}
 function rankingHTML(list) {
   const bz = computeBanzuke(list, G.finishedProcessed);
   // 本物の番付と同じく東西交互（1位=東、2位=西、3位=東…）
@@ -3983,8 +4024,8 @@ function rankingHTML(list) {
       <b style="font-size:13px;cursor:pointer" data-comment="${esc(u.comment || "")}" onclick="showComment(this)">${esc(u.name)}${u.comment ? " 💬" : ""}</b>${u.me ? " ★" : ""}<br>
       <span class="muted" style="font-size:10px">的中 ${u.hits || 0}/${u.bets || 0}</span>` : "";
     rows.push(`<tr class="${(e && e.me) || (w && w.me) ? "me" : ""}">
-      <td>${e ? e.pos : ""}</td><td style="text-align:center">${cell(e)}</td><td>${e ? fmt(e.points) : ""}</td>
-      <td>${w ? fmt(w.points) : ""}</td><td style="text-align:center">${cell(w)}</td><td>${w ? w.pos : ""}</td></tr>`);
+      <td>${e ? e.pos : ""}</td><td style="text-align:center">${cell(e)}</td><td>${e ? fmt(e.points) + netTag(e) : ""}</td>
+      <td>${w ? fmt(w.points) + netTag(w) : ""}</td><td style="text-align:center">${cell(w)}</td><td>${w ? w.pos : ""}</td></tr>`);
   }
   // 5行超は自分の前後だけ表示（展開で全員）
   let body, toggle = "";
@@ -4009,7 +4050,8 @@ function rankingHTML(list) {
     <p class="muted" style="margin-top:4px">
       ${SB ? `🟢 オンライン：${bz.total}名参加${info.current && !G.finishedProcessed ? "（場所中は速報値）" : scoreFrozen() ? "（速報値・確定は水曜10:00の番付編成会議）" : "（確定番付）"}` : "⚪ オフライン：自分のみ表示"}
       ${bz.pos ? `／あなた：${bz.pos}位` : ""}
-    </p>`;
+    </p>
+    ${!G.finishedProcessed && latestSettledDay() ? `<p class="muted" style="margin-top:2px;font-size:11px">持ち米は賭け中の米を含む（払い戻しの時に更新）。（　）は${dayKanji(latestSettledDay())}の精算差分。</p>` : ""}`;
 }
 
 // ---------------- 過去のトト番付（アーカイブ） ----------------
@@ -4216,15 +4258,16 @@ function drawChart() {
   if (!ctx) return; // iOS Safariはメモリ制約でnullを返すことがある
   const W = cv.width, H = cv.height, P = 40;
   ctx.clearRect(0, 0, W, H);
-  const hist = ((G.pointsHistory && G.pointsHistory.length) ? G.pointsHistory : [{ day: 0, points: G.points }]).slice();
+  const hist = ((G.pointsHistory && G.pointsHistory.length) ? G.pointsHistory : [{ day: 0, points: rankPoints() }]).slice();
   // 当日のリアルタイム値を追加（日次確定前の途中経過を反映）
   const info = bashoInfo();
   let liveIdx = -1;
   if (info.current && !G.finishedProcessed) {
     const last = hist[hist.length - 1];
-    if (!last || last.points !== G.points || last.day !== info.current.day) {
+    const now = rankPoints(); // 賭け中の米を含む（賭けた瞬間にグラフが下がらない）
+    if (!last || last.points !== now || last.day !== info.current.day) {
       const x = hist.some(h => h.day === info.current.day) ? Math.min(15, info.current.day + 0.5) : info.current.day;
-      hist.push({ day: x, points: G.points, live: true });
+      hist.push({ day: x, points: now, live: true });
       liveIdx = hist.length - 1;
     }
   }
