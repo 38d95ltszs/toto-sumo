@@ -18,7 +18,7 @@
 | `scraper/fetch_basho.mjs` | ニュース見出しだけをGoogleニュースRSSから取得（それ以外は手動） |
 | `.github/workflows/update-data.yml` | 上記を1日5回実行（ニュースのみ更新） |
 | `scraper/fetch_torikumi.mjs` | 本場所中、ABEMA TIMESの取組結果から幕内の勝敗・決まり手と翌日の割を取得して `days` を更新 |
-| `.github/workflows/update-torikumi.yml` | 上記をJST 19:00・20:00・翌朝8:00に実行（`days` のみ更新） |
+| `.github/workflows/update-torikumi.yml` | 上記を実行（`days` のみ更新）。JST 19:00・20:00・翌朝8:00の起動はSupabaseのpg_cronがGitHub APIで行う（GitHubのscheduleは大幅に遅れるため保険扱い）。設定は `取組自動取得_定時実行の設定手順.md` |
 | `.github/workflows/settle-basho.yml` | サーバー精算Edge Functionを毎朝呼ぶcron |
 | `supabase/functions/settle-basho/index.ts` | サーバー側の強制精算（オフシーズン中に全員のfinal_pointsを確定） |
 | `取組結果登録ツール.html` | 番付・取組結果・優勝三賞を手動登録して basho.json を作る管理ツール（公開不要・手元で使用） |
@@ -28,6 +28,7 @@
 
 - **取組（勝敗・決まり手・翌日の割）は自動**（2026年11月場所〜）。`fetch_torikumi.mjs` がABEMA TIMESの取組結果ページが日切り替えに使うJSON（`/list/ajax/sumo_torikumi.json`）を1日3回・最大2リクエストずつ取得する。robots.txtは一般クローラーを禁止しておらず、ABEMAの利用規約にも自動取得の明示的な禁止条項は無いが、第7条（コンテンツの複製・蓄積は許諾範囲内）・第8条(4)（不正な方法での取得）には解釈の余地がある。運営了承のうえ、取り出すのは事実情報（力士名・勝敗・決まり手）だけ・低頻度に限定している。ABEMAから停止を求められたら、すぐにワークフローを止めて手動登録に戻すこと。
   - 確定済みの結果は上書きしない。ABEMAの◯●マークは誤ることがある（2026年7月場所4日目で5番）ため、「n勝n敗」の成績表示と照合して食い違えば成績表示に合わせて補正する。
+  - 起動用のGitHubトークン（fine-grained・このリポジトリのActions: Read and writeのみ）はSupabase Vaultの `github_dispatch_token`。**有効期限（最長1年）が切れると時刻どおりの起動が止まる**（GitHubのscheduleの保険だけで遅れて動く）ので、期限前に作り直す。
   - 決まり手はゲームの表記にそろえる（`叩き込み`→`はたき込み` など。決まり手予想は `はたき込み` との完全一致で判定するため）。登録ツール側も同じ対応表で正規化する。
 - **番付・優勝三賞は手動**。運営が `取組結果登録ツール.html` で公開情報（相撲レファレンス／ABEMA／スポナビ）をコピペ登録する。相撲レファレンス（sumodb）は robots.txt で取組結果ページ（Results.aspx）のクロールを禁止しているため自動取得しない。
 - ニュース見出しは自動（Googleニュースの公開RSS）。

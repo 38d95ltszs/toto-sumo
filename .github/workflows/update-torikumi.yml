@@ -9,15 +9,19 @@ name: update sumo torikumi
 # 確定済みの取組結果は上書きしない。解析失敗（ページ仕様変更）やアクセス制限(403/429)の
 # ときはジョブが失敗し、GitHubから通知が届く。
 #
-# GitHub Actions の cron は UTC 表記（JST = UTC+9）。混雑時は数分〜数十分遅れることがある。
-#   UTC 10:00 = JST 19:00 / UTC 11:00 = JST 20:00 / UTC 23:00(前日) = JST 08:00
+# 【起動のしくみ】時刻どおりの起動は Supabase の pg_cron が GitHub API で行う（workflow_dispatch）。
+#   GitHub Actions の schedule は混雑時に大きく遅れ、2026年11月場所では3〜10時間遅れていた。
+#   設定は「取組自動取得_定時実行の設定手順.md」。
+# 下の schedule は Supabase 側が止まったときの保険（取得は何度実行しても同じ結果になるので、
+# 遅れて重複実行されても害はない）。混雑しやすい毎時0分を避けて17分にしている。
+#   UTC 10:17 = JST 19:17 / UTC 11:17 = JST 20:17 / UTC 23:17(前日) = JST 08:17
 
 on:
+  workflow_dispatch: {}   # Supabase pg_cron から JST 19:00 / 20:00 / 8:00 に起動
   schedule:
-    - cron: "0 10 * * *"   # JST 19:00
-    - cron: "0 11 * * *"   # JST 20:00
-    - cron: "0 23 * * *"   # JST 08:00
-  workflow_dispatch: {}
+    - cron: "17 10 * * *"   # 保険 JST 19:17
+    - cron: "17 11 * * *"   # 保険 JST 20:17
+    - cron: "17 23 * * *"   # 保険 JST 08:17
 
 concurrency:
   group: update-sumo-torikumi
