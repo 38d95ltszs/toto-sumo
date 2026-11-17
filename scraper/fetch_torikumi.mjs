@@ -20,7 +20,7 @@
 //   ・確定済みの取組結果（win が入っているもの）は、再取得で上書きしない
 //   ・取得結果が想定の形でない（レイアウト変更など）ときは何も書かずに異常終了(exit 1)
 //   ・ネットワーク不調・未公開日はそのまま終了(exit 0)し、次回に任せる
-//   ・番付・優勝三賞・news など days 以外のフィールドには一切触れない
+//   ・書き換えるのは days と、そこから割り出す kyujoLog（休場）だけ。番付・優勝三賞・news には触れない
 //
 // 使い方:  node scraper/fetch_torikumi.mjs
 // 依存パッケージなし（Node 20+）。テスト用: FIXTURE_DIR / FAKE_NOW 環境変数（下記）。
@@ -249,6 +249,25 @@ function mergeDay(existing, fresh, day) {
   return out;
 }
 
+// ---------- 休場（kyujoLog）の自動算出 ----------
+// 番付（幕内）にいるのに、その日の取組に名前が無い力士＝その日は休場。不戦敗の力士もその日は休場。
+// ゲーム側（buildSimFromReal）は「前日までに休場の記録がある力士が再び取組に出たら、
+// その日から休場明け×2」と判定するので、これが無いと休場明けのブーストがかからない。
+// 取組数が少なすぎる日（掲載途中など）は判定しない。既存の記録（手動登録分）は消さずに足す。
+function deriveKyujoLog(data) {
+  const makuuchi = (data.banzuke || []).filter(b => !/^J/.test(b.rank || "")).map(b => b.name);
+  const out = {};
+  for (const [k, v] of Object.entries(data.kyujoLog || {})) if (Array.isArray(v)) out[k] = [...new Set(v)];
+  for (const [k, bouts] of Object.entries(data.days || {})) {
+    if (!Array.isArray(bouts) || bouts.length < MIN_BOUTS) continue;
+    const names = new Set(bouts.flatMap(b => [b.e, b.w]));
+    const kyujo = makuuchi.filter(n => !names.has(n));
+    for (const b of bouts) if (b.fusen && b.win) kyujo.push(b.win === "e" ? b.w : b.e);
+    if (kyujo.length) out[k] = [...new Set([...(out[k] || []), ...kyujo])];
+  }
+  return Object.fromEntries(Object.keys(out).sort((a, b) => a - b).filter(k => out[k].length).map(k => [k, out[k]]));
+}
+
 // ---------- メイン ----------
 async function main() {
   if (!existsSync(DATA)) { console.log(`${DATA} がありません。終了。`); return 0; }
@@ -299,6 +318,13 @@ async function main() {
     } else {
       console.log(`day${d}: 変更なし（${merged.length}番・結果確定 ${done}番）`);
     }
+  }
+
+  const kyujo = deriveKyujoLog(data);
+  if (JSON.stringify(kyujo) !== JSON.stringify(data.kyujoLog || {})) {
+    data.kyujoLog = kyujo;
+    changed = true;
+    console.log("kyujoLog を更新:", Object.entries(kyujo).map(([k, v]) => `${k}日目=${v.join("・")}`).join(" / "));
   }
 
   if (!changed) { console.log("変更なし。"); return 0; }
