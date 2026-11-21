@@ -1,6 +1,6 @@
 {
  "bashoKey": "2026-11",
- "updatedAt": "2026-11-21T10:00:11.670Z",
+ "updatedAt": "2026-11-21T13:21:37.030Z",
  "source": "sports.yahoo.co.jp/sumo",
  "banzuke": [
   {
@@ -249,6 +249,10 @@
    "獅司"
   ],
   "14": [
+   "朝紅龍",
+   "獅司"
+  ],
+  "15": [
    "朝紅龍",
    "獅司"
   ]
@@ -2298,6 +2302,148 @@
     "w": "出羽ノ龍",
     "k": "上手投げ",
     "win": "e",
+    "fusen": false
+   }
+  ],
+  "15": [
+   {
+    "e": "大の里",
+    "w": "豊昇龍",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "安青錦",
+    "w": "琴櫻",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "霧島",
+    "w": "藤ノ川",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "若元春",
+    "w": "熱海富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "美ノ海",
+    "w": "平戸海",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "豪ノ山",
+    "w": "義ノ富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "朝乃山",
+    "w": "金峰山",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "大栄翔",
+    "w": "藤凌駕",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "宇良",
+    "w": "阿炎",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "高安",
+    "w": "藤青雲",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "王鵬",
+    "w": "伯乃富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "尊富士",
+    "w": "時疾風",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "琴勝峰",
+    "w": "嵐富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "大青山",
+    "w": "琴栄峰",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "狼雅",
+    "w": "寿之富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "朝白龍",
+    "w": "錦富士",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "欧勝馬",
+    "w": "旭海雄",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "隆の勝",
+    "w": "出羽ノ龍",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "一山本",
+    "w": "北の若",
+    "k": null,
+    "win": null,
+    "fusen": false
+   },
+   {
+    "e": "玉鷲",
+    "w": "朝翠龍",
+    "k": null,
+    "win": null,
     "fusen": false
    }
   ]
